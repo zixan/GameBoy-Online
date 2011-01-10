@@ -2,7 +2,7 @@
  * JavaScript GameBoy Color Emulator
  * Copyright (C) 2010 Grant Galitz
  * 
- * Ported the video, HDMA, and double speed mode procedure from the STOP opcode from MeBoy 2.2
+ * Ported the video engine (advanced gfx one), some HDMA handling, and the double speed mode procedure (STOP opcode procedure) from MeBoy 2.2
  * http://arktos.se/meboy/
  * Copyright (C) 2005-2009 Bjorn Carlin
  *
