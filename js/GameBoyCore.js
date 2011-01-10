@@ -1287,7 +1287,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 			parentObj.programCounter = parentObj.nswtuw(parentObj.programCounter - 1);
 		}
 		else {
-			if (!parentObj.IME && !parentObj.cGBC && !parentObj.usedBootROM && (parentObj.memory[0xFF0F] & parentObj.memory[0xFFFF] & 0x1F) > 0) {
+			if (!parentObj.halt && !parentObj.IME && !parentObj.cGBC && !parentObj.usedBootROM && (parentObj.memory[0xFF0F] & parentObj.memory[0xFFFF] & 0x1F) > 0) {
 				parentObj.skipPCIncrement = true;
 			}
 			parentObj.halt = true;
