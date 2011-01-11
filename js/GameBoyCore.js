@@ -705,7 +705,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//JR n
 	//#0x18:
 	function (parentObj) {
-		parentObj.programCounter = parentObj.nswtuw(parentObj.programCounter + parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter)) + 1);
+		parentObj.programCounter = (parentObj.programCounter + parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter)) + 1) & 0xFFFF;
 	},
 	//ADD HL, DE
 	//#0x19:
@@ -763,7 +763,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x20:
 	function (parentObj) {
 		if (!parentObj.FZero) {
-			parentObj.programCounter = parentObj.nswtuw(parentObj.programCounter + parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter)) + 1);
+			parentObj.programCounter = (parentObj.programCounter + parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter)) + 1) & 0xFFFF;
 			parentObj.CPUTicks++;
 		}
 		else {
@@ -834,7 +834,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x28:
 	function (parentObj) {
 		if (parentObj.FZero) {
-			parentObj.programCounter = parentObj.nswtuw(parentObj.programCounter + parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter)) + 1);
+			parentObj.programCounter = (parentObj.programCounter + parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter)) + 1) & 0xFFFF;
 			parentObj.CPUTicks++;
 		}
 		else {
@@ -894,7 +894,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x30:
 	function (parentObj) {
 		if (!parentObj.FCarry) {
-			parentObj.programCounter = parentObj.nswtuw(parentObj.programCounter + parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter)) + 1);
+			parentObj.programCounter = (parentObj.programCounter + parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter)) + 1) & 0xFFFF;
 			parentObj.CPUTicks++;
 		}
 		else {
@@ -952,7 +952,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x38:
 	function (parentObj) {
 		if (parentObj.FCarry) {
-			parentObj.programCounter = parentObj.nswtuw(parentObj.programCounter + parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter)) + 1);
+			parentObj.programCounter = (parentObj.programCounter + parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter)) + 1) & 0xFFFF;
 			parentObj.CPUTicks++;
 		}
 		else {
@@ -1284,7 +1284,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 			/*VBA-M says this fixes Torpedo Range (Seems to work):
 			Involves an edge case where an EI is placed right before a HALT.
 			EI in this case actually is immediate, so we adjust (Hacky?).*/
-			parentObj.programCounter = parentObj.nswtuw(parentObj.programCounter - 1);
+			parentObj.programCounter = (parentObj.programCounter - 1) & 0xFFFF;
 		}
 		else {
 			if (!parentObj.halt && !parentObj.IME && !parentObj.cGBC && !parentObj.usedBootROM && (parentObj.memory[0xFF0F] & parentObj.memory[0xFFFF] & 0x1F) > 0) {
@@ -2312,7 +2312,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0xE8:
 	function (parentObj) {
 		var signedByte = parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter));
-		var temp_value = parentObj.nswtuw(parentObj.stackPointer + signedByte);
+		var temp_value = (parentObj.stackPointer + signedByte) & 0xFFFF;
 		parentObj.FCarry = (((parentObj.stackPointer ^ signedByte ^ temp_value) & 0x100) == 0x100);
 		parentObj.FHalfCarry = (((parentObj.stackPointer ^ signedByte ^ temp_value) & 0x10) == 0x10);
 		parentObj.stackPointer = temp_value;
@@ -2428,7 +2428,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0xF8:
 	function (parentObj) {
 		var signedByte = parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter));
-		parentObj.registersHL = parentObj.nswtuw(parentObj.stackPointer + signedByte);
+		parentObj.registersHL = (parentObj.stackPointer + signedByte) & 0xFFFF;
 		parentObj.FCarry = (((parentObj.stackPointer ^ signedByte ^ parentObj.registersHL) & 0x100) == 0x100);
 		parentObj.FHalfCarry = (((parentObj.stackPointer ^ signedByte ^ parentObj.registersHL) & 0x10) == 0x10);
 		parentObj.programCounter = (parentObj.programCounter + 1) & 0xFFFF;
