@@ -977,7 +977,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//DEC SP
 	//#0x3B:
 	function (parentObj) {
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 	},
 	//INC A
 	//#0x3C:
@@ -1971,9 +1971,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 		if (!parentObj.FZero) {
 			var temp_pc = (parentObj.memoryRead((parentObj.programCounter + 1) & 0xFFFF) << 8) + parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
 			parentObj.programCounter = (parentObj.programCounter + 2) & 0xFFFF;
-			parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+			parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 			parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter >> 8);
-			parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+			parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 			parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter & 0xFF);
 			parentObj.programCounter = temp_pc;
 			parentObj.CPUTicks += 3;
@@ -1985,9 +1985,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//PUSH BC
 	//#0xC5:
 	function (parentObj) {
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.registerB);
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.registerC);
 	},
 	//ADD, n
@@ -2004,9 +2004,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//RST 0
 	//#0xC7:
 	function (parentObj) {
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter >> 8);
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter & 0xFF);
 		parentObj.programCounter = 0;
 	},
@@ -2053,9 +2053,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 		if (parentObj.FZero) {
 			var temp_pc = (parentObj.memoryRead((parentObj.programCounter + 1) & 0xFFFF) << 8) + parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
 			parentObj.programCounter = (parentObj.programCounter + 2) & 0xFFFF;
-			parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+			parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 			parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter >> 8);
-			parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+			parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 			parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter & 0xFF);
 			parentObj.programCounter = temp_pc;
 			parentObj.CPUTicks += 3;
@@ -2069,9 +2069,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	function (parentObj) {
 		var temp_pc = (parentObj.memoryRead((parentObj.programCounter + 1) & 0xFFFF) << 8) + parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
 		parentObj.programCounter = (parentObj.programCounter + 2) & 0xFFFF;
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter >> 8);
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter & 0xFF);
 		parentObj.programCounter = temp_pc;
 	},
@@ -2090,9 +2090,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//RST 0x8
 	//#0xCF:
 	function (parentObj) {
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter >> 8);
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter & 0xFF);
 		parentObj.programCounter = 0x8;
 	},
@@ -2135,9 +2135,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 		if (!parentObj.FCarry) {
 			var temp_pc = (parentObj.memoryRead((parentObj.programCounter + 1) & 0xFFFF) << 8) + parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
 			parentObj.programCounter = (parentObj.programCounter + 2) & 0xFFFF;
-			parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+			parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 			parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter >> 8);
-			parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+			parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 			parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter & 0xFF);
 			parentObj.programCounter = temp_pc;
 			parentObj.CPUTicks += 3;
@@ -2149,9 +2149,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//PUSH DE
 	//#0xD5:
 	function (parentObj) {
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.registerD);
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.registerE);
 	},
 	//SUB A, n
@@ -2169,9 +2169,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//RST 0x10
 	//#0xD7:
 	function (parentObj) {
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter >> 8);
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter & 0xFF);
 		parentObj.programCounter = 0x10;
 	},
@@ -2215,9 +2215,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 		if (parentObj.FCarry) {
 			var temp_pc = (parentObj.memoryRead((parentObj.programCounter + 1) & 0xFFFF) << 8) + parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
 			parentObj.programCounter = (parentObj.programCounter + 2) & 0xFFFF;
-			parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+			parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 			parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter >> 8);
-			parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+			parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 			parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter & 0xFF);
 			parentObj.programCounter = temp_pc;
 			parentObj.CPUTicks += 3;
@@ -2247,9 +2247,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//RST 0x18
 	//#0xDF:
 	function (parentObj) {
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter >> 8);
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter & 0xFF);
 		parentObj.programCounter = 0x18;
 	},
@@ -2285,9 +2285,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//PUSH HL
 	//#0xE5:
 	function (parentObj) {
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.registersHL >> 8);
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.registersHL & 0xFF);
 	},
 	//AND n
@@ -2302,9 +2302,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//RST 0x20
 	//#0xE7:
 	function (parentObj) {
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter >> 8);
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter & 0xFF);
 		parentObj.programCounter = 0x20;
 	},
@@ -2359,9 +2359,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//RST 0x28
 	//#0xEF:
 	function (parentObj) {
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter >> 8);
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter & 0xFF);
 		parentObj.programCounter = 0x28;
 	},
@@ -2402,9 +2402,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//PUSH AF
 	//#0xF5:
 	function (parentObj) {
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.registerA);
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, ((parentObj.FZero) ? 0x80 : 0) + ((parentObj.FSubtract) ? 0x40 : 0) + ((parentObj.FHalfCarry) ? 0x20 : 0) + ((parentObj.FCarry) ? 0x10 : 0));
 	},
 	//OR n
@@ -2418,9 +2418,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//RST 0x30
 	//#0xF7:
 	function (parentObj) {
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter >> 8);
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter & 0xFF);
 		parentObj.programCounter = 0x30;
 	},
@@ -2475,9 +2475,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//RST 0x38
 	//#0xFF:
 	function (parentObj) {
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter >> 8);
-		parentObj.stackPointer = parentObj.unswtuw(parentObj.stackPointer - 1);
+		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
 		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter & 0xFF);
 		parentObj.programCounter = 0x38;
 	}
@@ -6049,9 +6049,9 @@ GameBoyCore.prototype.runInterrupt = function () {
 			this.IME = false;					//Reset the interrupt enabling.
 			this.memory[0xFF0F] -= testbit;		//Reset the interrupt request.
 			//Set the stack pointer to the current program counter value:
-			this.stackPointer = this.unswtuw(this.stackPointer - 1);
+			this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
 			this.memoryWrite(this.stackPointer, this.programCounter >> 8);
-			this.stackPointer = this.unswtuw(this.stackPointer - 1);
+			this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
 			this.memoryWrite(this.stackPointer, this.programCounter & 0xFF);
 			//Set the program counter to the interrupt's address:
 			this.programCounter = 0x0040 + (bitShift * 0x08);
