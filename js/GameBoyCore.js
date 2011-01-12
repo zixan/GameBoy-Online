@@ -127,7 +127,8 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.dutyLookup = [0.125, 0.25, 0.5, 0.75];	//Map the duty values given to ones we can work with.
 	this.audioSamples = [];						//The audio buffer we're working on (When not overflowing).
 	this.audioBackup = [];						//Audio overflow buffer.
-	this.currentBuffer = null;					//Pointer to the sample workbench.
+	this.usingBackupAsMain = 0;					//Don't copy over the backup buffer to the main buffer on the next iteration, instead make the backup the main buffer (vice versa).
+	this.currentBuffer = this.audioSamples;		//Pointer to the sample workbench.
 	this.channelLeftCount = 0;					//How many channels are being fed into the left side stereo / mono.
 	this.channelRightCount = 0;					//How many channels are being fed into the right side stereo.
 	this.initializeAudioStartState();
@@ -5657,12 +5658,12 @@ GameBoyCore.prototype.playAudio = function () {
 		}
 		if (this.audioType == 0) {
 			//mozAudio
-			this.audioHandle.mozWriteAudio(this.audioSamples);
+			this.audioHandle.mozWriteAudio((this.audioOverflow != this.usingBackupAsMain) ? this.audioBackup : this.audioSamples);
 		}
 		else if (this.audioType == 2) {
 			//WAV PCM via Data URI
 			this.audioHandle = (this.outTracker++ > 0) ? this.audioHandle : new AudioThread((!settings[1]) ? 2 : 1, settings[14], settings[15], false);
-			this.audioHandle.appendBatch(this.audioSamples);
+			this.audioHandle.appendBatch((this.audioOverflow != this.usingBackupAsMain) ? this.audioBackup : this.audioSamples);
 		}
 	}
 }
@@ -5678,14 +5679,7 @@ GameBoyCore.prototype.audioUpdate = function () {
 				cout("Audio system cannot run: " + error.message, 2);
 			}
 		}
-		this.currentBuffer = this.audioSamples;
-		//If we generated too many samples to output from the last run, align them here:
-		if (this.audioOverflow) {
-			for (var sampleOverwrite = 0; sampleOverwrite < this.audioIndex; sampleOverwrite++) {
-				this.currentBuffer[sampleOverwrite] = this.audioBackup[sampleOverwrite];
-			}
-			this.audioOverflow = false;
-		}
+		this.audioOverflow = false;
 	}
 }
 GameBoyCore.prototype.initializeAudioStartState = function () {
@@ -5750,7 +5744,14 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 					this.currentBuffer[this.audioIndex++] = this.vinLeft * this.currentSampleLeft / Math.max(this.channelLeftCount, 1);
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
-						this.currentBuffer = this.audioBackup;
+						if (this.usingBackupAsMain) {
+							this.currentBuffer = this.audioSamples;
+							this.usingBackupAsMain = false;
+						}
+						else {
+							this.currentBuffer = this.audioBackup;
+							this.usingBackupAsMain = true;
+						}
 						this.audioOverflow = true;
 					}
 				}
@@ -5766,7 +5767,14 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 					this.currentBuffer[this.audioIndex++] = this.vinLeft * this.currentSampleLeft / Math.max(this.channelLeftCount, 1);
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
-						this.currentBuffer = this.audioBackup;
+						if (this.usingBackupAsMain) {
+							this.currentBuffer = this.audioSamples;
+							this.usingBackupAsMain = false;
+						}
+						else {
+							this.currentBuffer = this.audioBackup;
+							this.usingBackupAsMain = true;
+						}
 						this.audioOverflow = true;
 					}
 				}
@@ -5777,10 +5785,17 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			if (settings[1]) {
 				while (--numSamples >= 0) {
 					//MONO
-					this.audioSamples[this.audioIndex++] = 0;
+					this.currentBuffer[this.audioIndex++] = 0;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
-						this.currentBuffer = this.audioBackup;
+						if (this.usingBackupAsMain) {
+							this.currentBuffer = this.audioSamples;
+							this.usingBackupAsMain = false;
+						}
+						else {
+							this.currentBuffer = this.audioBackup;
+							this.usingBackupAsMain = true;
+						}
 						this.audioOverflow = true;
 					}
 				}
@@ -5788,10 +5803,17 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			else {
 				while (--numSamples >= 0) {
 					//STEREO
-					this.audioSamples[this.audioIndex++] = this.audioSamples[this.audioIndex++] = 0;
+					this.currentBuffer[this.audioIndex++] = this.currentBuffer[this.audioIndex++] = 0;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
-						this.currentBuffer = this.audioBackup;
+						if (this.usingBackupAsMain) {
+							this.currentBuffer = this.audioSamples;
+							this.usingBackupAsMain = false;
+						}
+						else {
+							this.currentBuffer = this.audioBackup;
+							this.usingBackupAsMain = true;
+						}
 						this.audioOverflow = true;
 					}
 				}
@@ -5912,7 +5934,7 @@ GameBoyCore.prototype.channel2Compute = function () {
 GameBoyCore.prototype.channel3Compute = function () {
 	if (this.channel3canPlay && (this.channel3consecutive || this.channel3totalLength > 0)) {
 		if (this.channel3patternType > 0) {
-			var PCMSample = (this.channel3PCM[Math.floor(this.channel3Tracker)] >> (this.channel3patternType - 1)) / 0xF;
+			var PCMSample = (this.channel3PCM[this.channel3Tracker | 0] >> (this.channel3patternType - 1)) / 0xF;
 			if (this.leftChannel[2]) {
 				this.currentSampleLeft += PCMSample;
 				this.channelLeftCount++;
@@ -5936,7 +5958,7 @@ GameBoyCore.prototype.channel3Compute = function () {
 }
 GameBoyCore.prototype.channel4Compute = function () {
 	if (this.channel4consecutive || this.channel4totalLength > 0) {
-		var duty = this.channel4currentVolume * this.noiseTableLookup[Math.floor(this.channel4lastSampleLookup)];
+		var duty = this.channel4currentVolume * this.noiseTableLookup[this.channel4lastSampleLookup | 0];
 		if (this.leftChannel[3]) {
 			this.currentSampleLeft += duty;
 			this.channelLeftCount++;
@@ -6120,7 +6142,7 @@ GameBoyCore.prototype.updateCore = function () {
 	this.audioTicks += timedTicks;				//Not the same as the LCD timing (Cannot be altered by display on/off changes!!!).
 	if (this.audioTicks >= settings[11]) {		//Are we past the granularity setting?
 		var amount = this.audioTicks * this.samplesOut;
-		var actual = Math.floor(amount);
+		var actual = amount | 0;
 		this.rollover += amount - actual;
 		if (this.rollover >= 1) {
 			this.rollover -= 1;
@@ -6415,9 +6437,9 @@ GameBoyCore.prototype.resizeFrameBuffer = function () {
 	var column = 0;
 	var rowOffset = 0;
 	for (var row = 0; row < this.height; row++) {
-		rowOffset = Math.floor(row * this.heightRatio) * 160;
+		rowOffset = ((row * this.heightRatio) | 0) * 160;
 		for (column = 0; column < this.width; column++) {
-			this.scaledFrameBuffer[(row * this.width) + column] = this.frameBuffer[rowOffset + Math.floor(column * this.widthRatio)];
+			this.scaledFrameBuffer[(row * this.width) + column] = this.frameBuffer[rowOffset + ((column * this.widthRatio) | 0)];
 		}
 	}
 	return this.scaledFrameBuffer;
@@ -7170,7 +7192,7 @@ GameBoyCore.prototype.MBC3WriteRTCLatch = function (parentObj, address, data) {
 	else if (!parentObj.RTCisLatched) {
 		//Copy over the current RTC time for reading.
 		parentObj.RTCisLatched = true;
-		parentObj.latchedSeconds = Math.floor(parentObj.RTCSeconds);
+		parentObj.latchedSeconds = parentObj.RTCSeconds | 0;
 		parentObj.latchedMinutes = parentObj.RTCMinutes;
 		parentObj.latchedHours = parentObj.RTCHours;
 		parentObj.latchedLDays = (parentObj.RTCDays & 0xFF);
@@ -7321,7 +7343,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		parentObj.TACClocker = Math.pow(4, ((data & 0x3) != 0) ? (data & 0x3) : 4);	//TODO: Find a way to not make a conditional in here...
 	}
 	this.memoryWriter[0xFF10] = function (parentObj, address, data) {
-		parentObj.channel1lastTimeSweep = parentObj.channel1timeSweep = Math.floor(((data & 0x70) >> 4) * parentObj.channel1TimeSweepPreMultiplier);
+		parentObj.channel1lastTimeSweep = parentObj.channel1timeSweep = (((data & 0x70) >> 4) * parentObj.channel1TimeSweepPreMultiplier) | 0;
 		parentObj.channel1numSweep = data & 0x07;
 		parentObj.channel1frequencySweepDivider = 1 << parentObj.channel1numSweep;
 		parentObj.channel1decreaseSweep = ((data & 0x08) == 0x08);
