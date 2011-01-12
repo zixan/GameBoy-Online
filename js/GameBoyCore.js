@@ -7328,8 +7328,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		parentObj.memory[0xFF10] = data;
 	}
 	this.memoryWriter[0xFF11] = function (parentObj, address, data) {
-		var channel1duty = data >> 6;
-		parentObj.channel1adjustedDuty = parentObj.dutyLookup[channel1duty];
+		parentObj.channel1adjustedDuty = parentObj.dutyLookup[data >> 6];
 		parentObj.channel1lastTotalLength = parentObj.channel1totalLength = (0x40 - (data & 0x3F)) * parentObj.audioTotalLengthMultiplier;
 		parentObj.memory[0xFF11] = data & 0xC0;
 	}
@@ -7368,8 +7367,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		parentObj.memory[0xFF14] = data & 0x40;
 	}
 	this.memoryWriter[0xFF16] = function (parentObj, address, data) {
-		var channel2duty = data >> 6;
-		parentObj.channel2adjustedDuty = parentObj.dutyLookup[channel2duty];
+		parentObj.channel2adjustedDuty = parentObj.dutyLookup[data >> 6];
 		parentObj.channel2lastTotalLength = parentObj.channel2totalLength = (0x40 - (data & 0x3F)) * parentObj.audioTotalLengthMultiplier;
 		parentObj.memory[0xFF16] = data & 0xC0;
 	}
