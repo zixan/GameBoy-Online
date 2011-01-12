@@ -7857,20 +7857,6 @@ GameBoyCore.prototype.unsbtub = function (ubyte) {
 	}
 	return ubyte;	//If this function is called, no wrapping requested.
 }
-GameBoyCore.prototype.nswtuw = function (uword) {
-	//Keep an unsigned word unsigned:
-	if (uword < 0) {
-		uword += 0x10000;
-	}
-	return uword & 0xFFFF;	//Wrap also...
-}
-GameBoyCore.prototype.unswtuw = function (uword) {
-	//Keep an unsigned word unsigned:
-	if (uword < 0) {
-		uword += 0x10000;
-	}
-	return uword;	//If this function is called, no wrapping requested.
-}
 GameBoyCore.prototype.toTypedArray = function (baseArray, bit32, unsigned) {
 	try {
 		var typedArrayTemp = (bit32) ? ((unsigned) ? new Uint32Array(baseArray.length) : new Int32Array(baseArray.length)) : new Uint8Array(baseArray.length);
