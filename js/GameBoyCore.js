@@ -6491,7 +6491,7 @@ GameBoyCore.prototype.decodePalette = function (startIndex, data) {
 	}
 }
 GameBoyCore.prototype.notifyScanline = function () {
-	if (settings[4] == 0 || this.frameCount > 0) {
+	//if (settings[4] == 0 || this.frameCount > 0) {
 		if (this.actualScanLine == 0) {
 			this.windowSourceLine = 0;
 		}
@@ -6511,7 +6511,7 @@ GameBoyCore.prototype.notifyScanline = function () {
 		if (windowLeft < 160) {
 			this.windowSourceLine++;
 		}
-	}
+	//}
 }
 GameBoyCore.prototype.drawBackgroundForLine = function (line, windowLeft, priority) {
 	var skippedTile = false;
