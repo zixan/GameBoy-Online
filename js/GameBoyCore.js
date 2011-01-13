@@ -4867,7 +4867,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 					this.channel2Compute();
 					this.channel3Compute();
 					this.channel4Compute();
-					this.currentBuffer[this.audioIndex++] = this.vinLeft * this.currentSampleLeft / Math.max(this.channelLeftCount, 1);
+					this.currentBuffer[this.audioIndex++] = /*this.vinLeft * */this.currentSampleLeft / Math.max(this.channelLeftCount, 1);
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
 						if (this.usingBackupAsMain) {
@@ -4889,8 +4889,8 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 					this.channel2Compute();
 					this.channel3Compute();
 					this.channel4Compute();
-					this.currentBuffer[this.audioIndex++] = this.vinRight * this.currentSampleRight / Math.max(this.channelRightCount, 1);
-					this.currentBuffer[this.audioIndex++] = this.vinLeft * this.currentSampleLeft / Math.max(this.channelLeftCount, 1);
+					this.currentBuffer[this.audioIndex++] = /*this.vinRight * */this.currentSampleRight / Math.max(this.channelRightCount, 1);
+					this.currentBuffer[this.audioIndex++] = /*this.vinLeft * */this.currentSampleLeft / Math.max(this.channelLeftCount, 1);
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
 						if (this.usingBackupAsMain) {
