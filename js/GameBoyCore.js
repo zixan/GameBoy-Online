@@ -6104,13 +6104,13 @@ GameBoyCore.prototype.scanLineMode3 = function () { // OAM in use
 }
 GameBoyCore.prototype.scanLineMode0 = function () { // H-Blank 
 	if (this.modeSTAT != 0) {
-		if (this.hdmaRunning && !this.halt && this.LCDisOn) {
+		this.notifyScanline();
+		if (this.hdmaRunning && !this.halt) {
 			this.performHdma();	//H-Blank DMA
 		}
 		if (this.mode0TriggerSTAT || (this.mode2TriggerSTAT && this.STATTracker == 0)) {
 			this.memory[0xFF0F] |= 0x2; // if STAT bit 3 -> set IF bit1
 		}
-		this.notifyScanline();
 		this.STATTracker = 2;
 		this.modeSTAT = 0;
 	}
@@ -6199,9 +6199,8 @@ GameBoyCore.prototype.initializeLCDController = function () {
 				else {
 					//We're on a new scan line:
 					parentObj.LCDTicks -= 114;
-					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
-					parentObj.matchLYC();
 					if (parentObj.STATTracker != 2) {
+						parentObj.notifyScanline();
 						if (parentObj.hdmaRunning && !parentObj.halt && parentObj.LCDisOn) {
 							parentObj.performHdma();	//H-Blank DMA
 						}
@@ -6209,6 +6208,8 @@ GameBoyCore.prototype.initializeLCDController = function () {
 							parentObj.memory[0xFF0F] |= 0x2;// set IF bit 1
 						}
 					}
+					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
+					parentObj.matchLYC();
 					parentObj.STATTracker = 0;
 					parentObj.scanLineMode2();	// mode2: 80 cycles
 					if (parentObj.LCDTicks >= 114) {
@@ -6235,12 +6236,11 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					//Starting V-Blank:
 					//Just finished the last visible scan line:
 					parentObj.LCDTicks -= 114;
-					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
-					parentObj.matchLYC();
 					if (parentObj.mode1TriggerSTAT) {
 						parentObj.memory[0xFF0F] |= 0x2;// set IF bit 1
 					}
 					if (parentObj.STATTracker != 2) {
+						parentObj.notifyScanline();
 						if (parentObj.hdmaRunning && !parentObj.halt && parentObj.LCDisOn) {
 							parentObj.performHdma();	//H-Blank DMA
 						}
@@ -6248,6 +6248,8 @@ GameBoyCore.prototype.initializeLCDController = function () {
 							parentObj.memory[0xFF0F] |= 0x2;// set IF bit 1
 						}
 					}
+					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
+					parentObj.matchLYC();
 					parentObj.STATTracker = 0;
 					parentObj.modeSTAT = 1;
 					parentObj.memory[0xFF0F] |= 0x1; 	// set IF flag 0
@@ -6489,24 +6491,26 @@ GameBoyCore.prototype.decodePalette = function (startIndex, data) {
 	}
 }
 GameBoyCore.prototype.notifyScanline = function () {
-	if (this.actualScanLine == 0) {
-		this.windowSourceLine = 0;
-	}
-	// determine the left edge of the window (160 if window is inactive)
-	var windowLeft = (this.gfxWindowDisplay && this.memory[0xFF4A] <= this.actualScanLine) ? Math.min(160, this.memory[0xFF4B] - 7) : 160;
-	// step 1: background+window
-	var skippedAnything = this.drawBackgroundForLine(this.actualScanLine, windowLeft, 0);
-	// At this point, the high (alpha) byte in the frameBuffer is 0xff for colors 1,2,3 and
-	// 0x00 for color 0. Foreground sprites draw on all colors, background sprites draw on
-	// top of color 0 only.
-	// step 2: sprites
-	this.drawSpritesForLine(this.actualScanLine);
-	// step 3: prio tiles+window
-	if (skippedAnything) {
-		this.drawBackgroundForLine(this.actualScanLine, windowLeft, 0x80);
-	}
-	if (windowLeft < 160) {
-		this.windowSourceLine++;
+	if (settings[4] == 0 || this.frameCount > 0) {
+		if (this.actualScanLine == 0) {
+			this.windowSourceLine = 0;
+		}
+		// determine the left edge of the window (160 if window is inactive)
+		var windowLeft = (this.gfxWindowDisplay && this.memory[0xFF4A] <= this.actualScanLine) ? Math.min(160, this.memory[0xFF4B] - 7) : 160;
+		// step 1: background+window
+		var skippedAnything = this.drawBackgroundForLine(this.actualScanLine, windowLeft, 0);
+		// At this point, the high (alpha) byte in the frameBuffer is 0xff for colors 1,2,3 and
+		// 0x00 for color 0. Foreground sprites draw on all colors, background sprites draw on
+		// top of color 0 only.
+		// step 2: sprites
+		this.drawSpritesForLine(this.actualScanLine);
+		// step 3: prio tiles+window
+		if (skippedAnything) {
+			this.drawBackgroundForLine(this.actualScanLine, windowLeft, 0x80);
+		}
+		if (windowLeft < 160) {
+			this.windowSourceLine++;
+		}
 	}
 }
 GameBoyCore.prototype.drawBackgroundForLine = function (line, windowLeft, priority) {
