@@ -32,6 +32,7 @@ function BMPCanvas(canvas, canvasWidth, canvasHeight, imageX, imageY) {
 	this.canvas = canvas.getElementsByTagName("img");	//An array of img DOM elements (Tries to see how many <img> tags are in a container element).
 	this.completeWidth = Math.ceil(canvasWidth);		//The width of the full image (Ceil'd to force it as a integer).
 	this.completeHeight = Math.ceil(canvasHeight);		//The height of the full image (Ceil'd to force it as a integer).
+	this.rgbCount = 4 * this.completeWidth * this.completeHeight;	//The length of the buffer.
 	this.imageX = (imageX > 0) ? Math.ceil(imageX) : 1;	//How many tiles horizontally (Ceil'd to force it as a integer).
 	this.imageY = (imageY > 0) ? Math.ceil(imageY) : 1;	//How many tiles vertically (Ceil'd to force it as a integer).
 	this.tileCount = this.imageX * this.imageY;			//Total number of tiles
@@ -58,33 +59,36 @@ BMPCanvas.prototype.putImageData = function (buffer, x, y) {	//x and y do nothin
 		- Each value is a number that's one byte length unsigned.
 		- The 'Alpha' is ignored, it's just to provide compatibility with the CanvasPixelArray object.
 	*/
-	var bufferTracker = this.blankTileArray.slice(0);	//Default all the tile changed flags to false.
-	for (var heightSlicer = 0; heightSlicer < this.imageY; heightSlicer++) {
-		//Extracting the lines (BMP images are flipped vertically):
-		for (var line = ((heightSlicer + 1) * this.height) - 1; line >= heightSlicer * this.height; line--) {
-			//Focusing on a block of lines for the current tile buffer (Left to right):
-			for (var widthSlicer = 0; widthSlicer < this.imageX; widthSlicer++) {
-				//Extracting a line:
-				var bufferIndex = (heightSlicer * this.imageX) + widthSlicer;
-				for (var column = widthSlicer * this.width; column < (widthSlicer + 1) * this.width; column++) {
-					//Extracting a segment of pixels for the current tile buffer:
-					for (var pixel = 2; pixel >= 0; pixel--) {
-						//Extracting a color (Convert to BGR format from RGBA format):
-						var color = to_byte(buffer.data[(4 * ((line * this.completeWidth) + column)) + pixel]);
-						this.buffersChanged[bufferIndex] = (this.buffersChanged[bufferIndex] || color != this.buffers[bufferIndex][bufferTracker[bufferIndex]]);
-						this.buffers[bufferIndex][bufferTracker[bufferIndex]++] = color;
+	if (buffer && buffer.data && buffer.data.length == this.rgbCount) {	//Check to make sure the buffer is the right size.
+		var realBuffer = buffer.data;
+		var bufferTracker = this.blankTileArray.slice(0);	//Default all the tile changed flags to false.
+		for (var heightSlicer = 0; heightSlicer < this.imageY; heightSlicer++) {
+			//Extracting the lines (BMP images are flipped vertically):
+			for (var line = ((heightSlicer + 1) * this.height) - 1; line >= heightSlicer * this.height; line--) {
+				//Focusing on a block of lines for the current tile buffer (Left to right):
+				for (var widthSlicer = 0; widthSlicer < this.imageX; widthSlicer++) {
+					//Extracting a line:
+					var bufferIndex = (heightSlicer * this.imageX) + widthSlicer;
+					for (var column = widthSlicer * this.width; column < (widthSlicer + 1) * this.width; column++) {
+						//Extracting a segment of pixels for the current tile buffer:
+						for (var pixel = 2; pixel >= 0; pixel--) {
+							//Extracting a color (Convert to BGR format from RGBA format):
+							var color = to_byte(realBuffer[(4 * ((line * this.completeWidth) + column)) + pixel]);
+							this.buffersChanged[bufferIndex] = (this.buffersChanged[bufferIndex] || color != this.buffers[bufferIndex][bufferTracker[bufferIndex]]);
+							this.buffers[bufferIndex][bufferTracker[bufferIndex]++] = color;
+						}
 					}
+					bufferTracker[bufferIndex] += this.padAmount;	//Skip past any padding...
 				}
-				bufferTracker[bufferIndex] += this.padAmount;	//Skip past any padding...
 			}
 		}
-	}
-	//Create and draw out the BMP formatted images:
-	for (var index = 0; index < this.tileCount; index++) {
-		//Only redraw a tile when its buffer is different from the last run:
-		if (this.buffersChanged[index]) {
-			this.bufferUpdate(index);
-			this.buffersChanged[index] = false;
+		//Create and draw out the BMP formatted images:
+		for (var index = 0; index < this.tileCount; index++) {
+			//Only redraw a tile when its buffer is different from the last run:
+			if (this.buffersChanged[index]) {
+				this.bufferUpdate(index);
+				this.buffersChanged[index] = false;
+			}
 		}
 	}
 }

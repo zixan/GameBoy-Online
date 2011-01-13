@@ -135,8 +135,8 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.noiseTableLookup = null;
 	this.smallNoiseTable = new Array(0x80);
 	this.largeNoiseTable = new Array(0x8000);
-	this.soundMasterEnabled = false;							//As its name implies
-	this.audioType = -1;										//Track what method we're using for audio output.
+	this.soundMasterEnabled = false;			//As its name implies
+	this.audioType = -1;						//Track what method we're using for audio output.
 	//Vin Shit:
 	this.VinLeftChannelEnabled = false;
 	this.VinRightChannelEnabled = false;
@@ -145,8 +145,8 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.vinLeft = 1;
 	this.vinRight = 1;
 	//Channels Enabled:
-	this.leftChannel = new Array(true, true, true, false);		//Which channels are enabled for left side stereo / mono?
-	this.rightChannel = new Array(true, true, true, false);		//Which channels are enabled for right side stereo?
+	this.leftChannel = this.ArrayPad(4, false);		//Which channels are enabled for left side stereo / mono?
+	this.rightChannel = this.ArrayPad(4, false);	//Which channels are enabled for right side stereo?
 	//Current Samples Being Computed:
 	this.currentSampleLeft = 0;
 	this.currentSampleRight = 0;
@@ -4227,7 +4227,7 @@ GameBoyCore.prototype.start = function () {
 	this.initializeLCDController();	//Compile the LCD controller functions.
 	this.initMemory();	//Write the startup memory.
 	this.ROMLoad();		//Load the ROM into memory and get cartridge information from it.
-	this.initLCD();		//Initializae the graphics.
+	this.initLCD();		//Initialize the graphics.
 	this.initSound();	//Sound object initialization.
 	this.run();			//Start the emulation.
 }
@@ -4275,8 +4275,8 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.FHalfCarry = true;
 	this.FCarry = true;
 	this.registersHL = 0x014D;
-	this.leftChannel = new Array(true, true, true, false);
-	this.rightChannel = new Array(true, true, true, false);
+	this.leftChannel = this.ArrayPad(4, true);
+	this.rightChannel = this.ArrayPad(4, true);
 	//Fill in the boot ROM set register values
 	//Default values to the GB boot ROM values, then fill in the GBC boot ROM values after ROM loading
 	var index = 0xFF;
@@ -4637,8 +4637,6 @@ GameBoyCore.prototype.initLCD = function () {
 		}
 		//Create a white screen
 		this.drawContext = this.canvas.getContext("2d");
-		this.drawContext.fillStyle = "rgb(255, 255, 255)";
-		this.drawContext.fillRect(0, 0, this.width, this.height);
 		//Get a CanvasPixelArray buffer:
 		try {
 			this.canvasBuffer = this.drawContext.createImageData(this.width, this.height);
@@ -5430,18 +5428,11 @@ GameBoyCore.prototype.initializeLCDController = function () {
 GameBoyCore.prototype.DisplayShowOff = function () {
 	if (this.drewBlank == 0) {
 		//Draw a blank screen:
-		try {
-			this.drawContext.fillStyle = "white";
-			this.drawContext.fillRect(0, 0, this.width, this.height);
+		var index = this.rgbCount;
+		while (index > 0) {
+			this.canvasBuffer.data[--index] = 0xFF;
 		}
-		catch (error) {
-			//cout("Could not use fillStyle / fillRect.", 2);
-			var index = this.pixelCount;
-			while (index > 0) {
-				this.canvasBuffer.data[--index] = 0xFF;
-			}
-			this.drawContext.putImageData(this.canvasBuffer, 0, 0);
-		}
+		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 		this.drewBlank = 2;
 	}
 }
