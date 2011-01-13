@@ -760,7 +760,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 		parentObj.registerA = (parentObj.registerA >> 1) + carry_flag;
 		parentObj.FZero = parentObj.FSubtract = parentObj.FHalfCarry = false;
 	},
-	//JR cc, n
+	//JR NZ, n
 	//#0x20:
 	function (parentObj) {
 		if (!parentObj.FZero) {
@@ -831,7 +831,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 		parentObj.FHalfCarry = ((temp_var & 0x20) == 0x20);
 		parentObj.FCarry = ((temp_var & 0x10) == 0x10);
 	},
-	//JR cc, n
+	//JR Z, n
 	//#0x28:
 	function (parentObj) {
 		if (parentObj.FZero) {
@@ -891,7 +891,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 		parentObj.registerA ^= 0xFF;
 		parentObj.FSubtract = parentObj.FHalfCarry = true;
 	},
-	//JR cc, n
+	//JR NC, n
 	//#0x30:
 	function (parentObj) {
 		if (!parentObj.FCarry) {
@@ -949,7 +949,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 		parentObj.FCarry = true;
 		parentObj.FSubtract = parentObj.FHalfCarry = false;
 	},
-	//JR cc, n
+	//JR C, n
 	//#0x38:
 	function (parentObj) {
 		if (parentObj.FCarry) {
