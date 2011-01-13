@@ -4841,10 +4841,10 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel3canPlay = false;
 	this.channel3totalLength = 0;
 	this.channel3lastTotalLength = 0;
-	this.channel3patternType = 0;
+	this.channel3patternType = -20;
 	this.channel3frequency = 0;
 	this.channel3consecutive = true;
-	this.channel3PCM = this.getTypedArray(0x20, 0xF, "uint8");
+	this.channel3PCM = this.getTypedArray(0x60, 0xF, "float32");
 	this.channel3adjustedFrequencyPrep = 0x20000 / settings[14];
 	this.channel4adjustedFrequencyPrep = 0;
 	this.channel4lastSampleLookup = 0;				//Keeps track of the audio timing.
@@ -5059,8 +5059,8 @@ GameBoyCore.prototype.channel2Compute = function () {
 }
 GameBoyCore.prototype.channel3Compute = function () {
 	if (this.channel3canPlay && (this.channel3consecutive || this.channel3totalLength > 0)) {
-		if (this.channel3patternType > 0) {
-			var PCMSample = (this.channel3PCM[this.channel3Tracker | 0] >> (this.channel3patternType - 1)) / 0xF;
+		if (this.channel3patternType > -20) {
+			var PCMSample = this.channel3PCM[this.channel3Tracker | this.channel3patternType];
 			if (this.leftChannel[2]) {
 				this.currentSampleLeft += PCMSample;
 				this.channelLeftCount++;
@@ -6570,7 +6570,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryWriter[0xFF1C] = function (parentObj, address, data) {
 		parentObj.memory[0xFF1C] = data & 0x60;
-		parentObj.channel3patternType = parentObj.memory[0xFF1C] >> 5;
+		parentObj.channel3patternType = parentObj.memory[0xFF1C] - 0x20;
 	}
 	this.memoryWriter[0xFF1D] = function (parentObj, address, data) {
 		parentObj.channel3frequency = (parentObj.channel3frequency & 0x700) | data;
@@ -6649,84 +6649,148 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 	}
 	this.memoryWriter[0xFF30] = function (parentObj, address, data) {
-		parentObj.channel3PCM[0] = data >> 4;
-		parentObj.channel3PCM[1] = data & 0xF;
 		parentObj.memory[0xFF30] = data;
+		parentObj.channel3PCM[0x00] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x20] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x40] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x01] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x21] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x41] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF31] = function (parentObj, address, data) {
-		parentObj.channel3PCM[2] = data >> 4;
-		parentObj.channel3PCM[3] = data & 0xF;
 		parentObj.memory[0xFF31] = data;
+		parentObj.channel3PCM[0x02] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x22] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x42] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x03] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x23] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x43] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF32] = function (parentObj, address, data) {
-		parentObj.channel3PCM[4] = data >> 4;
-		parentObj.channel3PCM[5] = data & 0xF;
 		parentObj.memory[0xFF32] = data;
+		parentObj.channel3PCM[0x04] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x24] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x44] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x05] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x25] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x45] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF33] = function (parentObj, address, data) {
-		parentObj.channel3PCM[6] = data >> 4;
-		parentObj.channel3PCM[7] = data & 0xF;
 		parentObj.memory[0xFF33] = data;
+		parentObj.channel3PCM[0x06] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x26] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x46] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x07] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x27] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x47] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF34] = function (parentObj, address, data) {
-		parentObj.channel3PCM[8] = data >> 4;
-		parentObj.channel3PCM[9] = data & 0xF;
 		parentObj.memory[0xFF34] = data;
+		parentObj.channel3PCM[0x08] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x28] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x48] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x09] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x29] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x49] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF35] = function (parentObj, address, data) {
-		parentObj.channel3PCM[10] = data >> 4;
-		parentObj.channel3PCM[11] = data & 0xF;
 		parentObj.memory[0xFF35] = data;
+		parentObj.channel3PCM[0x0A] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x2A] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x4A] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x0B] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x2B] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x4B] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF36] = function (parentObj, address, data) {
-		parentObj.channel3PCM[12] = data >> 4;
-		parentObj.channel3PCM[13] = data & 0xF;
 		parentObj.memory[0xFF36] = data;
+		parentObj.channel3PCM[0x0C] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x2C] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x4C] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x0D] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x2D] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x4D] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF37] = function (parentObj, address, data) {
-		parentObj.channel3PCM[14] = data >> 4;
-		parentObj.channel3PCM[15] = data & 0xF;
 		parentObj.memory[0xFF37] = data;
+		parentObj.channel3PCM[0x0E] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x2E] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x4E] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x0F] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x2F] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x4F] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF38] = function (parentObj, address, data) {
-		parentObj.channel3PCM[16] = data >> 4;
-		parentObj.channel3PCM[17] = data & 0xF;
 		parentObj.memory[0xFF38] = data;
+		parentObj.channel3PCM[0x10] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x30] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x50] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x11] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x31] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x51] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF39] = function (parentObj, address, data) {
-		parentObj.channel3PCM[18] = data >> 4;
-		parentObj.channel3PCM[19] = data & 0xF;
 		parentObj.memory[0xFF39] = data;
+		parentObj.channel3PCM[0x12] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x32] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x52] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x13] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x33] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x53] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF3A] = function (parentObj, address, data) {
-		parentObj.channel3PCM[20] = data >> 4;
-		parentObj.channel3PCM[21] = data & 0xF;
 		parentObj.memory[0xFF3A] = data;
+		parentObj.channel3PCM[0x14] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x34] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x54] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x15] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x35] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x55] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF3B] = function (parentObj, address, data) {
-		parentObj.channel3PCM[22] = data >> 4;
-		parentObj.channel3PCM[23] = data & 0xF;
 		parentObj.memory[0xFF3B] = data;
+		parentObj.channel3PCM[0x16] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x36] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x56] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x17] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x37] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x57] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF3C] = function (parentObj, address, data) {
-		parentObj.channel3PCM[24] = data >> 4;
-		parentObj.channel3PCM[25] = data & 0xF;
 		parentObj.memory[0xFF3C] = data;
+		parentObj.channel3PCM[0x18] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x38] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x58] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x19] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x39] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x59] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF3D] = function (parentObj, address, data) {
-		parentObj.channel3PCM[26] = data >> 4;
-		parentObj.channel3PCM[27] = data & 0xF;
 		parentObj.memory[0xFF3D] = data;
+		parentObj.channel3PCM[0x1A] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x3A] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x5A] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x1B] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x3B] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x5B] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF3E] = function (parentObj, address, data) {
-		parentObj.channel3PCM[28] = data >> 4;
-		parentObj.channel3PCM[29] = data & 0xF;
 		parentObj.memory[0xFF3E] = data;
+		parentObj.channel3PCM[0x1C] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x3C] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x5C] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x1D] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x3D] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x5D] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF3F] = function (parentObj, address, data) {
-		parentObj.channel3PCM[30] = data >> 4;
-		parentObj.channel3PCM[31] = data & 0xF;
 		parentObj.memory[0xFF3F] = data;
+		parentObj.channel3PCM[0x1E] = (data >> 4) / 0xF;
+		parentObj.channel3PCM[0x3E] = (data >> 5) / 0xF;
+		parentObj.channel3PCM[0x5E] = (data >> 6) / 0xF;
+		parentObj.channel3PCM[0x1F] = (data & 0xF) / 0xF;
+		parentObj.channel3PCM[0x3F] = (data & 0xE) / 0x1E;
+		parentObj.channel3PCM[0x5F] = (data & 0xC) / 0x3C;
 	}
 	this.memoryWriter[0xFF44] = function (parentObj, address, data) {
 		//Read only
