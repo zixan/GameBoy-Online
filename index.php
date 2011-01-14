@@ -1,6 +1,6 @@
 <?php
-define(CSSDIR, 'css');
-define(JSDIR, 'js');
+define('CSSDIR', 'css');
+define('JSDIR', 'js');
 require_once('./res/framework.php');
 class GameBoy extends site {
 	function start_processing() {
