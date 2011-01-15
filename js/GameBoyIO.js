@@ -180,7 +180,16 @@ function audioOutputEvent(event) {
 	var buffer1 = event.outputBuffer.getChannelData(0);
 	var buffer2 = event.outputBuffer.getChannelData(1);
 	var bufferLength = buffer1.length;
-	if (settings[0] && typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0 && gameboy.webkitAudioBuffer.length >= bufferLength) {
+	var audioLengthMultiplier = settings[1] ? 1 : 2;
+	if (settings[0] && typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
+		if ((gameboy.webkitAudioBuffer.length / audioLengthMultiplier) < bufferLength) {
+			count = bufferLength - (gameboy.webkitAudioBuffer.length / audioLengthMultiplier);
+			var countDown = 0;
+			while (countDown < count) {
+				buffer2[countDown] = buffer1[countDown] = 0;
+				countDown++;
+			}
+		}
 		if (settings[1]) {
 			//MONO:
 			while (count < bufferLength) {
