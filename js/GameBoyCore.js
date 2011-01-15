@@ -4750,6 +4750,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.numSamplesTotal = (settings[1]) ? this.sampleSize : (this.sampleSize * 2);
 	this.audioSamples = this.getTypedArray(this.numSamplesTotal, 0, "float32");
 	this.audioBackup = this.getTypedArray(this.numSamplesTotal, 0, "float32");
+	this.webkitAudioBuffer = [];
 	this.smallNoiseTable = this.getTypedArray(0x80, 0, "float32");
 	this.largeNoiseTable = this.getTypedArray(0x8000, 0, "float32");
 	//var shiftValue = 0;
