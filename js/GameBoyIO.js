@@ -19,7 +19,7 @@ var settings = [						//Some settings.
 	0x10,								//How many bits per WAV PCM sample (For browsers that fall back to WAV PCM generation)
 	true,								//Use the GBC BIOS?
 	true,								//Colorize GB mode?
-	512,								//Sample size for webkit audio.
+	8192,								//Sample size for webkit audio.
 	false,								//Whether to display the canvas at 144x160 on fullscreen or as stretched.
 	17,									//Interval for the emulator loop.
 	false,								//Render nearest-neighbor scaling in javascript?
@@ -175,43 +175,25 @@ function GameBoyJoyStickSignalHandler(e) {
 	}
 }
 //Audio API Event Handler:
-var audioIndex = 0;
 function audioOutputEvent(event) {
 	var count = 0;
 	var buffer1 = event.outputBuffer.getChannelData(0);
 	var buffer2 = event.outputBuffer.getChannelData(1);
 	var bufferLength = buffer1.length;
-	if (settings[0] && typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0 && gameboy.soundMasterEnabled) {
+	if (settings[0] && typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0 && gameboy.webkitAudioBuffer.length >= bufferLength) {
 		if (settings[1]) {
 			//MONO:
 			while (count < bufferLength) {
-				buffer2[count] = buffer1[count] = gameboy.audioSamples[audioIndex++];
-				if (audioIndex >= gameboy.numSamplesTotal) {
-					audioIndex = 0;
-				}
+				buffer2[count] = buffer1[count] = gameboy.webkitAudioBuffer.shift();
 				count++;
 			}
 		}
 		else {
 			//STEREO:
 			while (count < bufferLength) {
-				buffer1[count] = gameboy.audioSamples[audioIndex++];
-				if (audioIndex >= gameboy.numSamplesTotal) {
-					audioIndex = 0;
-				}
-				buffer2[count] = gameboy.audioSamples[audioIndex++];
-				if (audioIndex >= gameboy.numSamplesTotal) {
-					audioIndex = 0;
-				}
-				count++;
+				buffer1[count] = gameboy.webkitAudioBuffer.shift();
+				buffer2[count++] = gameboy.webkitAudioBuffer.shift();
 			}
-		}
-	}
-	else {
-		audioIndex = gameboy.audioIndex = 0;
-		while (count < settings[18]) {
-			buffer2[count] = buffer1[count] = 0;
-			count++;
 		}
 	}
 }

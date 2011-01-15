@@ -127,6 +127,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.dutyLookup = [0.125, 0.25, 0.5, 0.75];	//Map the duty values given to ones we can work with.
 	this.audioSamples = [];						//The audio buffer we're working on (When not overflowing).
 	this.audioBackup = [];						//Audio overflow buffer.
+	this.webkitAudioBuffer = [];				//Used for the webkit audio api, because we must wait for an event handler to output the audio with.
 	this.usingBackupAsMain = 0;					//Don't copy over the backup buffer to the main buffer on the next iteration, instead make the backup the main buffer (vice versa).
 	this.currentBuffer = this.audioSamples;		//Pointer to the sample workbench.
 	this.channelLeftCount = 0;					//How many channels are being fed into the left side stereo / mono.
@@ -4780,14 +4781,30 @@ GameBoyCore.prototype.playAudio = function () {
 			//Make sure we don't under-run the sample generation:
 			this.generateAudio((this.numSamplesTotal - this.audioIndex) / ((!settings[1]) ? 2 : 1));
 		}
+		var buffer = (this.audioOverflow != this.usingBackupAsMain) ? this.audioBackup : this.audioSamples;
 		if (this.audioType == 0) {
 			//mozAudio
-			this.audioHandle.mozWriteAudio((this.audioOverflow != this.usingBackupAsMain) ? this.audioBackup : this.audioSamples);
+			this.audioHandle.mozWriteAudio(buffer);
+		}
+		else if (this.audioType == 1) {
+			//WebKit Audio:
+			var bufferCounter = 0;
+			if (this.webkitAudioBuffer.length < (settings[14] * ((!settings[1]) ? 2 : 1))) {	//Do not update if it gets longer than one second.
+				while (bufferCounter < this.numSamplesTotal) {
+					this.webkitAudioBuffer.push(buffer[bufferCounter++]);
+				}
+			}
+			else {
+				while (bufferCounter < this.numSamplesTotal) {
+					this.webkitAudioBuffer.shift();
+					this.webkitAudioBuffer.push(buffer[bufferCounter++]);
+				}
+			}
 		}
 		else if (this.audioType == 2) {
 			//WAV PCM via Data URI
 			this.audioHandle = (this.outTracker++ > 0) ? this.audioHandle : new AudioThread((!settings[1]) ? 2 : 1, settings[14], settings[15], false);
-			this.audioHandle.appendBatch((this.audioOverflow != this.usingBackupAsMain) ? this.audioBackup : this.audioSamples);
+			this.audioHandle.appendBatch(buffer);
 		}
 	}
 }
