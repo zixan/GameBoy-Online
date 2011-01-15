@@ -196,4 +196,10 @@ function audioOutputEvent(event) {
 			}
 		}
 	}
+	else {
+		while (count < bufferLength) {
+			buffer2[count] = buffer1[count] = 0;
+			count++;
+		}
+	}
 }
