@@ -552,7 +552,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//DEC B
 	//#0x05:
 	function (parentObj) {
-		parentObj.registerB = parentObj.unsbtub(parentObj.registerB - 1);
+		parentObj.registerB = (parentObj.registerB - 1) & 0xFF;
 		parentObj.FZero = (parentObj.registerB == 0);
 		parentObj.FHalfCarry = ((parentObj.registerB & 0xF) == 0xF);
 		parentObj.FSubtract = true;
@@ -611,7 +611,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//DEC C
 	//#0x0D:
 	function (parentObj) {
-		parentObj.registerC = parentObj.unsbtub(parentObj.registerC - 1);
+		parentObj.registerC = (parentObj.registerC - 1) & 0xFF;
 		parentObj.FZero = (parentObj.registerC == 0);
 		parentObj.FHalfCarry = ((parentObj.registerC & 0xF) == 0xF);
 		parentObj.FSubtract = true;
@@ -684,7 +684,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//DEC D
 	//#0x15:
 	function (parentObj) {
-		parentObj.registerD = parentObj.unsbtub(parentObj.registerD - 1);
+		parentObj.registerD = (parentObj.registerD - 1) & 0xFF;
 		parentObj.FZero = (parentObj.registerD == 0);
 		parentObj.FHalfCarry = ((parentObj.registerD & 0xF) == 0xF);
 		parentObj.FSubtract = true;
@@ -741,7 +741,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//DEC E
 	//#0x1D:
 	function (parentObj) {
-		parentObj.registerE = parentObj.unsbtub(parentObj.registerE - 1);
+		parentObj.registerE = (parentObj.registerE - 1) & 0xFF;
 		parentObj.FZero = (parentObj.registerE == 0);
 		parentObj.FHalfCarry = ((parentObj.registerE & 0xF) == 0xF);
 		parentObj.FSubtract = true;
@@ -800,7 +800,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//DEC H
 	//#0x25:
 	function (parentObj) {
-		var H = parentObj.unsbtub((parentObj.registersHL >> 8) - 1);
+		var H = ((parentObj.registersHL >> 8) - 1) & 0xFF;
 		parentObj.FZero = (H == 0);
 		parentObj.FHalfCarry = ((H & 0xF) == 0xF);
 		parentObj.FSubtract = true;
@@ -873,7 +873,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//DEC L
 	//#0x2D:
 	function (parentObj) {
-		var L = parentObj.unsbtub((parentObj.registersHL & 0xFF) - 1);
+		var L = ((parentObj.registersHL & 0xFF) - 1) & 0xFF;
 		parentObj.FZero = (L == 0);
 		parentObj.FHalfCarry = ((L & 0xF) == 0xF);
 		parentObj.FSubtract = true;
@@ -931,7 +931,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//DEC (HL)
 	//#0x35:
 	function (parentObj) {
-		var temp_var = parentObj.unsbtub(parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) - 1);
+		var temp_var = (parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) - 1) & 0xFF;
 		parentObj.FZero = (temp_var == 0);
 		parentObj.FHalfCarry = ((temp_var & 0xF) == 0xF);
 		parentObj.FSubtract = true;
@@ -991,7 +991,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//DEC A
 	//#0x3D:
 	function (parentObj) {
-		parentObj.registerA = parentObj.unsbtub(parentObj.registerA - 1);
+		parentObj.registerA = (parentObj.registerA - 1) & 0xFF;
 		parentObj.FZero = (parentObj.registerA == 0);
 		parentObj.FHalfCarry = ((parentObj.registerA & 0xF) == 0xF);
 		parentObj.FSubtract = true;
@@ -7052,13 +7052,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 GameBoyCore.prototype.usbtsb = function (ubyte) {
 	//Unsigned byte to signed byte:
 	return (ubyte > 0x7F) ? ((ubyte & 0x7F) - 0x80) : ubyte;
-}
-GameBoyCore.prototype.unsbtub = function (ubyte) {
-	//Keep an unsigned byte unsigned:
-	if (ubyte < 0) {
-		ubyte += 0x100;
-	}
-	return ubyte;	//If this function is called, no wrapping requested.
 }
 GameBoyCore.prototype.toTypedArray = function (baseArray, bit32, unsigned) {
 	try {
