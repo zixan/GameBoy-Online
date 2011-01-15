@@ -19,7 +19,7 @@ var settings = [						//Some settings.
 	0x10,								//How many bits per WAV PCM sample (For browsers that fall back to WAV PCM generation)
 	true,								//Use the GBC BIOS?
 	true,								//Colorize GB mode?
-	8192,								//Sample size for webkit audio.
+	4096,								//Sample size for webkit audio.
 	false,								//Whether to display the canvas at 144x160 on fullscreen or as stretched.
 	17,									//Interval for the emulator loop.
 	false,								//Render nearest-neighbor scaling in javascript?
@@ -179,10 +179,9 @@ function audioOutputEvent(event) {
 	var countDown = 0;
 	var buffer1 = event.outputBuffer.getChannelData(0);
 	var buffer2 = event.outputBuffer.getChannelData(1);
-	var bufferLength = settings[18];
-	var audioLengthMultiplier = settings[1] ? 1 : 2;
+	var bufferLength = buffer1.length;
 	if (settings[0] && typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
-		var singleChannelRemainingLength = gameboy.webkitAudioBuffer.length / audioLengthMultiplier;
+		var singleChannelRemainingLength = gameboy.webkitAudioBuffer.length / (settings[1] ? 1 : 2);
 		if (singleChannelRemainingLength < bufferLength) {
 			countDown = bufferLength - singleChannelRemainingLength;
 			var count = 0;
