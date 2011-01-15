@@ -176,39 +176,40 @@ function GameBoyJoyStickSignalHandler(e) {
 }
 //Audio API Event Handler:
 function audioOutputEvent(event) {
-	var count = 0;
+	var countDown = 0;
 	var buffer1 = event.outputBuffer.getChannelData(0);
 	var buffer2 = event.outputBuffer.getChannelData(1);
-	var bufferLength = buffer1.length;
+	var bufferLength = settings[18];
 	var audioLengthMultiplier = settings[1] ? 1 : 2;
 	if (settings[0] && typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
-		if ((gameboy.webkitAudioBuffer.length / audioLengthMultiplier) < bufferLength) {
-			count = bufferLength - (gameboy.webkitAudioBuffer.length / audioLengthMultiplier);
-			var countDown = 0;
-			while (countDown < count) {
-				buffer2[countDown] = buffer1[countDown] = 0;
-				countDown++;
+		var singleChannelRemainingLength = gameboy.webkitAudioBuffer.length / audioLengthMultiplier;
+		if (singleChannelRemainingLength < bufferLength) {
+			countDown = bufferLength - singleChannelRemainingLength;
+			var count = 0;
+			while (countDown > count) {
+				buffer2[count] = buffer1[count] = 0;
+				count++;
 			}
 		}
 		if (settings[1]) {
 			//MONO:
-			while (count < bufferLength) {
-				buffer2[count] = buffer1[count] = gameboy.webkitAudioBuffer.shift();
-				count++;
+			while (countDown < bufferLength) {
+				buffer2[countDown] = buffer1[countDown] = gameboy.webkitAudioBuffer.shift();
+				countDown++;
 			}
 		}
 		else {
 			//STEREO:
-			while (count < bufferLength) {
-				buffer1[count] = gameboy.webkitAudioBuffer.shift();
-				buffer2[count++] = gameboy.webkitAudioBuffer.shift();
+			while (countDown < bufferLength) {
+				buffer1[countDown] = gameboy.webkitAudioBuffer.shift();
+				buffer2[countDown++] = gameboy.webkitAudioBuffer.shift();
 			}
 		}
 	}
 	else {
-		while (count < bufferLength) {
-			buffer2[count] = buffer1[count] = 0;
-			count++;
+		while (countDown < bufferLength) {
+			buffer2[countDown] = buffer1[countDown] = 0;
+			countDown++;
 		}
 	}
 }
