@@ -4248,7 +4248,7 @@ GameBoyCore.prototype.initMemory = function () {
 	this.frameBuffer = this.getTypedArray(23040, 0x00FFFFFF, "int32");
 	this.gbPalette = this.ArrayPad(12, 0);				//32-bit signed
 	this.gbColorizedPalette = this.ArrayPad(12, 0);		//32-bit signed
-	this.gbcRawPalette = this.ArrayPad(0x80, -1000);	//32-bit signed
+	this.gbcRawPalette = this.ArrayPad(0x80, -1000);	//8-bit unsigned
 	this.gbcPalette = new Array(0x40);					//32-bit signed
 	this.convertAuxilliary();
 	//Initialize the GBC Palette:
@@ -5594,7 +5594,7 @@ GameBoyCore.prototype.setGBCPalettePre = function (index_, data) {
 		// stay transparent
 		return;
 	}
-	var value = (this.gbcRawPalette[index_ | 1] << 8) + this.gbcRawPalette[index_ & -2];
+	var value = (this.gbcRawPalette[index_ | 1] << 8) | this.gbcRawPalette[index_ & -2];
 	this.gbcPalette[index_ >> 1] = 0x80000000 + ((value & 0x1F) << 19) + ((value & 0x3E0) << 6) + ((value & 0x7C00) >> 7);
 	this.invalidateAll(index_ >> 3);
 }
@@ -6915,7 +6915,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			}
 		}
 		this.memoryWriter[0xFF68] = function (parentObj, address, data) {
-			parentObj.memory[0xFF69] = 0xFF & parentObj.gbcRawPalette[data & 0x3F];
+			parentObj.memory[0xFF69] = parentObj.gbcRawPalette[data & 0x3F];
 			parentObj.memory[0xFF68] = data;
 		}
 		this.memoryWriter[0xFF69] = function (parentObj, address, data) {
@@ -6923,22 +6923,22 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			if (parentObj.usbtsb(parentObj.memory[0xFF68]) < 0) { // high bit = autoincrement
 				var next = ((parentObj.usbtsb(parentObj.memory[0xFF68]) + 1) & 0x3F);
 				parentObj.memory[0xFF68] = (next | 0x80);
-				parentObj.memory[0xFF69] = 0xFF & parentObj.gbcRawPalette[next];
+				parentObj.memory[0xFF69] = parentObj.gbcRawPalette[next];
 			}
 			else {
 				parentObj.memory[0xFF69] = data;
 			}
 		}
 		this.memoryWriter[0xFF6A] = function (parentObj, address, data) {
-			parentObj.memory[0xFF6B] = 0xFF & parentObj.gbcRawPalette[(data & 0x3F) | 0x40];
+			parentObj.memory[0xFF6B] = parentObj.gbcRawPalette[(data & 0x3F) | 0x40];
 			parentObj.memory[0xFF6A] = data;
 		}
 		this.memoryWriter[0xFF6B] = function (parentObj, address, data) {
-			parentObj.setGBCPalette((parentObj.memory[0xFF6A] & 0x3F) + 0x40, data);
+			parentObj.setGBCPalette((parentObj.memory[0xFF6A] & 0x3F) | 0x40, data);
 			if (parentObj.usbtsb(parentObj.memory[0xFF6A]) < 0) { // high bit = autoincrement
 				var next = ((parentObj.memory[0xFF6A] + 1) & 0x3F);
 				parentObj.memory[0xFF6A] = (next | 0x80);
-				parentObj.memory[0xFF6B] = 0xFF & parentObj.gbcRawPalette[next | 0x40];
+				parentObj.memory[0xFF6B] = parentObj.gbcRawPalette[next | 0x40];
 			}
 			else {
 				parentObj.memory[0xFF6B] = data;
