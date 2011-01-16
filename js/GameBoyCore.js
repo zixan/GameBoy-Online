@@ -5454,8 +5454,8 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 }
 GameBoyCore.prototype.performHdma = function () {
 	this.CPUTicks += 1 + (8 * this.multiplier);
-	var dmaSrc = (this.memory[0xFF51] << 8) + this.memory[0xFF52];
-	var dmaDstRelative = (this.memory[0xFF53] << 8) + this.memory[0xFF54];
+	var dmaSrc = (this.memory[0xFF51] << 8) | this.memory[0xFF52];
+	var dmaDstRelative = (this.memory[0xFF53] << 8) | this.memory[0xFF54];
 	var dmaDstFinal = dmaDstRelative + 0x10;
 	var tileRelative = this.tileData.length - this.tileCount;
 	if (this.currVRAMBank == 1) {
@@ -6885,8 +6885,8 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				if ((data & 0x80) == 0) {
 					//DMA
 					parentObj.CPUTicks += 1 + ((8 * ((data & 0x7F) + 1)) * parentObj.multiplier);
-					var dmaSrc = (parentObj.memory[0xFF51] << 8) + parentObj.memory[0xFF52];
-					var dmaDst = 0x8000 + (parentObj.memory[0xFF53] << 8) + parentObj.memory[0xFF54];
+					var dmaSrc = (parentObj.memory[0xFF51] << 8) | parentObj.memory[0xFF52];
+					var dmaDst = 0x8000 + (parentObj.memory[0xFF53] << 8) | parentObj.memory[0xFF54];
 					var endAmount = (((data & 0x7F) * 0x10) + 0x10);
 					for (var loopAmount = 0; loopAmount < endAmount; loopAmount++) {
 						parentObj.memoryWrite(dmaDst++, parentObj.memoryRead(dmaSrc++));
