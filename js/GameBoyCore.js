@@ -1197,7 +1197,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//LD H, L
 	//#0x65:
 	function (parentObj) {
-		parentObj.registersHL = (parentObj.registersHL & 0xFF) * 0x11;
+		parentObj.registersHL = (parentObj.registersHL & 0xFF) * 0x101;
 	},
 	//LD H, (HL)
 	//#0x66:
