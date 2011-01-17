@@ -304,7 +304,11 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->endElement();
 		$this->startElement('li');
 		$this->writeAttribute('id', 'save_state_clicker');
-		$this->text('Save State');
+		$this->text('Save Freeze State');
+		$this->endElement();
+		$this->startElement('li');
+		$this->writeAttribute('id', 'save_SRAM_state_clicker');
+		$this->text('Save Game Memory');
 		$this->endElement();
 		$this->startElement('li');
 		$this->writeAttribute('id', 'restart_cpu_clicker');

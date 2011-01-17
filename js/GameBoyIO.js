@@ -28,6 +28,7 @@ var settings = [						//Some settings.
 function start(canvas, canvasAlt, ROM) {
 	clearLastEmulation();
 	gameboy = new GameBoyCore(canvas, canvasAlt, ROM);
+	gameboy.openMBC = openSRAM;
 	gameboy.start();
 	run();
 }
@@ -95,6 +96,46 @@ function save() {
 	else {
 		cout("GameBoy core cannot be saved while it has not been initialized.", 1);
 	}
+}
+function saveSRAM() {
+	if (typeof gameboy == "object" && gameboy != null) {
+		if (gameboy.cBATT) {
+			try {
+				var sram = gameboy.saveSRAMState();
+				if (sram.length > 0) {
+					cout("Saving the SRAM...", 0);
+					setValue("SRAM_" + gameboy.name, sram);
+				}
+				else {
+					cout("SRAM could not be saved because  it was empty.", 1);
+				}
+			}
+			catch (error) {
+				cout("Could not save the current emulation state(\"" + error.message + "\").", 2);
+			}
+		}
+		else {
+			cout("Cannot save a game that does not have battery backed SRAM specified.", 1);
+		}
+	}
+	else {
+		cout("GameBoy core cannot be saved while it has not been initialized.", 1);
+	}
+}
+function openSRAM(filename) {
+	try {
+		if (findValue("SRAM_" + filename) != null) {
+			cout("Found a previous SRAM state (Will attempt to load).");
+			return findValue("SRAM_" + filename);
+		}
+		else {
+			cout("Could not find any previous SRAM copy for the current ROM.", 0);
+		}
+	}
+	catch (error) {
+		cout("Could not open the saved emulation state.", 2);
+	}
+	return [];
 }
 function openState(filename, canvas, canvasAlt) {
 	try {

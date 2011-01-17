@@ -222,6 +222,9 @@ function registerGUIEvents() {
 	addEvent("click", document.getElementById("save_state_clicker"), function () {
 		save();
 	});
+	addEvent("click", document.getElementById("save_SRAM_state_clicker"), function () {
+		saveSRAM();
+	});
 	addEvent("click", document.getElementById("enable_sound"), function () {
 		settings[0] = document.getElementById("enable_sound").checked;
 		if (typeof gameboy == "object" && gameboy != null) {

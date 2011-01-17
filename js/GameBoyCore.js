@@ -3897,6 +3897,16 @@ GameBoyCore.prototype.SecondaryTICKTable = new Array(		//Number of machine cycle
 	2, 2, 2, 2, 2, 2, 4, 2,		2, 2, 2, 2, 2, 2, 4, 2,  //E
 	2, 2, 2, 2, 2, 2, 4, 2,		2, 2, 2, 2, 2, 2, 4, 2   //F
 );
+GameBoyCore.prototype.saveSRAMState = function () {
+	if (!this.cBATT || this.MBCRam.length == 0) {
+		//No battery backup...
+		return [];
+	}
+	else {
+		//Return the MBC RAM for backup...
+		return this.fromTypedArray(this.MBCRam);
+	}
+}
 GameBoyCore.prototype.saveState = function () {
 	return [
 		this.fromTypedArray(this.ROM),
@@ -4599,7 +4609,14 @@ GameBoyCore.prototype.setupRAM = function () {
 			this.MBCRAMBanksEnabled = true;
 		}
 		//Switched RAM Used
-		this.MBCRam = this.getTypedArray(this.numRAMBanks * 0x2000, 0, "uint8");
+		var MBCRam = (typeof this.openMBC == "function") ? this.openMBC(this.name) : [];
+		if (MBCRam.length > 0) {
+			//Flash the SRAM into memory:
+			this.MBCRam = this.toTypedArray(MBCRam, false, false);
+		}
+		else {
+			this.MBCRam = this.getTypedArray(this.numRAMBanks * 0x2000, 0, "uint8");
+		}
 	}
 	cout("Actual bytes of MBC RAM allocated: " + (this.numRAMBanks * 0x2000), 0);
 	//Setup the RAM for GBC mode.
