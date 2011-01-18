@@ -173,7 +173,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.TACClocker = 256;				// Timer Max Ticks
 	this.untilEnable = 0;				//Are the interrupts on queue to be enabled?
 	var dateVar = new Date();
-	this.lastIteration = dateVar.getTime() | 0;//The last time we iterated the main loop.
+	this.lastIteration = dateVar.getTime();//The last time we iterated the main loop.
 	this.actualScanLine = 0;			//Actual scan line...
 	//ROM Cartridge Components:
 	this.cMBC1 = false;					//Does the cartridge use MBC1?
