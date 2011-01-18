@@ -23,7 +23,7 @@ DEBUG_WINDOWING = false;
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyCore.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyIO.js')
 		);
-		$this->meta = array('viewport'=>'initial-scale=1.0;width=640;user-scalable=no;');
+		$this->meta = array('viewport'=>'initial-scale=1.0;width=640px;user-scalable=no;');
 		$this->style = '@import url("'.$this->server->convert_out_of_set_chars($this->server->url['folder'].CSSDIR.'/GameBoy.css.php').(($this->server->get('border-radius') == 'true') ? '?rounded=true' : '').'");';
 		$this->manifest = $this->server->convert_out_of_set_chars($this->server->url['folder'].'gameboy.manifest');
 	}

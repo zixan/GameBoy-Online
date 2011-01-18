@@ -106,7 +106,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.TIMAEnabled = false;
 	this.JoyPad = 0xFF;							//Joypad State (two four-bit states actually)
 	//RTC:
-	this.RTCisLatched = true;
+	this.RTCisLatched = false;
 	this.latchedSeconds = 0;
 	this.latchedMinutes = 0;
 	this.latchedHours = 0;
@@ -170,9 +170,10 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.DIVTicks = 14;					// DIV Ticks Counter (Invisible lower 8-bit)
 	this.LCDTicks = 15;					// ScanLine Counter
 	this.timerTicks = 0;				// Timer Ticks Count
-	this.TACClocker = 256;			// Timer Max Ticks
+	this.TACClocker = 256;				// Timer Max Ticks
 	this.untilEnable = 0;				//Are the interrupts on queue to be enabled?
-	this.lastIteration = 0;				//The last time we iterated the main loop.
+	var dateVar = new Date();
+	this.lastIteration = dateVar.getTime() | 0;//The last time we iterated the main loop.
 	this.actualScanLine = 0;			//Actual scan line...
 	//ROM Cartridge Components:
 	this.cMBC1 = false;					//Does the cartridge use MBC1?
@@ -186,6 +187,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.cTAMA5 = false;				//...
 	this.cHuC3 = false;					//...
 	this.cHuC1 = false;					//Does the cartridge use HuC1 (modified MBC1)?
+	this.cTIMER = false;				//Does the cartridge have an RTC?
 	this.ROMBanks = [					// 1 Bank = 16 KBytes = 256 Kbits
 		2, 4, 8, 16, 32, 64, 128, 256, 512
 	];
@@ -3907,6 +3909,30 @@ GameBoyCore.prototype.saveSRAMState = function () {
 		return this.fromTypedArray(this.MBCRam);
 	}
 }
+GameBoyCore.prototype.saveRTCState = function () {
+	if (!this.cTIMER) {
+		//No battery backup...
+		return [];
+	}
+	else {
+		//Return the MBC RAM for backup...
+		return [
+			this.lastIteration,
+			this.RTCisLatched,
+			this.latchedSeconds,
+			this.latchedMinutes,
+			this.latchedHours,
+			this.latchedLDays,
+			this.latchedHDays,
+			this.RTCSeconds,
+			this.RTCMinutes,
+			this.RTCHours,
+			this.RTCDays,
+			this.RTCDayOverFlow,
+			this.RTCHALT
+		];
+	}
+}
 GameBoyCore.prototype.saveState = function () {
 	return [
 		this.fromTypedArray(this.ROM),
@@ -4232,6 +4258,25 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.initLCD();
 	this.initSound();
 	this.drawToCanvas();
+}
+GameBoyCore.prototype.returnFromRTCState = function () {
+	if (typeof this.openRTC == "function" && this.cTIMER) {
+		var rtcData = this.openRTC(this.name);
+		var index = 0;
+		this.lastIteration = rtcData[index++];
+		this.RTCisLatched = rtcData[index++];
+		this.latchedSeconds = rtcData[index++];
+		this.latchedMinutes = rtcData[index++];
+		this.latchedHours = rtcData[index++];
+		this.latchedLDays = rtcData[index++];
+		this.latchedHDays = rtcData[index++];
+		this.RTCSeconds = rtcData[index++];
+		this.RTCMinutes = rtcData[index++];
+		this.RTCHours = rtcData[index++];
+		this.RTCDays = rtcData[index++];
+		this.RTCDayOverFlow = rtcData[index++];
+		this.RTCHALT = rtcData[index];
+	}
 }
 GameBoyCore.prototype.start = function () {
 	settings[4] = 0;	//Reset the frame skip setting.
@@ -4619,6 +4664,7 @@ GameBoyCore.prototype.setupRAM = function () {
 		}
 	}
 	cout("Actual bytes of MBC RAM allocated: " + (this.numRAMBanks * 0x2000), 0);
+	this.returnFromRTCState();
 	//Setup the RAM for GBC mode.
 	if (this.cGBC) {
 		this.VRAM = this.getTypedArray(0x2000, 0, "uint8");
@@ -5522,7 +5568,10 @@ GameBoyCore.prototype.performHdma = function () {
 GameBoyCore.prototype.clockUpdate = function () {
 	//We're tying in the same timer for RTC and frame skipping, since we can and this reduces load.
 	if (settings[7] || this.cTIMER) {
-		var timeElapsed = new Date().getTime() - new Date(this.lastIteration).getTime();	//Get the numnber of milliseconds since this last executed.
+		var dateObj = new Date();
+		var newTime = dateObj.getTime();
+		var timeElapsed = newTime - this.lastIteration;	//Get the numnber of milliseconds since this last executed.
+		this.lastIteration = newTime;
 		if (this.cTIMER && !this.RTCHALT) {
 			//Update the MBC3 RTC:
 			this.RTCSeconds += timeElapsed / 1000;
@@ -5556,7 +5605,6 @@ GameBoyCore.prototype.clockUpdate = function () {
 				settings[4]--;
 			}
 		}
-		this.lastIteration = new Date().getTime();
 	}
 }
 GameBoyCore.prototype.drawToCanvas = function () {

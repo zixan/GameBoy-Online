@@ -29,6 +29,7 @@ function start(canvas, canvasAlt, ROM) {
 	clearLastEmulation();
 	gameboy = new GameBoyCore(canvas, canvasAlt, ROM);
 	gameboy.openMBC = openSRAM;
+	gameboy.openRTC = openRTC;
 	gameboy.start();
 	run();
 }
@@ -107,7 +108,7 @@ function saveSRAM() {
 					setValue("SRAM_" + gameboy.name, sram);
 				}
 				else {
-					cout("SRAM could not be saved because  it was empty.", 1);
+					cout("SRAM could not be saved because it was empty.", 1);
 				}
 			}
 			catch (error) {
@@ -117,15 +118,27 @@ function saveSRAM() {
 		else {
 			cout("Cannot save a game that does not have battery backed SRAM specified.", 1);
 		}
+		saveRTC();
 	}
 	else {
 		cout("GameBoy core cannot be saved while it has not been initialized.", 1);
 	}
 }
+function saveRTC() {	//Execute this when SRAM is being saved as well.
+	if (gameboy.cTIMER) {
+		try {
+			cout("Saving the RTC...", 0);
+			setValue("RTC_" + gameboy.name, gameboy.saveRTCState());
+		}
+		catch (error) {
+			cout("Could not save the RTC of the current emulation state(\"" + error.message + "\").", 2);
+		}
+	}
+}
 function openSRAM(filename) {
 	try {
 		if (findValue("SRAM_" + filename) != null) {
-			cout("Found a previous SRAM state (Will attempt to load).");
+			cout("Found a previous SRAM state (Will attempt to load).", 0);
 			return findValue("SRAM_" + filename);
 		}
 		else {
@@ -133,7 +146,22 @@ function openSRAM(filename) {
 		}
 	}
 	catch (error) {
-		cout("Could not open the saved emulation state.", 2);
+		cout("Could not open the  SRAM of the saved emulation state.", 2);
+	}
+	return [];
+}
+function openRTC(filename) {
+	try {
+		if (findValue("RTC_" + filename) != null) {
+			cout("Found a previous RTC state (Will attempt to load).", 0);
+			return findValue("RTC_" + filename);
+		}
+		else {
+			cout("Could not find any previous RTC copy for the current ROM.", 0);
+		}
+	}
+	catch (error) {
+		cout("Could not open the RTC data of the saved emulation state.", 2);
 	}
 	return [];
 }
