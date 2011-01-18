@@ -4276,7 +4276,6 @@ GameBoyCore.prototype.returnFromRTCState = function () {
 		this.RTCDays = rtcData[index++];
 		this.RTCDayOverFlow = rtcData[index++];
 		this.RTCHALT = rtcData[index];
-		this.clockUpdate();
 	}
 }
 GameBoyCore.prototype.start = function () {

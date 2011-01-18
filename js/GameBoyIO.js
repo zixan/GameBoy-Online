@@ -39,7 +39,6 @@ function continueCPU() {
 function run() {
 	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 2) {
 		gameboy.stopEmulator &= 1;
-		gameboy.lastIteration = new Date().getTime();
 		cout("Starting the iterator.", 0);
 		gbRunInterval = setInterval(continueCPU, settings[20]);
 	}
