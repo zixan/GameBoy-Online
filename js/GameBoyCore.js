@@ -34,28 +34,28 @@
 				- MBC7, TAMA5, HuC1, etc.
  **/
 function GameBoyCore(canvas, canvasAlt, ROMImage) {
+	//Params, etc...
 	this.canvas = canvas;						//Canvas DOM object for drawing out the graphics to.
 	this.canvasAlt = canvasAlt;					//Image DOM object for drawing out the graphics to as an alternate means.
 	this.canvasFallbackHappened = false;		//Used for external scripts to tell if we're really using the canvas or not (Helpful with fullscreen switching).
 	this.drawContext = null;					// LCD Context
 	this.ROMImage = ROMImage;					//The game's ROM. 
-	this.ROM = [];								//The full ROM file dumped to an array.
+	//CPU Registers and Flags:
+	this.registerA = 0x01; 						//Register A (Accumulator)
+	this.FZero = true; 							//Register F  - Result was zero
+	this.FSubtract = false;						//Register F  - Subtraction was executed
+	this.FHalfCarry = true;						//Register F  - Half carry or half borrow
+	this.FCarry = true;							//Register F  - Carry or borrow
+	this.registerB = 0x00;						//Register B
+	this.registerC = 0x13;						//Register C
+	this.registerD = 0x00;						//Register D
+	this.registerE = 0xD8;						//Register E
+	this.registersHL = 0x014D;					//Registers H and L combined
+	this.stackPointer = 0xFFFE;					//Stack Pointer
+	this.programCounter = 0x0100;				//Program Counter
+	//Some CPU Emulation State Variables:
 	this.inBootstrap = true;					//Whether we're in the GBC boot ROM.
 	this.usedBootROM = false;					//Updated upon ROM loading...
-	this.registerA = 0x01; 						// Accumulator (default is GB mode)
-	this.FZero = true; 							// bit 7 - Zero
-	this.FSubtract = false;						// bit 6 - Sub
-	this.FHalfCarry = true;						// bit 5 - Half Carry
-	this.FCarry = true;							// bit 4 - Carry
-	this.registerB = 0x00;						// Register B
-	this.registerC = 0x13;						// Register C
-	this.registerD = 0x00;						// Register D
-	this.registerE = 0xD8;						// Register E
-	this.registersHL = 0x014D;					// Registers H and L
-	this.memoryReader = [];						//Array of functions mapped to read back memory
-	this.memoryWriter = [];						//Array of functions mapped to write to memory
-	this.stackPointer = 0xFFFE;					// Stack Pointer
-	this.programCounter = 0x0100;				// Program Counter
 	this.halt = false;							//Has the CPU been suspended until the next interrupt?
 	this.skipPCIncrement = false;				//Did we trip the DMG Halt bug?
 	this.stopEmulator = 3;						//Has the emulation been paused or a frame has ended?
@@ -63,7 +63,11 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.hdmaRunning = false;					//HDMA Transfer Flag - GBC only
 	this.CPUTicks = 0;							//The number of clock cycles emulated.
 	this.multiplier = 1;						//GBC Speed Multiplier
+	this.JoyPad = 0xFF;							//Joypad State (two four-bit states actually)
 	//Main RAM, MBC RAM, GBC Main RAM, VRAM, etc.
+	this.memoryReader = [];						//Array of functions mapped to read back memory
+	this.memoryWriter = [];						//Array of functions mapped to write to memory
+	this.ROM = [];								//The full ROM file dumped to an array.
 	this.memory = [];							//Main Core Memory
 	this.MBCRam = [];							//Switchable RAM (Used by games for more RAM) for the main memory range 0xA000 - 0xC000.
 	this.VRAM = [];								//Extra VRAM bank for GBC.
@@ -103,21 +107,19 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.gfxSpriteDouble = false;
 	this.gfxBackgroundY = false;
 	this.gfxBackgroundX = false;
-	this.TIMAEnabled = false;
-	this.JoyPad = 0xFF;							//Joypad State (two four-bit states actually)
-	//RTC:
+	//RTC (Real Time Clock for MBC3):
 	this.RTCisLatched = false;
-	this.latchedSeconds = 0;
-	this.latchedMinutes = 0;
-	this.latchedHours = 0;
-	this.latchedLDays = 0;
-	this.latchedHDays = 0;
-	this.RTCSeconds = 0;
-	this.RTCMinutes = 0;
-	this.RTCHours = 0;
-	this.RTCDays = 0;
-	this.RTCDayOverFlow = false;
-	this.RTCHALT = false;
+	this.latchedSeconds = 0;					//RTC latched seconds.
+	this.latchedMinutes = 0;					//RTC latched minutes.
+	this.latchedHours = 0;						//RTC latched hours.
+	this.latchedLDays = 0;						//RTC latched lower 8-bits of the day counter.
+	this.latchedHDays = 0;						//RTC latched high-bit of the day counter.
+	this.RTCSeconds = 0;						//RTC seconds counter.
+	this.RTCMinutes = 0;						//RTC minutes counter.
+	this.RTCHours = 0;							//RTC hours counter.
+	this.RTCDays = 0;							//RTC days counter.
+	this.RTCDayOverFlow = false;				//Did the RTC overflow and wrap the day counter?
+	this.RTCHALT = false;						//Is the RTC allowed to clock up?
 	//Sound variables:
 	this.audioHandle = null;					//Audio object or the WAV PCM generator wrapper
 	this.outTracker = 0;						//Buffering counter for the WAVE PCM output.
@@ -139,15 +141,15 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.soundMasterEnabled = false;			//As its name implies
 	this.audioType = -1;						//Track what method we're using for audio output.
 	//Vin Shit:
-	this.VinLeftChannelEnabled = false;
-	this.VinRightChannelEnabled = false;
-	this.VinLeftChannelMasterVolume = 0;
-	this.VinRightChannelMasterVolume = 0;
-	this.vinLeft = 1;
-	this.vinRight = 1;
+	this.VinLeftChannelEnabled = false;			//Is the VIN left channel enabled?
+	this.VinRightChannelEnabled = false;		//Is the VIN right channel enabled?
+	this.VinLeftChannelMasterVolume = 0;		//Computed VIN left absolute volume.
+	this.VinRightChannelMasterVolume = 0;		//Computed VIN right absolute volume.
+	this.vinLeft = 1;							//Computed VIN left adjusted volume.
+	this.vinRight = 1;							//Computed VIN right adjusted volume.
 	//Channels Enabled:
-	this.leftChannel = this.ArrayPad(4, false);		//Which channels are enabled for left side stereo / mono?
-	this.rightChannel = this.ArrayPad(4, false);	//Which channels are enabled for right side stereo?
+	this.leftChannel = this.ArrayPad(4, false);	//Which channels are enabled for left side stereo / mono?
+	this.rightChannel = this.ArrayPad(4, false);//Which channels are enabled for right side stereo?
 	//Current Samples Being Computed:
 	this.currentSampleLeft = 0;
 	this.currentSampleRight = 0;
@@ -161,16 +163,17 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.channel1TimeSweepPreMultiplier = settings[14] / 0x80;
 	this.audioTotalLengthMultiplier = settings[14] / 0x100;
 	//Audio generation counters:
-	this.audioOverflow = false;
+	this.audioOverflow = false;			//Safety boolean to check for whether we're about to overwrite our buffers.
 	this.audioTicks = 0;				//Used to sample the audio system every x CPU instructions.
 	this.audioIndex = 0;				//Used to keep alignment on audio generation.
 	this.rollover = 0;					//Used to keep alignment on the number of samples to output (Realign from counter alias).
 	//Timing Variables
 	this.emulatorTicks = 0;				//Times for how many instructions to execute before ending the loop.
-	this.DIVTicks = 14;					// DIV Ticks Counter (Invisible lower 8-bit)
-	this.LCDTicks = 15;					// ScanLine Counter
-	this.timerTicks = 0;				// Timer Ticks Count
-	this.TACClocker = 256;				// Timer Max Ticks
+	this.DIVTicks = 14;					//DIV Ticks Counter (Invisible lower 8-bit)
+	this.LCDTicks = 15;					//Counter for how many instructions have been executed on a scanline so far.
+	this.timerTicks = 0;				//Counter for the TIMA timer.
+	this.TIMAEnabled = false;			//Is TIMA enabled?
+	this.TACClocker = 256;				//Timer Max Ticks
 	this.untilEnable = 0;				//Are the interrupts on queue to be enabled?
 	var dateVar = new Date();
 	this.lastIteration = dateVar.getTime();//The last time we iterated the main loop.
@@ -183,10 +186,10 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.cSRAM = false;					//Does the cartridge use save RAM?
 	this.cMMMO1 = false;				//...
 	this.cRUMBLE = false;				//Does the cartridge use the RUMBLE addressing (modified MBC5)?
-	this.cCamera = false;				//...
-	this.cTAMA5 = false;				//...
-	this.cHuC3 = false;					//...
-	this.cHuC1 = false;					//Does the cartridge use HuC1 (modified MBC1)?
+	this.cCamera = false;				//Is the cartridge actually a GameBoy Camera?
+	this.cTAMA5 = false;				//Does the cartridge use TAMA5? (Tamagotchi Cartridge)
+	this.cHuC3 = false;					//Does the cartridge use HuC3 (Hudson Soft / modified MBC3)?
+	this.cHuC1 = false;					//Does the cartridge use HuC1 (Hudson Soft / modified MBC1)?
 	this.cTIMER = false;				//Does the cartridge have an RTC?
 	this.ROMBanks = [					// 1 Bank = 16 KBytes = 256 Kbits
 		2, 4, 8, 16, 32, 64, 128, 256, 512
@@ -5289,57 +5292,53 @@ GameBoyCore.prototype.runInterrupt = function () {
 		testbit = 1 << ++bitShift;
 	}
 }
-GameBoyCore.prototype.scanLineMode2 = function () { // OAM in use
+GameBoyCore.prototype.scanLineMode2 = function () {	//OAM Search Period
 	if (this.modeSTAT != 2) {
 		if (this.mode2TriggerSTAT) {
-			this.memory[0xFF0F] |= 0x2;// set IF bit 1
+			this.memory[0xFF0F] |= 0x2;
 		}
 		this.STATTracker = 1;
 		this.modeSTAT = 2;
 	}
 }
-GameBoyCore.prototype.scanLineMode3 = function () { // OAM in use
+GameBoyCore.prototype.scanLineMode3 = function () {	//Scan Line Drawing Period
 	if (this.modeSTAT != 3) {
 		if (this.mode2TriggerSTAT && this.STATTracker == 0) {
-			this.memory[0xFF0F] |= 0x2;// set IF bit 1
+			this.memory[0xFF0F] |= 0x2;
 		}
 		this.STATTracker = 1;
 		this.modeSTAT = 3;
 	}
 }
-GameBoyCore.prototype.scanLineMode0 = function () { // H-Blank 
+GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 	if (this.modeSTAT != 0) {
 		this.notifyScanline();
 		if (this.hdmaRunning && !this.halt) {
-			this.performHdma();	//H-Blank DMA
+			this.performHdma();
 		}
 		if (this.mode0TriggerSTAT || (this.mode2TriggerSTAT && this.STATTracker == 0)) {
-			this.memory[0xFF0F] |= 0x2; // if STAT bit 3 -> set IF bit1
+			this.memory[0xFF0F] |= 0x2;
 		}
 		this.STATTracker = 2;
 		this.modeSTAT = 0;
 	}
 }
-GameBoyCore.prototype.matchLYC = function () { // LY - LYC Compare
-	if (this.memory[0xFF44] == this.memory[0xFF45]) { // If LY==LCY
-		this.memory[0xFF41] |= 0x04; // set STAT bit 2: LY-LYC coincidence flag
+GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
+	if (this.memory[0xFF44] == this.memory[0xFF45]) {
+		this.memory[0xFF41] |= 0x04;
 		if (this.LYCMatchTriggerSTAT) {
-			this.memory[0xFF0F] |= 0x2; // set IF bit 1
+			this.memory[0xFF0F] |= 0x2;
 		}
 	} 
 	else {
-		this.memory[0xFF41] &= 0xFB; // reset STAT bit 2 (LY!=LYC)
+		this.memory[0xFF41] &= 0xFB;
 	}
 }
 GameBoyCore.prototype.updateCore = function () {
-	// DIV control
-	this.DIVTicks += this.CPUTicks;
-	//LCD Controller Ticks
+	this.DIVTicks += this.CPUTicks;				//DIV Timing
 	var timedTicks = this.CPUTicks / this.multiplier;
-	// LCD Timing
-	this.LCDTicks += timedTicks;				//LCD timing
+	this.LCDTicks += timedTicks;				//LCD Timing
 	this.LCDCONTROL[this.actualScanLine](this);	//Scan Line and STAT Mode Control 
-	//Audio Timing
 	this.audioTicks += timedTicks;				//Not the same as the LCD timing (Cannot be altered by display on/off changes!!!).
 	if (this.audioTicks >= settings[11]) {		//Are we past the granularity setting?
 		var amount = this.audioTicks * this.samplesOut;
@@ -5368,14 +5367,13 @@ GameBoyCore.prototype.updateCore = function () {
 		}
 		this.audioTicks = 0;
 	}
-	// Internal Timer
-	if (this.TIMAEnabled) {
+	if (this.TIMAEnabled) {					//Execute TIMA
 		this.timerTicks += this.CPUTicks;
 		while (this.timerTicks >= this.TACClocker) {
 			this.timerTicks -= this.TACClocker;
 			if (this.memory[0xFF05] == 0xFF) {
 				this.memory[0xFF05] = this.memory[0xFF06];
-				this.memory[0xFF0F] |= 0x4; // set IF bit 2
+				this.memory[0xFF0F] |= 0x4;
 			}
 			else {
 				this.memory[0xFF05]++;
@@ -5391,13 +5389,13 @@ GameBoyCore.prototype.initializeLCDController = function () {
 			//We're on a normal scan line:
 			this.LINECONTROL[line] = function (parentObj) {
 				if (parentObj.LCDTicks < 20) {
-					parentObj.scanLineMode2();	// mode2: 80 cycles
+					parentObj.scanLineMode2();
 				}
 				else if (parentObj.LCDTicks < 63) {
-					parentObj.scanLineMode3();	// mode3: 172 cycles
+					parentObj.scanLineMode3();
 				}
 				else if (parentObj.LCDTicks < 114) {
-					parentObj.scanLineMode0();	// mode0: 204 cycles
+					parentObj.scanLineMode0();
 				}
 				else {
 					//We're on a new scan line:
@@ -5405,16 +5403,16 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					if (parentObj.STATTracker != 2) {
 						parentObj.notifyScanline();
 						if (parentObj.hdmaRunning && !parentObj.halt && parentObj.LCDisOn) {
-							parentObj.performHdma();	//H-Blank DMA
+							parentObj.performHdma();
 						}
 						if (parentObj.mode0TriggerSTAT) {
-							parentObj.memory[0xFF0F] |= 0x2;// set IF bit 1
+							parentObj.memory[0xFF0F] |= 0x2;
 						}
 					}
 					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
 					parentObj.matchLYC();
 					parentObj.STATTracker = 0;
-					parentObj.scanLineMode2();	// mode2: 80 cycles
+					parentObj.scanLineMode2();
 					if (parentObj.LCDTicks >= 114) {
 						//We need to skip 1 or more scan lines:
 						parentObj.notifyScanline();
@@ -5427,35 +5425,35 @@ GameBoyCore.prototype.initializeLCDController = function () {
 			//We're on the last visible scan line of the LCD screen:
 			this.LINECONTROL[143] = function (parentObj) {
 				if (parentObj.LCDTicks < 20) {
-					parentObj.scanLineMode2();	// mode2: 80 cycles
+					parentObj.scanLineMode2();
 				}
 				else if (parentObj.LCDTicks < 63) {
-					parentObj.scanLineMode3();	// mode3: 172 cycles
+					parentObj.scanLineMode3();
 				}
 				else if (parentObj.LCDTicks < 114) {
-					parentObj.scanLineMode0();	// mode0: 204 cycles
+					parentObj.scanLineMode0();
 				}
 				else {
 					//Starting V-Blank:
 					//Just finished the last visible scan line:
 					parentObj.LCDTicks -= 114;
 					if (parentObj.mode1TriggerSTAT) {
-						parentObj.memory[0xFF0F] |= 0x2;// set IF bit 1
+						parentObj.memory[0xFF0F] |= 0x2;
 					}
 					if (parentObj.STATTracker != 2) {
 						parentObj.notifyScanline();
 						if (parentObj.hdmaRunning && !parentObj.halt && parentObj.LCDisOn) {
-							parentObj.performHdma();	//H-Blank DMA
+							parentObj.performHdma();
 						}
 						if (parentObj.mode0TriggerSTAT) {
-							parentObj.memory[0xFF0F] |= 0x2;// set IF bit 1
+							parentObj.memory[0xFF0F] |= 0x2;
 						}
 					}
 					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
 					parentObj.matchLYC();
 					parentObj.STATTracker = 0;
 					parentObj.modeSTAT = 1;
-					parentObj.memory[0xFF0F] |= 0x1; 	// set IF flag 0
+					parentObj.memory[0xFF0F] |= 0x1;
 					if (parentObj.drewBlank > 0) {		//LCD off takes at least 2 frames.
 						parentObj.drewBlank--;
 					}
@@ -5486,13 +5484,13 @@ GameBoyCore.prototype.initializeLCDController = function () {
 			this.LINECONTROL[153] = function (parentObj) {
 				if (parentObj.memory[0xFF44] == 153) {
 					parentObj.memory[0xFF44] = 0;	//LY register resets to 0 early.
-					parentObj.matchLYC();			//LY==LYC Test is early here (Fixes specific one-line glitches (example: Kirby2 intro)).
+					parentObj.matchLYC();			//LYC register test is early here (Fixes specific one-line glitches (example: Kirby2 intro)).
 				}
 				if (parentObj.LCDTicks >= 114) {
 					//We reset back to the beginning:
 					parentObj.LCDTicks -= 114;
 					parentObj.actualScanLine = 0;
-					parentObj.scanLineMode2();	// mode2: 80 cycles
+					parentObj.scanLineMode2();
 					if (parentObj.LCDTicks >= 114) {
 						//We need to skip 1 or more scan lines:
 						parentObj.LCDCONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control 
