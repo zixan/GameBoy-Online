@@ -6992,7 +6992,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 		this.memoryWriter[0xFF69] = function (parentObj, address, data) {
 			parentObj.setGBCPalette(parentObj.memory[0xFF68] & 0x3F, data);
-			if (parentObj.usbtsb(parentObj.memory[0xFF68]) < 0) { // high bit = autoincrement
+			if (parentObj.memory[0xFF68] > 0x7F) { // high bit = autoincrement
 				var next = ((parentObj.usbtsb(parentObj.memory[0xFF68]) + 1) & 0x3F);
 				parentObj.memory[0xFF68] = (next | 0x80);
 				parentObj.memory[0xFF69] = parentObj.gbcRawPalette[next];
@@ -7007,7 +7007,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 		this.memoryWriter[0xFF6B] = function (parentObj, address, data) {
 			parentObj.setGBCPalette((parentObj.memory[0xFF6A] & 0x3F) | 0x40, data);
-			if (parentObj.usbtsb(parentObj.memory[0xFF6A]) < 0) { // high bit = autoincrement
+			if (parentObj.memory[0xFF6A] > 0x7F) { // high bit = autoincrement
 				var next = ((parentObj.memory[0xFF6A] + 1) & 0x3F);
 				parentObj.memory[0xFF6A] = (next | 0x80);
 				parentObj.memory[0xFF6B] = parentObj.gbcRawPalette[next | 0x40];
