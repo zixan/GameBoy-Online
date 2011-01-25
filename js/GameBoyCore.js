@@ -2935,14 +2935,14 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	//#0x:
 	,function (parentObj) {
 		parentObj.FCarry = ((parentObj.registersHL & 0x0100) == 0x0100);
-		parentObj.registersHL = ((parentObj.registersHL >> 1) & 0xFF00) + (parentObj.registersHL & 0xFF);
+		parentObj.registersHL = ((parentObj.registersHL >> 1) & 0xFF00) | (parentObj.registersHL & 0xFF);
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
 		parentObj.FZero = (parentObj.registersHL <= 0xFF);
 	}
 	//#0x:
 	,function (parentObj) {
 		parentObj.FCarry = ((parentObj.registersHL & 0x0001) == 0x0001);
-		parentObj.registersHL = (parentObj.registersHL & 0xFF00) + ((parentObj.registersHL & 0xFF) >> 1);
+		parentObj.registersHL = (parentObj.registersHL & 0xFF00) | ((parentObj.registersHL & 0xFF) >> 1);
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
 		parentObj.FZero = ((parentObj.registersHL & 0xFF) == 0x00);
 	}
