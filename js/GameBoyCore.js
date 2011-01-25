@@ -4094,7 +4094,7 @@ GameBoyCore.prototype.saveState = function () {
 GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	var index = 0;
 	var state = returnedFrom.slice(0);
-	this.ROM = this.toTypedArray(state[index++], false, false);
+	this.ROM = this.toTypedArray(state[index++], 1);
 	this.inBootstrap = state[index++];
 	this.registerA = state[index++];
 	this.FZero = state[index++];
@@ -4113,11 +4113,11 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.hdmaRunning = state[index++];
 	this.CPUTicks = state[index++];
 	this.multiplier = state[index++];
-	this.memory = this.toTypedArray(state[index++], false, false);
-	this.MBCRam = this.toTypedArray(state[index++], false, false);
-	this.VRAM = this.toTypedArray(state[index++], false, false);
+	this.memory = this.toTypedArray(state[index++], 1);
+	this.MBCRam = this.toTypedArray(state[index++], 1);
+	this.VRAM = this.toTypedArray(state[index++], 1);
 	this.currVRAMBank = state[index++];
-	this.GBCMemory = this.toTypedArray(state[index++], false, false);
+	this.GBCMemory = this.toTypedArray(state[index++], 1);
 	this.MBC1Mode = state[index++];
 	this.MBCRAMBanksEnabled = state[index++];
 	this.currMBCRAMBank = state[index++];
@@ -4162,7 +4162,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.cHuC1 = state[index++];
 	this.drewBlank = state[index++];
 	this.tileData = state[index++];
-	this.frameBuffer = this.toTypedArray(state[index++], true, false);
+	this.frameBuffer = this.toTypedArray(state[index++], 2);
 	this.tileCount = state[index++];
 	this.colorCount = state[index++];
 	this.gbPalette = state[index++];
@@ -4171,7 +4171,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.transparentCutoff = state[index++];
 	this.bgEnabled = state[index++];
 	this.spritePriorityEnabled = state[index++];
-	this.tileReadState = this.toTypedArray(state[index++], false, false);
+	this.tileReadState = this.toTypedArray(state[index++], 1);
 	this.windowSourceLine = state[index++];
 	this.channel1adjustedFrequencyPrep = state[index++];
 	this.channel1lastSampleLookup = state[index++];
@@ -4657,7 +4657,7 @@ GameBoyCore.prototype.setupRAM = function () {
 		var MBCRam = (typeof this.openMBC == "function") ? this.openMBC(this.name) : [];
 		if (MBCRam.length > 0) {
 			//Flash the SRAM into memory:
-			this.MBCRam = this.toTypedArray(MBCRam, false, false);
+			this.MBCRam = this.toTypedArray(MBCRam, 1);
 		}
 		else {
 			this.MBCRam = this.getTypedArray(this.numRAMBanks * 0x2000, 0, "uint8");
@@ -4684,7 +4684,7 @@ GameBoyCore.prototype.MBCRAMUtilized = function () {
 }
 GameBoyCore.prototype.initLCD = function () {
 	this.scaledFrameBuffer = this.getTypedArray(this.pixelCount, 0, "int32");	//Used for software side scaling...
-	this.transparentCutoff = (settings[17] || this.cGBC) ? 32 : 4;
+	this.transparentCutoff = (this.cGBC) ? 32 : 4;
 	if (this.weaveLookup.length == 0) {
 		//Setup the image decoding lookup table:
 		this.weaveLookup = this.getTypedArray(256, 0, "uint16");
@@ -5334,10 +5334,6 @@ GameBoyCore.prototype.matchLYC = function () { // LY - LYC Compare
 GameBoyCore.prototype.updateCore = function () {
 	// DIV control
 	this.DIVTicks += this.CPUTicks;
-	if (this.DIVTicks >= 0x40) {
-		this.DIVTicks -= 0x40;
-		this.memory[0xFF04] = (this.memory[0xFF04] + 1) & 0xFF; // inc DIV
-	}
 	//LCD Controller Ticks
 	var timedTicks = this.CPUTicks / this.multiplier;
 	// LCD Timing
@@ -5363,6 +5359,7 @@ GameBoyCore.prototype.updateCore = function () {
 			if (this.drewBlank == 0) {		//LCD off takes at least 2 frames.
 				this.drawToCanvas();		//Display frame
 			}
+			this.updateDIV();				//Realign to prevent any large value problems.
 			this.stopEmulator |= 1;			//End current loop.
 			this.emulatorTicks = 0;
 		}
@@ -5514,6 +5511,10 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 		this.drewBlank = 2;
 	}
+}
+GameBoyCore.prototype.updateDIV = function () {
+	this.memory[0xFF04] = (this.memory[0xFF04] + Math.floor(this.DIVTicks / 0x40)) & 0xFF;
+	this.DIVTicks %= 0x40;
 }
 GameBoyCore.prototype.performHdma = function () {
 	this.CPUTicks += 1 + (8 * this.multiplier);
@@ -5779,7 +5780,7 @@ GameBoyCore.prototype.updateImage = function (tileIndex, attribs) {
 	var otherBank = (tileIndex >= 384);
 	var offset = otherBank ? ((tileIndex - 384) << 4) : (tileIndex << 4);
 	var paletteStart = attribs & 0xFC;
-	var transparent = attribs >= this.transparentCutoff;
+	var transparent = (attribs >= this.transparentCutoff);
 	var pixix = 0;
 	var pixixdx = 1;
 	var pixixdy = 0;
@@ -5799,7 +5800,7 @@ GameBoyCore.prototype.updateImage = function (tileIndex, attribs) {
 			transparent = false;
 		}
 		for (var x = 8; --x >= 0;) {
-			tempPix[pixix] = this.palette[paletteStart + (num & 3)] & -1;
+			tempPix[pixix] = this.palette[paletteStart | (num & 3)] & -1;
 			pixix += pixixdx;
 			num  >>= 2;
 		}
@@ -5992,6 +5993,13 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 						this.memoryReader[0xFF02] = function (parentObj, address) {
 							return 0x7E | parentObj.memory[0xFF02];
 						}
+					}
+					break;
+				case 0xFF04:
+					this.memoryReader[0xFF04] = function (parentObj, address) {
+						this.updateDIV();	//Realign for reading out the right value...
+						return parentObj.memory[0xFF04];
+						
 					}
 					break;
 				case 0xFF07:
@@ -6537,6 +6545,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 	}
 	this.memoryWriter[0xFF04] = function (parentObj, address, data) {
+		parentObj.DIVTicks %= 0x40;	//Update DIV for realignment.
 		parentObj.memory[0xFF04] = 0;
 	}
 	this.memoryWriter[0xFF07] = function (parentObj, address, data) {
@@ -7136,10 +7145,21 @@ GameBoyCore.prototype.usbtsb = function (ubyte) {
 	//Unsigned byte to signed byte:
 	return (ubyte > 0x7F) ? ((ubyte & 0x7F) - 0x80) : ubyte;
 }
-GameBoyCore.prototype.toTypedArray = function (baseArray, bit32, unsigned) {
+GameBoyCore.prototype.toTypedArray = function (baseArray, memtype) {
 	try {
-		var typedArrayTemp = (bit32) ? ((unsigned) ? new Uint32Array(baseArray.length) : new Int32Array(baseArray.length)) : new Uint8Array(baseArray.length);
-		for (var index = 0; index < baseArray.length; index++) {
+		var length = baseArray.length;
+		switch (memtype) {
+			case 1:
+				var typedArrayTemp = new Uint8Array(length);
+				break;
+			case 2:
+				var typedArrayTemp = new Int32Array(length);
+				break;
+			default:
+				cout("Could not convert an array to a typed array: Invalid type parameter.", 1);
+				return baseArray;
+		}
+		for (var index = 0; index < length; index++) {
 			typedArrayTemp[index] = baseArray[index];
 		}
 		return typedArrayTemp;
