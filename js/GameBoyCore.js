@@ -5359,7 +5359,10 @@ GameBoyCore.prototype.updateCore = function () {
 			if (this.drewBlank == 0) {		//LCD off takes at least 2 frames.
 				this.drawToCanvas();		//Display frame
 			}
-			this.updateDIV();				//Realign to prevent any large value problems.
+			//Update DIV Alignment:
+			this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 6)) & 0xFF;
+			this.DIVTicks %= 0x40;
+			//Update emulator flags:
 			this.stopEmulator |= 1;			//End current loop.
 			this.emulatorTicks = 0;
 		}
@@ -5511,10 +5514,6 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 		this.drewBlank = 2;
 	}
-}
-GameBoyCore.prototype.updateDIV = function () {
-	this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 6)) & 0xFF;
-	this.DIVTicks %= 0x40;
 }
 GameBoyCore.prototype.performHdma = function () {
 	this.CPUTicks += 1 + (8 * this.multiplier);
@@ -5997,7 +5996,8 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 					break;
 				case 0xFF04:
 					this.memoryReader[0xFF04] = function (parentObj, address) {
-						parentObj.updateDIV();	//Realign for reading out the right value...
+						parentObj.memory[0xFF04] = (parentObj.memory[0xFF04] + (parentObj.DIVTicks >> 6)) & 0xFF;
+						parentObj.DIVTicks %= 0x40;
 						return parentObj.memory[0xFF04];
 						
 					}
