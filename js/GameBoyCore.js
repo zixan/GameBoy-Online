@@ -5997,7 +5997,7 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 					break;
 				case 0xFF04:
 					this.memoryReader[0xFF04] = function (parentObj, address) {
-						this.updateDIV();	//Realign for reading out the right value...
+						parentObj.updateDIV();	//Realign for reading out the right value...
 						return parentObj.memory[0xFF04];
 						
 					}
