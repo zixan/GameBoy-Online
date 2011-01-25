@@ -7141,7 +7141,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 //Helper Functions
 GameBoyCore.prototype.usbtsb = function (ubyte) {
 	//Unsigned byte to signed byte:
-	return (ubyte > 0x7F) ? ((ubyte & 0x7F) - 0x80) : ubyte;
+	return (ubyte & 0x7F) - (ubyte & 0x80);
 }
 GameBoyCore.prototype.toTypedArray = function (baseArray, memtype) {
 	try {
