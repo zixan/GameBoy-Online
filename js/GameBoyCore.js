@@ -1437,10 +1437,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//ADD A, A
 	//#0x87:
 	function (parentObj) {
-		var dirtySum = parentObj.registerA * 2;
-		parentObj.FHalfCarry = (dirtySum & 0xF) < (parentObj.registerA & 0xF);
-		parentObj.FCarry = (dirtySum > 0xFF);
-		parentObj.registerA = dirtySum & 0xFF;
+		parentObj.FHalfCarry = ((parentObj.registerA & 0x8) == 0x8);
+		parentObj.FCarry = (parentObj.registerA > 0x7F);
+		parentObj.registerA = (parentObj.registerA * 2) & 0xFF;
 		parentObj.FZero = (parentObj.registerA == 0);
 		parentObj.FSubtract = false;
 	},
