@@ -5347,7 +5347,7 @@ GameBoyCore.prototype.updateCore = function () {
 		this.rollover += amount - actual;
 		if (this.rollover >= 1) {
 			this.rollover--;
-			actual += 1;
+			actual++;
 		}
 		if (!this.audioOverflow && actual > 0) {
 			this.generateAudio(actual);
