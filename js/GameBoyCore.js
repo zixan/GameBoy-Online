@@ -2389,7 +2389,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 		parentObj.registerA = parentObj.memoryRead((parentObj.stackPointer + 1) & 0xFFFF);
 		parentObj.stackPointer = (parentObj.stackPointer + 2) & 0xFFFF;
 	},
-	//LD A, (C)
+	//LD A, (0xFF00 + C)
 	//#0xF2:
 	function (parentObj) {
 		parentObj.registerA = parentObj.memoryRead(0xFF00 | parentObj.registerC);
