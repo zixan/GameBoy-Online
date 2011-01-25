@@ -5513,7 +5513,7 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 	}
 }
 GameBoyCore.prototype.updateDIV = function () {
-	this.memory[0xFF04] = (this.memory[0xFF04] + Math.floor(this.DIVTicks / 0x40)) & 0xFF;
+	this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 6)) & 0xFF;
 	this.DIVTicks %= 0x40;
 }
 GameBoyCore.prototype.performHdma = function () {
