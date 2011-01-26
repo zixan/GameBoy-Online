@@ -5657,8 +5657,13 @@ GameBoyCore.prototype.setGBCPalettePre = function (index_, data) {
 		return;
 	}
 	var value = (this.gbcRawPalette[index_ | 1] << 8) | this.gbcRawPalette[index_ & -2];
-	this.gbcPalette[index_ >> 1] = 0x80000000 + ((value & 0x1F) << 19) + ((value & 0x3E0) << 6) + ((value & 0x7C00) >> 7);
+	this.gbcPalette[index_ >> 1] = 0x80000000 | ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
 	this.invalidateAll(index_ >> 3);
+}
+GameBoyCore.prototype.getGBCColor = function (index_) {
+	index_ *= 2;
+	var value = (this.gbcRawPalette[index_ | 1] << 8) | this.gbcRawPalette[index_];
+	return 0x80000000 | ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
 }
 GameBoyCore.prototype.setGBCPalette = function (index_, data) {
 	this.setGBCPalettePre(index_, data);
@@ -5669,19 +5674,24 @@ GameBoyCore.prototype.setGBCPalette = function (index_, data) {
 GameBoyCore.prototype.decodePalette = function (startIndex, data) {
 	if (!this.cGBC) {
 		this.gbPalette[startIndex] = this.colors[data & 0x03] & 0x00FFFFFF; // color 0: transparent
-		this.gbPalette[startIndex + 1] = this.colors[(data >> 2) & 0x03];
-		this.gbPalette[startIndex + 2] = this.colors[(data >> 4) & 0x03];
-		this.gbPalette[startIndex + 3] = this.colors[data >> 6];
+		this.gbPalette[startIndex | 1] = this.colors[(data >> 2) & 0x03];
+		this.gbPalette[startIndex | 2] = this.colors[(data >> 4) & 0x03];
+		this.gbPalette[startIndex | 3] = this.colors[data >> 6];
 		if (this.usedBootROM) {	//Do palette conversions if we did the GBC bootup:
 			//GB colorization:
-			var startOffset = (startIndex >= 4) ? 0x20 : 0;
-			var pal2 = this.gbcPalette[startOffset + ((data >> 2) & 0x03)];
-			var pal3 = this.gbcPalette[startOffset + ((data >> 4) & 0x03)];
-			var pal4 = this.gbcPalette[startOffset + (data >> 6)];
-			this.gbColorizedPalette[startIndex] = this.gbcPalette[startOffset + (data & 0x03)] & 0x00FFFFFF;
-			this.gbColorizedPalette[startIndex + 1] = (pal2 >= 0x80000000) ? pal2 : 0xFFFFFFFF;
-			this.gbColorizedPalette[startIndex + 2] = (pal3 >= 0x80000000) ? pal3 : 0xFFFFFFFF;
-			this.gbColorizedPalette[startIndex + 3] = (pal4 >= 0x80000000) ? pal4 : 0xFFFFFFFF;
+			if (startIndex >= 4) {
+				var startOffset = 0x1C + startIndex;
+				this.gbColorizedPalette[startIndex] = this.getGBCColor(startOffset | (data & 0x03)) & 0x00FFFFFF;
+				this.gbColorizedPalette[startIndex | 1] = this.getGBCColor(startOffset | ((data >> 2) & 0x03));
+				this.gbColorizedPalette[startIndex | 2] = this.getGBCColor(startOffset | ((data >> 4) & 0x03));
+				this.gbColorizedPalette[startIndex | 3] = this.getGBCColor(startOffset | (data >> 6));
+			}
+			else {
+				this.gbColorizedPalette[0] = this.getGBCColor(data & 0x03) & 0x00FFFFFF;
+				this.gbColorizedPalette[1] = this.getGBCColor((data >> 2) & 0x03);
+				this.gbColorizedPalette[2] = this.getGBCColor((data >> 4) & 0x03);
+				this.gbColorizedPalette[3] = this.getGBCColor(data >> 6);
+			}
 		}
 	}
 }
