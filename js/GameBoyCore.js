@@ -4757,6 +4757,7 @@ GameBoyCore.prototype.JoyPadEvent = function (key, down) {
 	this.memory[0xFF00] = (this.memory[0xFF00] & 0x30) + ((((this.memory[0xFF00] & 0x20) == 0) ? (this.JoyPad >> 4) : 0xF) & (((this.memory[0xFF00] & 0x10) == 0) ? (this.JoyPad & 0xF) : 0xF));
 }
 GameBoyCore.prototype.initSound = function () {
+	this.adjustedEmulatorTickLimit = (settings[11] * Math.ceil(settings[13] / settings[11]));	//Get the adjusted ticking rate of the emulator (Adjusted to the audio polling rate).
 	if (settings[0]) {
 		try {
 			//mozAudio - Synchronous Audio API
@@ -4810,7 +4811,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioIndex = 0;
 	this.sampleSize = Math.floor(settings[14] / 1000 * settings[20]) + 1;
 	cout("...Samples Per VBlank (Per Channel): " + this.sampleSize, 0);
-	this.samplesOut = this.sampleSize / (settings[11] * Math.ceil(settings[13] / settings[11]));
+	this.samplesOut = this.sampleSize / this.adjustedEmulatorTickLimit;
 	cout("...Samples Per machine cycle (Per Channel): " + this.samplesOut, 0);
 	this.numSamplesTotal = (settings[1]) ? this.sampleSize : (this.sampleSize * 2);
 	this.audioSamples = this.getTypedArray(this.numSamplesTotal, 0, "float32");
@@ -4942,13 +4943,13 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 	if (settings[0]) {
 		if (this.soundMasterEnabled) {
 			if (settings[1]) {						//Split Mono & Stereo into two, to avoid this if statement every iteration of the loop.
-				while (--numSamples >= 0) {			//Leave as while for TraceMonkey JS engine (do while seems to be just a tad slower in tracing) (Method JIT implementations still faster though)
+				while (--numSamples >= 0) {
 					//MONO
 					this.channel1Compute();
 					this.channel2Compute();
 					this.channel3Compute();
 					this.channel4Compute();
-					this.currentBuffer[this.audioIndex++] = /*this.vinLeft * */this.currentSampleLeft / Math.max(this.channelLeftCount, 1);
+					this.currentBuffer[this.audioIndex++] = (this.currentSampleLeft != 0) ? (this.currentSampleLeft / this.channelLeftCount) : 0;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
 						if (this.usingBackupAsMain) {
@@ -4964,14 +4965,14 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 				}
 			}
 			else {
-				while (--numSamples >= 0) {		//Leave as while for TraceMonkey JS engine (do while seems to be just a tad slower in tracing) (Method JIT implementations still faster though)
+				while (--numSamples >= 0) {
 					//STEREO
 					this.channel1Compute();
 					this.channel2Compute();
 					this.channel3Compute();
 					this.channel4Compute();
-					this.currentBuffer[this.audioIndex++] = /*this.vinRight * */this.currentSampleRight / Math.max(this.channelRightCount, 1);
-					this.currentBuffer[this.audioIndex++] = /*this.vinLeft * */this.currentSampleLeft / Math.max(this.channelLeftCount, 1);
+					this.currentBuffer[this.audioIndex++] = (this.currentSampleRight != 0) ? (this.currentSampleRight / this.channelRightCount) : 0;
+					this.currentBuffer[this.audioIndex++] = (this.currentSampleLeft != 0) ? (this.currentSampleLeft / this.channelLeftCount) : 0;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
 						if (this.usingBackupAsMain) {
@@ -5334,39 +5335,9 @@ GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
 	}
 }
 GameBoyCore.prototype.updateCore = function () {
+	//CPU Timers:
 	this.DIVTicks += this.CPUTicks;				//DIV Timing
-	var timedTicks = this.CPUTicks / this.multiplier;
-	this.LCDTicks += timedTicks;				//LCD Timing
-	this.LCDCONTROL[this.actualScanLine](this);	//Scan Line and STAT Mode Control 
-	this.audioTicks += timedTicks;				//Not the same as the LCD timing (Cannot be altered by display on/off changes!!!).
-	if (this.audioTicks >= settings[11]) {		//Are we past the granularity setting?
-		var amount = this.audioTicks * this.samplesOut;
-		var actual = amount | 0;
-		this.rollover += amount - actual;
-		if (this.rollover >= 1) {
-			this.rollover--;
-			actual++;
-		}
-		if (!this.audioOverflow && actual > 0) {
-			this.generateAudio(actual);
-		}
-		//Emulator Timing (Timed against audio for optimization):
-		this.emulatorTicks += this.audioTicks;
-		if (this.emulatorTicks >= settings[13]) {
-			this.playAudio();				//Output all the samples built up.
-			if (this.drewBlank == 0) {		//LCD off takes at least 2 frames.
-				this.drawToCanvas();		//Display frame
-			}
-			//Update DIV Alignment:
-			this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 6)) & 0xFF;
-			this.DIVTicks %= 0x40;
-			//Update emulator flags:
-			this.stopEmulator |= 1;			//End current loop.
-			this.emulatorTicks = 0;
-		}
-		this.audioTicks = 0;
-	}
-	if (this.TIMAEnabled) {					//Execute TIMA
+	if (this.TIMAEnabled) {						//TIMA Timing
 		this.timerTicks += this.CPUTicks;
 		while (this.timerTicks >= this.TACClocker) {
 			this.timerTicks -= this.TACClocker;
@@ -5378,6 +5349,38 @@ GameBoyCore.prototype.updateCore = function () {
 				this.memory[0xFF05]++;
 			}
 		}
+	}
+	//single-speed relative timing for A/V emulation:
+	var timedTicks = this.CPUTicks / this.multiplier;
+	//LCD Controller Timing:
+	this.LCDTicks += timedTicks;				//LCD Timing
+	this.LCDCONTROL[this.actualScanLine](this);	//Scan Line and STAT Mode Control 
+	this.audioTicks += timedTicks;				//Not the same as the LCD timing (Cannot be altered by display on/off changes!!!).
+	//Audio Sample Generation Timing:
+	if (this.audioTicks >= settings[11]) {		//Are we past the granularity setting?
+		var amount = this.audioTicks * this.samplesOut;
+		var actual = amount | 0;
+		this.rollover += amount - actual;
+		if (this.rollover >= 1) {
+			this.rollover--;
+			actual++;
+		}
+		this.generateAudio(actual);
+		//Emulator Timing (Timed against audio for optimization):
+		this.emulatorTicks += this.audioTicks;
+		if (this.emulatorTicks >= this.adjustedEmulatorTickLimit) {
+			this.playAudio();				//Output all the samples built up.
+			if (this.drewBlank == 0) {		//LCD off takes at least 2 frames.
+				this.drawToCanvas();		//Display frame
+			}
+			//Update DIV Alignment (Integer overflow safety):
+			this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 6)) & 0xFF;
+			this.DIVTicks &= 0x3F;
+			//Update emulator flags:
+			this.stopEmulator |= 1;			//End current loop.
+			this.emulatorTicks -= this.adjustedEmulatorTickLimit;
+		}
+		this.audioTicks = 0;
 	}
 }
 GameBoyCore.prototype.initializeLCDController = function () {
@@ -6004,7 +6007,7 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 				case 0xFF04:
 					this.memoryReader[0xFF04] = function (parentObj, address) {
 						parentObj.memory[0xFF04] = (parentObj.memory[0xFF04] + (parentObj.DIVTicks >> 6)) & 0xFF;
-						parentObj.DIVTicks %= 0x40;
+						parentObj.DIVTicks &= 0x3F;
 						return parentObj.memory[0xFF04];
 						
 					}
@@ -6552,7 +6555,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 	}
 	this.memoryWriter[0xFF04] = function (parentObj, address, data) {
-		parentObj.DIVTicks %= 0x40;	//Update DIV for realignment.
+		parentObj.DIVTicks &= 0x3F;	//Update DIV for realignment.
 		parentObj.memory[0xFF04] = 0;
 	}
 	this.memoryWriter[0xFF07] = function (parentObj, address, data) {
