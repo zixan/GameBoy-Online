@@ -4757,11 +4757,12 @@ GameBoyCore.prototype.JoyPadEvent = function (key, down) {
 	this.memory[0xFF00] = (this.memory[0xFF00] & 0x30) + ((((this.memory[0xFF00] & 0x20) == 0) ? (this.JoyPad >> 4) : 0xF) & (((this.memory[0xFF00] & 0x10) == 0) ? (this.JoyPad & 0xF) : 0xF));
 }
 GameBoyCore.prototype.initSound = function () {
+	this.soundChannelsAllocated = (!settings[1]) ? 2 : 1;
 	if (settings[0]) {
 		try {
 			//mozAudio - Synchronous Audio API
 			this.audioHandle = new Audio();
-			this.audioHandle.mozSetup((!settings[1]) ? 2 : 1, settings[14]);
+			this.audioHandle.mozSetup(this.soundChannelsAllocated, settings[14]);
 			cout("Mozilla Audio API Initialized:", 0);
 			this.audioType = 0;
 		}
@@ -4786,7 +4787,7 @@ GameBoyCore.prototype.initSound = function () {
 			}
 			catch (error) {
 				try {
-					this.audioHandle = new AudioThread((!settings[1]) ? 2 : 1, settings[14], settings[15], false);
+					this.audioHandle = new AudioThread(this.soundChannelsAllocated, settings[14], settings[15], false);
 					cout("WAV PCM Audio Wrapper Initialized:", 0);
 					this.audioType = 2;
 					this.outTrackerLimit = 20 * (settings[14] / 44100);
@@ -4800,7 +4801,7 @@ GameBoyCore.prototype.initSound = function () {
 			}
 		}
 		if (settings[0]) {
-			cout("...Audio Channels: " + ((!settings[1]) ? 2 : 1), 0);
+			cout("...Audio Channels: " + this.soundChannelsAllocated, 0);
 			cout("...Sample Rate: " + settings[14], 0);
 			this.initAudioBuffer();
 		}
@@ -4812,7 +4813,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	cout("...Samples Per VBlank (Per Channel): " + this.sampleSize, 0);
 	this.samplesOut = this.sampleSize / (settings[11] * Math.ceil(settings[13] / settings[11]));
 	cout("...Samples Per machine cycle (Per Channel): " + this.samplesOut, 0);
-	this.numSamplesTotal = (settings[1]) ? this.sampleSize : (this.sampleSize * 2);
+	this.numSamplesTotal = this.sampleSize * this.soundChannelsAllocated;
 	this.audioSamples = this.getTypedArray(this.numSamplesTotal, 0, "float32");
 	this.audioBackup = this.getTypedArray(this.numSamplesTotal, 0, "float32");
 	this.webkitAudioBuffer = [];
@@ -4845,7 +4846,7 @@ GameBoyCore.prototype.playAudio = function () {
 	if (settings[0]) {
 		if (!this.audioOverflow && this.audioIndex < this.numSamplesTotal) {
 			//Make sure we don't under-run the sample generation:
-			this.generateAudio((this.numSamplesTotal - this.audioIndex) / ((!settings[1]) ? 2 : 1));
+			this.generateAudio((this.numSamplesTotal - this.audioIndex) / this.soundChannelsAllocated);
 		}
 		var buffer = (this.audioOverflow != this.usingBackupAsMain) ? this.audioBackup : this.audioSamples;
 		if (this.audioType == 0) {
@@ -4855,7 +4856,7 @@ GameBoyCore.prototype.playAudio = function () {
 		else if (this.audioType == 1) {
 			//WebKit Audio:
 			var bufferCounter = 0;
-			if (this.webkitAudioBuffer.length < (settings[14] * ((!settings[1]) ? 2 : 1))) {	//Do not update if it gets longer than one second.
+			if (this.webkitAudioBuffer.length < (settings[14] * this.soundChannelsAllocated)) {	//Do not update if it gets longer than one second.
 				while (bufferCounter < this.numSamplesTotal) {
 					this.webkitAudioBuffer.push(buffer[bufferCounter++]);
 				}
@@ -4869,7 +4870,7 @@ GameBoyCore.prototype.playAudio = function () {
 		}
 		else if (this.audioType == 2) {
 			//WAV PCM via Data URI
-			this.audioHandle = (this.outTracker++ > 0) ? this.audioHandle : new AudioThread((!settings[1]) ? 2 : 1, settings[14], settings[15], false);
+			this.audioHandle = (this.outTracker++ > 0) ? this.audioHandle : new AudioThread(this.soundChannelsAllocated, settings[14], settings[15], false);
 			this.audioHandle.appendBatch(buffer);
 		}
 	}
