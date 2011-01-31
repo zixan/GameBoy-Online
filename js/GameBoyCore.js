@@ -4809,7 +4809,7 @@ GameBoyCore.prototype.initSound = function () {
 }
 GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioIndex = 0;
-	this.sampleSize = Math.floor(settings[14] / 1000 * settings[20]) + 1;
+	this.sampleSize = Math.ceil(settings[14] / 1000 * settings[20]);
 	cout("...Samples Per VBlank (Per Channel): " + this.sampleSize, 0);
 	this.samplesOut = this.sampleSize / (settings[11] * Math.ceil(settings[13] / settings[11]));
 	cout("...Samples Per machine cycle (Per Channel): " + this.samplesOut, 0);
