@@ -4687,6 +4687,14 @@ GameBoyCore.prototype.MBCRAMUtilized = function () {
 GameBoyCore.prototype.initLCD = function () {
 	this.scaledFrameBuffer = this.getTypedArray(this.pixelCount, 0, "int32");	//Used for software side scaling...
 	this.transparentCutoff = (this.cGBC) ? 32 : 4;
+	try {
+		window.mozRequestAnimationFrame();
+		this.asyncDrawSupportDetected = true;
+	}
+	catch (error) {
+		this.asyncDrawSupportDetected = false;
+		cout("window.mozRequestAnimationFrame was not found.", 1);
+	}
 	if (this.weaveLookup.length == 0) {
 		//Setup the image decoding lookup table:
 		this.weaveLookup = this.getTypedArray(256, 0, "uint16");
@@ -5369,9 +5377,15 @@ GameBoyCore.prototype.updateCore = function () {
 		//Emulator Timing (Timed against audio for optimization):
 		this.emulatorTicks += this.audioTicks;
 		if (this.emulatorTicks >= settings[13]) {
-			this.playAudio();				//Output all the samples built up.
-			if (this.drewBlank == 0) {		//LCD off takes at least 2 frames.
-				this.drawToCanvas();		//Display frame
+			this.playAudio();			//Output all the samples built up.
+			if (this.drewBlank == 0) {	//Check for async drawing and the LCD off takes at least 2 frames.
+				if (!this.asyncDrawSupportDetected) {
+					this.drawToCanvas();//Display frame
+				}
+				else {
+					//Async Event Handler for requesting frame time:
+					window.mozRequestAnimationFrame();
+				}
 			}
 			//Update DIV Alignment (Integer overflow safety):
 			this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 6)) & 0xFF;

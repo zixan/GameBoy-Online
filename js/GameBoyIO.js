@@ -242,6 +242,12 @@ function GameBoyJoyStickSignalHandler(e) {
 		catch (error) { }
 	}
 }
+//MozBeforePaint Event Handler:
+addEvent("MozBeforePaint", window, function () {
+	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
+		gameboy.drawToCanvas();
+	}
+});
 //Audio API Event Handler:
 function audioOutputEvent(event) {
 	var countDown = 0;
