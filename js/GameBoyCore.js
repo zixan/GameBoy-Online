@@ -5378,14 +5378,12 @@ GameBoyCore.prototype.updateCore = function () {
 		this.emulatorTicks += this.audioTicks;
 		if (this.emulatorTicks >= settings[13]) {
 			this.playAudio();				//Output all the samples built up.
-			if (!this.asyncDrawSupportDetected) {
-				if (this.drewBlank == 0) {	//Check for async drawing and the LCD off takes at least 2 frames.
-					this.drawToCanvas();	//Display frame
-				}
-			}
-			else {
+			if (this.asyncDrawSupportDetected) {
 				//Async Event Handler for requesting frame time:
 				window.mozRequestAnimationFrame();
+			}
+			else if (this.drewBlank == 0) {	//LCD off takes at least 2 frames.
+				this.drawToCanvas();		//Display frame
 			}
 			//Update DIV Alignment (Integer overflow safety):
 			this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 6)) & 0xFF;

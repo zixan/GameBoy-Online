@@ -245,7 +245,7 @@ function GameBoyJoyStickSignalHandler(e) {
 //MozBeforePaint Event Handler:
 addEvent("MozBeforePaint", window, function () {
 	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
-		if (gameboy.drewBlank == 0) {	//Check for async drawing and the LCD off takes at least 2 frames.
+		if (gameboy.drewBlank == 0) {	//LCD off takes at least 2 frames.
 			gameboy.drawToCanvas();		//Display frame
 		}
 	}
