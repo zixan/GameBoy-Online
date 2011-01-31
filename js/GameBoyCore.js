@@ -4757,7 +4757,6 @@ GameBoyCore.prototype.JoyPadEvent = function (key, down) {
 	this.memory[0xFF00] = (this.memory[0xFF00] & 0x30) + ((((this.memory[0xFF00] & 0x20) == 0) ? (this.JoyPad >> 4) : 0xF) & (((this.memory[0xFF00] & 0x10) == 0) ? (this.JoyPad & 0xF) : 0xF));
 }
 GameBoyCore.prototype.initSound = function () {
-	this.adjustedEmulatorTickLimit = (settings[11] * Math.ceil(settings[13] / settings[11]));	//Get the adjusted ticking rate of the emulator (Adjusted to the audio polling rate).
 	if (settings[0]) {
 		try {
 			//mozAudio - Synchronous Audio API
@@ -4811,7 +4810,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioIndex = 0;
 	this.sampleSize = Math.floor(settings[14] / 1000 * settings[20]) + 1;
 	cout("...Samples Per VBlank (Per Channel): " + this.sampleSize, 0);
-	this.samplesOut = this.sampleSize / this.adjustedEmulatorTickLimit;
+	this.samplesOut = this.sampleSize / (settings[11] * Math.ceil(settings[13] / settings[11]));
 	cout("...Samples Per machine cycle (Per Channel): " + this.samplesOut, 0);
 	this.numSamplesTotal = (settings[1]) ? this.sampleSize : (this.sampleSize * 2);
 	this.audioSamples = this.getTypedArray(this.numSamplesTotal, 0, "float32");
@@ -5368,7 +5367,7 @@ GameBoyCore.prototype.updateCore = function () {
 		this.generateAudio(actual);
 		//Emulator Timing (Timed against audio for optimization):
 		this.emulatorTicks += this.audioTicks;
-		if (this.emulatorTicks >= this.adjustedEmulatorTickLimit) {
+		if (this.emulatorTicks >= settings[13]) {
 			this.playAudio();				//Output all the samples built up.
 			if (this.drewBlank == 0) {		//LCD off takes at least 2 frames.
 				this.drawToCanvas();		//Display frame
@@ -5378,7 +5377,7 @@ GameBoyCore.prototype.updateCore = function () {
 			this.DIVTicks &= 0x3F;
 			//Update emulator flags:
 			this.stopEmulator |= 1;			//End current loop.
-			this.emulatorTicks -= this.adjustedEmulatorTickLimit;
+			this.emulatorTicks -= settings[13];
 		}
 		this.audioTicks = 0;
 	}
