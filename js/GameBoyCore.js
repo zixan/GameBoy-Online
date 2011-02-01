@@ -7275,7 +7275,7 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 	return arrayHandle;
 }
 GameBoyCore.prototype.audioBufferSlice = function (length) {
-	if (typeof this.currentBuffer..subset == "function") {
+	if (typeof this.currentBuffer.subset == "function") {
 		return this.currentBuffer.subset(0, length);
 	}
 	else {
