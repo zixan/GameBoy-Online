@@ -23,7 +23,8 @@ var settings = [						//Some settings.
 	false,								//Whether to display the canvas at 144x160 on fullscreen or as stretched.
 	17,									//Interval for the emulator loop.
 	false,								//Render nearest-neighbor scaling in javascript?
-	false								//Disallow typed arrays?
+	false,								//Disallow typed arrays?
+	10000								//Audio Buffer Low Limit.
 ];
 function start(canvas, canvasAlt, ROM) {
 	clearLastEmulation();
@@ -257,7 +258,7 @@ function audioOutputEvent(event) {
 	var buffer2 = event.outputBuffer.getChannelData(1);
 	var bufferLength = buffer1.length;
 	if (settings[0] && typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
-		var singleChannelRemainingLength = gameboy.webkitAudioBuffer.length / (settings[1] ? 1 : 2);
+		var singleChannelRemainingLength = gameboy.webkitAudioBuffer.length / gameboy.soundChannelsAllocated;
 		if (singleChannelRemainingLength < bufferLength) {
 			countDown = bufferLength - singleChannelRemainingLength;
 			var count = 0;
