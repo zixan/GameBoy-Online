@@ -4868,17 +4868,17 @@ GameBoyCore.prototype.playAudio = function () {
 				var neededSamples = samplesRequested - this.audioIndex;
 				if (neededSamples > 0) {
 					//Use any existing samples and then create some:
-					this.audioHandle.mozWriteAudio(this.currentBuffer.subset(0, this.audioIndex));
+					this.audioHandle.mozWriteAudio(this.safeSlice(this.currentBuffer, 0, this.audioIndex));
 					this.samplesAlreadyWritten += this.audioIndex;
 					this.audioIndex = 0;
 					this.generateAudio(neededSamples / this.soundChannelsAllocated);
-					this.audioHandle.mozWriteAudio(this.currentBuffer.subset(0, this.audioIndex));
+					this.audioHandle.mozWriteAudio(this.safeSlice(this.currentBuffer, 0, this.audioIndex));
 					this.samplesAlreadyWritten += this.audioIndex;
 					this.audioIndex = 0;
 				}
 				else {
 					//Use the overflow buffer's existing samples:
-					this.audioHandle.mozWriteAudio(this.currentBuffer.subset(0, samplesRequested));
+					this.audioHandle.mozWriteAudio(this.safeSlice(this.currentBuffer, 0, samplesRequested));
 					this.samplesAlreadyWritten += samplesRequested;
 					neededSamples = this.audioIndex - samplesRequested;
 					while (--neededSamples >= 0) {
@@ -7264,10 +7264,6 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 				arrayHandle[index++] = defaultValue;
 			}
 		}
-		if (typeof arrayHandle.subset != "function") {
-			//Back-compat with older Firefox 4 betas:
-			arrayHandle.subset = arrayHandle.slice;
-		}
 	}
 	catch (error) {
 		var arrayHandle = new Array(length);
@@ -7277,6 +7273,14 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 		}
 	}
 	return arrayHandle;
+}
+GameBoyCore.prototype.safeSlice = function (arrayRef, start, length) {
+	if (typeof arrayRef.subset == "function") {
+		return arrayRef.subset(start, length);
+	}
+	else {
+		return arrayRef.slice(start, length);
+	}
 }
 GameBoyCore.prototype.ArrayPad = function (length, defaultValue) {
 	var arrayHandle = new Array(length);
