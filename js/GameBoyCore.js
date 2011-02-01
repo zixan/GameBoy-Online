@@ -4868,17 +4868,17 @@ GameBoyCore.prototype.playAudio = function () {
 				var neededSamples = samplesRequested - this.audioIndex;
 				if (neededSamples > 0) {
 					//Use any existing samples and then create some:
-					this.audioHandle.mozWriteAudio(this.safeSlice(this.currentBuffer, 0, this.audioIndex));
+					this.audioHandle.mozWriteAudio(this.audioBufferSlice(this.audioIndex));
 					this.samplesAlreadyWritten += this.audioIndex;
 					this.audioIndex = 0;
 					this.generateAudio(neededSamples / this.soundChannelsAllocated);
-					this.audioHandle.mozWriteAudio(this.safeSlice(this.currentBuffer, 0, this.audioIndex));
+					this.audioHandle.mozWriteAudio(this.audioBufferSlice(this.audioIndex));
 					this.samplesAlreadyWritten += this.audioIndex;
 					this.audioIndex = 0;
 				}
 				else {
 					//Use the overflow buffer's existing samples:
-					this.audioHandle.mozWriteAudio(this.safeSlice(this.currentBuffer, 0, samplesRequested));
+					this.audioHandle.mozWriteAudio(this.audioBufferSlice(samplesRequested));
 					this.samplesAlreadyWritten += samplesRequested;
 					neededSamples = this.audioIndex - samplesRequested;
 					while (--neededSamples >= 0) {
@@ -7274,12 +7274,12 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 	}
 	return arrayHandle;
 }
-GameBoyCore.prototype.safeSlice = function (arrayRef, start, length) {
+GameBoyCore.prototype.audioBufferSlice = function (length) {
 	if (typeof arrayRef.subset == "function") {
-		return arrayRef.subset(start, length);
+		return this.currentBuffer.subset(0, length);
 	}
 	else {
-		return arrayRef.slice(start, length);
+		return this.currentBuffer.slice(0, length);
 	}
 }
 GameBoyCore.prototype.ArrayPad = function (length, defaultValue) {
