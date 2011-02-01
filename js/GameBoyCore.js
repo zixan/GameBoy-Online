@@ -4828,17 +4828,46 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.webkitAudioBuffer = [];
 	this.smallNoiseTable = this.getTypedArray(0xF0000, 0, "float32");
 	this.largeNoiseTable = this.getTypedArray(0xF8000, 0, "float32");
-	for (var volumeControl = 0; volumeControl < 0x10; volumeControl++) {
-		var volIndice = volumeControl << 16;
-		var volMultiplier = volumeControl / 0xF;
-		//7-bit white noise table:
-		for (var index = 0; index < 0x80; index++) {
-			this.smallNoiseTable[volIndice | index] = Math.random() * volMultiplier;
-		}
-		//15-bit white noise table:
-		for (var index = 0; index < 0x8000; index++) {
-			this.largeNoiseTable[volIndice |index] = Math.random() * volMultiplier;
-		}
+	var randomFactor = 0;
+	//7-bit white noise table:
+	for (var index = 0; index < 0x80; index++) {
+		randomFactor = Math.random();
+		this.smallNoiseTable[index] = 0;
+		this.smallNoiseTable[0x10000 | index] = randomFactor * 0x1 / 0xF;
+		this.smallNoiseTable[0x20000 | index] = randomFactor * 0x2 / 0xF;
+		this.smallNoiseTable[0x30000 | index] = randomFactor * 0x3 / 0xF;
+		this.smallNoiseTable[0x40000 | index] = randomFactor * 0x4 / 0xF;
+		this.smallNoiseTable[0x50000 | index] = randomFactor * 0x5 / 0xF;
+		this.smallNoiseTable[0x60000 | index] = randomFactor * 0x6 / 0xF;
+		this.smallNoiseTable[0x70000 | index] = randomFactor * 0x7 / 0xF;
+		this.smallNoiseTable[0x80000 | index] = randomFactor * 0x8 / 0xF;
+		this.smallNoiseTable[0x90000 | index] = randomFactor * 0x9 / 0xF;
+		this.smallNoiseTable[0xA0000 | index] = randomFactor * 0xA / 0xF;
+		this.smallNoiseTable[0xB0000 | index] = randomFactor * 0xB / 0xF;
+		this.smallNoiseTable[0xC0000 | index] = randomFactor * 0xC / 0xF;
+		this.smallNoiseTable[0xD0000 | index] = randomFactor * 0xD / 0xF;
+		this.smallNoiseTable[0xE0000 | index] = randomFactor * 0xE / 0xF;
+		this.smallNoiseTable[0xF0000 | index] = randomFactor;
+	}
+	//15-bit white noise table:
+	for (var index = 0; index < 0x8000; index++) {
+		randomFactor = Math.random();
+		this.largeNoiseTable[index] = 0;
+		this.largeNoiseTable[0x10000 | index] = randomFactor * 0x1 / 0xF;
+		this.largeNoiseTable[0x20000 | index] = randomFactor * 0x2 / 0xF;
+		this.largeNoiseTable[0x30000 | index] = randomFactor * 0x3 / 0xF;
+		this.largeNoiseTable[0x40000 | index] = randomFactor * 0x4 / 0xF;
+		this.largeNoiseTable[0x50000 | index] = randomFactor * 0x5 / 0xF;
+		this.largeNoiseTable[0x60000 | index] = randomFactor * 0x6 / 0xF;
+		this.largeNoiseTable[0x70000 | index] = randomFactor * 0x7 / 0xF;
+		this.largeNoiseTable[0x80000 | index] = randomFactor * 0x8 / 0xF;
+		this.largeNoiseTable[0x90000 | index] = randomFactor * 0x9 / 0xF;
+		this.largeNoiseTable[0xA0000 | index] = randomFactor * 0xA / 0xF;
+		this.largeNoiseTable[0xB0000 | index] = randomFactor * 0xB / 0xF;
+		this.largeNoiseTable[0xC0000 | index] = randomFactor * 0xC / 0xF;
+		this.largeNoiseTable[0xD0000 | index] = randomFactor * 0xD / 0xF;
+		this.largeNoiseTable[0xE0000 | index] = randomFactor * 0xE / 0xF;
+		this.largeNoiseTable[0xF0000 | index] = randomFactor;
 	}
 	this.noiseTableLookup = this.largeNoiseTable;
 	this.noiseTableLength = 0x8000;
