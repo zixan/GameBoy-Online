@@ -7275,8 +7275,9 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 	return arrayHandle;
 }
 GameBoyCore.prototype.audioBufferSlice = function (length) {
-	if (typeof this.currentBuffer.subset == "function") {
-		return this.currentBuffer.subset(0, length);
+	if (typeof this.currentBuffer.subarray == "function") {
+		//"I am disappoint" I had to change this one day later from subset:
+		return this.currentBuffer.subarray(0, length);
 	}
 	else {
 		return this.currentBuffer.slice(0, length);
