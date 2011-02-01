@@ -4860,7 +4860,7 @@ GameBoyCore.prototype.playAudio = function () {
 		var buffer = (this.audioOverflow != this.usingBackupAsMain) ? this.audioBackup : this.audioSamples;
 		if (this.audioType == 0) {
 			//mozAudio
-			var samplesRequested = Math.min(Math.max(settings[23] - this.samplesAlreadyWritten + this.audioHandle.mozCurrentSampleOffset(), 0), this.numSamplesTotal - 2);
+			var samplesRequested = Math.min(Math.max(settings[23] - this.samplesAlreadyWritten + this.audioHandle.mozCurrentSampleOffset(), 0), this.numSamplesTotal - this.soundChannelsAllocated);
 			this.audioHandle.mozWriteAudio(buffer);
 			this.samplesAlreadyWritten += this.numSamplesTotal;
 			if (samplesRequested > 0) {
