@@ -5227,7 +5227,7 @@ GameBoyCore.prototype.channel4Compute = function () {
 		}
 		this.channel4lastSampleLookup += this.channel4adjustedFrequencyPrep;
 		if (this.channel4lastSampleLookup >= this.noiseTableLength) {
-			this.channel4lastSampleLookup = 0;
+			this.channel4lastSampleLookup -= this.noiseTableLength;
 		}
 	}
 }
