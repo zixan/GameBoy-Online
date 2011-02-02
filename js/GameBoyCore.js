@@ -4823,25 +4823,26 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioSamples = this.getTypedArray(this.numSamplesTotal, 0, "float32");
 	this.audioBackup = this.getTypedArray(this.numSamplesTotal, 0, "float32");
 	this.webkitAudioBuffer = [];
-	this.noiseSampleTable = this.getTypedArray(0xF8000, 0, "float32");
+	this.noiseSampleTable = this.getTypedArray(0x80000, 0, "float32");
 	var randomFactor = 0;
 	for (var index = 0; index < 0x8000; index++) {
-		randomFactor = Math.random();
-		this.noiseSampleTable[0x10000 | index] = randomFactor * 0x1 / 0xF;
-		this.noiseSampleTable[0x20000 | index] = randomFactor * 0x2 / 0xF;
-		this.noiseSampleTable[0x30000 | index] = randomFactor * 0x3 / 0xF;
-		this.noiseSampleTable[0x40000 | index] = randomFactor * 0x4 / 0xF;
-		this.noiseSampleTable[0x50000 | index] = randomFactor * 0x5 / 0xF;
-		this.noiseSampleTable[0x60000 | index] = randomFactor * 0x6 / 0xF;
-		this.noiseSampleTable[0x70000 | index] = randomFactor * 0x7 / 0xF;
-		this.noiseSampleTable[0x80000 | index] = randomFactor * 0x8 / 0xF;
-		this.noiseSampleTable[0x90000 | index] = randomFactor * 0x9 / 0xF;
-		this.noiseSampleTable[0xA0000 | index] = randomFactor * 0xA / 0xF;
-		this.noiseSampleTable[0xB0000 | index] = randomFactor * 0xB / 0xF;
-		this.noiseSampleTable[0xC0000 | index] = randomFactor * 0xC / 0xF;
-		this.noiseSampleTable[0xD0000 | index] = randomFactor * 0xD / 0xF;
-		this.noiseSampleTable[0xE0000 | index] = randomFactor * 0xE / 0xF;
-		this.noiseSampleTable[0xF0000 | index] = randomFactor;
+		randomFactor = Math.random();	//Get the pseudo-random value.
+		//Now multiply the pseudo-random value against all possible volume amounts and cache the result:
+		this.noiseSampleTable[0x08000 | index] = randomFactor * 0x1 / 0xF;
+		this.noiseSampleTable[0x10000 | index] = randomFactor * 0x2 / 0xF;
+		this.noiseSampleTable[0x18000 | index] = randomFactor * 0x3 / 0xF;
+		this.noiseSampleTable[0x20000 | index] = randomFactor * 0x4 / 0xF;
+		this.noiseSampleTable[0x28000 | index] = randomFactor * 0x5 / 0xF;
+		this.noiseSampleTable[0x30000 | index] = randomFactor * 0x6 / 0xF;
+		this.noiseSampleTable[0x38000 | index] = randomFactor * 0x7 / 0xF;
+		this.noiseSampleTable[0x40000 | index] = randomFactor * 0x8 / 0xF;
+		this.noiseSampleTable[0x48000 | index] = randomFactor * 0x9 / 0xF;
+		this.noiseSampleTable[0x50000 | index] = randomFactor * 0xA / 0xF;
+		this.noiseSampleTable[0x58000 | index] = randomFactor * 0xB / 0xF;
+		this.noiseSampleTable[0x60000 | index] = randomFactor * 0xC / 0xF;
+		this.noiseSampleTable[0x68000 | index] = randomFactor * 0xD / 0xF;
+		this.noiseSampleTable[0x70000 | index] = randomFactor * 0xE / 0xF;
+		this.noiseSampleTable[0x78000 | index] = randomFactor;
 	}
 }
 GameBoyCore.prototype.playAudio = function () {
@@ -5208,12 +5209,12 @@ GameBoyCore.prototype.channel4Compute = function () {
 			else {
 				if (!this.channel4envelopeType) {
 					if (this.channel4envelopeVolume > 0) {
-						this.channel4currentVolume = --this.channel4envelopeVolume << 16;
+						this.channel4currentVolume = --this.channel4envelopeVolume << 15;
 						this.channel4volumeEnvTime = this.channel4envelopeSweeps * this.volumeEnvelopePreMultiplier;
 					}
 				}
 				else if (this.channel4envelopeVolume < 0xF) {
-					this.channel4currentVolume = ++this.channel4envelopeVolume << 16;
+					this.channel4currentVolume = ++this.channel4envelopeVolume << 15;
 					this.channel4volumeEnvTime = this.channel4envelopeSweeps * this.volumeEnvelopePreMultiplier;
 				}
 			}
@@ -6714,7 +6715,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryWriter[0xFF21] = function (parentObj, address, data) {
 		parentObj.channel4envelopeVolume = data >> 4;
-		parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << 16;
+		parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << 15;
 		parentObj.channel4envelopeType = ((data & 0x08) == 0x08);
 		parentObj.channel4envelopeSweeps = data & 0x7;
 		parentObj.channel4volumeEnvTime = parentObj.channel4envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
@@ -6735,7 +6736,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if ((data & 0x80) == 0x80) {
 			parentObj.channel4lastSampleLookup = 0;
 			parentObj.channel4envelopeVolume = parentObj.memory[0xFF21] >> 4;
-			parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << 16;
+			parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << 15;
 			parentObj.channel4envelopeSweeps = parentObj.memory[0xFF21] & 0x7;
 			parentObj.channel4volumeEnvTime = parentObj.channel4envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
 			parentObj.channel4totalLength = parentObj.channel4lastTotalLength;
