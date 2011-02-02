@@ -4968,7 +4968,7 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel4consecutive = true;
 	this.channel4volumeEnvTime = 0;
 	this.channel4lastTotalLength = 0;
-	this.noiseTableLength = 0x7FFF;
+	this.noiseTableLength = 0x8000;
 }
 GameBoyCore.prototype.generateAudio = function (numSamples) {
 	if (settings[0]) {
@@ -5225,7 +5225,10 @@ GameBoyCore.prototype.channel4Compute = function () {
 				this.memory[0xFF26] &= 0xF7;	//Channel #4 On Flag Off
 			}
 		}
-		this.channel4lastSampleLookup = ((this.channel4lastSampleLookup + this.channel4adjustedFrequencyPrep) & this.noiseTableLength);
+		this.channel4lastSampleLookup += this.channel4adjustedFrequencyPrep;
+		if (this.channel4lastSampleLookup >= this.noiseTableLength) {
+			this.channel4lastSampleLookup = 0;
+		}
 	}
 }
 GameBoyCore.prototype.run = function () {
@@ -6721,9 +6724,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryWriter[0xFF22] = function (parentObj, address, data) {
 		parentObj.channel4adjustedFrequencyPrep = parentObj.whiteNoiseFrequencyPreMultiplier / Math.max(data & 0x7, 0.5) / Math.pow(2, (data >> 4) + 1);
 		var bitWidth = (data & 0x8);
-		if ((bitWidth == 0x8 && parentObj.noiseTableLength == 0x7FFF) || (bitWidth == 0 && parentObj.noiseTableLength == 0x7F)) {
+		if ((bitWidth == 0x8 && parentObj.noiseTableLength == 0x8000) || (bitWidth == 0 && parentObj.noiseTableLength == 0x80)) {
 			parentObj.channel4lastSampleLookup = 0;
-			parentObj.noiseTableLength = (bitWidth == 0x8) ? 0x7F : 0x7FFF;
+			parentObj.noiseTableLength = (bitWidth == 0x8) ? 0x80 : 0x8000;
 		}
 		parentObj.memory[0xFF22] = data;
 	}
