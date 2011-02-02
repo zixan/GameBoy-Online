@@ -134,9 +134,6 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.currentBuffer = this.audioSamples;		//Pointer to the sample workbench.
 	this.channelLeftCount = 0;					//How many channels are being fed into the left side stereo / mono.
 	this.channelRightCount = 0;					//How many channels are being fed into the right side stereo.
-	this.noiseTableLookup = null;
-	this.smallNoiseTable = new Array(0xF0000);
-	this.largeNoiseTable = new Array(0xF8000);
 	this.initializeAudioStartState();
 	this.soundMasterEnabled = false;			//As its name implies
 	this.audioType = -1;						//Track what method we're using for audio output.
@@ -4826,51 +4823,26 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioSamples = this.getTypedArray(this.numSamplesTotal, 0, "float32");
 	this.audioBackup = this.getTypedArray(this.numSamplesTotal, 0, "float32");
 	this.webkitAudioBuffer = [];
-	this.smallNoiseTable = this.getTypedArray(0xF0000, 0, "float32");
-	this.largeNoiseTable = this.getTypedArray(0xF8000, 0, "float32");
+	this.noiseSampleTable = this.getTypedArray(0xF8000, 0, "float32");
 	var randomFactor = 0;
-	//7-bit white noise table:
-	for (var index = 0; index < 0x80; index++) {
-		randomFactor = Math.random();
-		this.smallNoiseTable[index] = 0;
-		this.smallNoiseTable[0x10000 | index] = randomFactor * 0x1 / 0xF;
-		this.smallNoiseTable[0x20000 | index] = randomFactor * 0x2 / 0xF;
-		this.smallNoiseTable[0x30000 | index] = randomFactor * 0x3 / 0xF;
-		this.smallNoiseTable[0x40000 | index] = randomFactor * 0x4 / 0xF;
-		this.smallNoiseTable[0x50000 | index] = randomFactor * 0x5 / 0xF;
-		this.smallNoiseTable[0x60000 | index] = randomFactor * 0x6 / 0xF;
-		this.smallNoiseTable[0x70000 | index] = randomFactor * 0x7 / 0xF;
-		this.smallNoiseTable[0x80000 | index] = randomFactor * 0x8 / 0xF;
-		this.smallNoiseTable[0x90000 | index] = randomFactor * 0x9 / 0xF;
-		this.smallNoiseTable[0xA0000 | index] = randomFactor * 0xA / 0xF;
-		this.smallNoiseTable[0xB0000 | index] = randomFactor * 0xB / 0xF;
-		this.smallNoiseTable[0xC0000 | index] = randomFactor * 0xC / 0xF;
-		this.smallNoiseTable[0xD0000 | index] = randomFactor * 0xD / 0xF;
-		this.smallNoiseTable[0xE0000 | index] = randomFactor * 0xE / 0xF;
-		this.smallNoiseTable[0xF0000 | index] = randomFactor;
-	}
-	//15-bit white noise table:
 	for (var index = 0; index < 0x8000; index++) {
 		randomFactor = Math.random();
-		this.largeNoiseTable[index] = 0;
-		this.largeNoiseTable[0x10000 | index] = randomFactor * 0x1 / 0xF;
-		this.largeNoiseTable[0x20000 | index] = randomFactor * 0x2 / 0xF;
-		this.largeNoiseTable[0x30000 | index] = randomFactor * 0x3 / 0xF;
-		this.largeNoiseTable[0x40000 | index] = randomFactor * 0x4 / 0xF;
-		this.largeNoiseTable[0x50000 | index] = randomFactor * 0x5 / 0xF;
-		this.largeNoiseTable[0x60000 | index] = randomFactor * 0x6 / 0xF;
-		this.largeNoiseTable[0x70000 | index] = randomFactor * 0x7 / 0xF;
-		this.largeNoiseTable[0x80000 | index] = randomFactor * 0x8 / 0xF;
-		this.largeNoiseTable[0x90000 | index] = randomFactor * 0x9 / 0xF;
-		this.largeNoiseTable[0xA0000 | index] = randomFactor * 0xA / 0xF;
-		this.largeNoiseTable[0xB0000 | index] = randomFactor * 0xB / 0xF;
-		this.largeNoiseTable[0xC0000 | index] = randomFactor * 0xC / 0xF;
-		this.largeNoiseTable[0xD0000 | index] = randomFactor * 0xD / 0xF;
-		this.largeNoiseTable[0xE0000 | index] = randomFactor * 0xE / 0xF;
-		this.largeNoiseTable[0xF0000 | index] = randomFactor;
+		this.noiseSampleTable[0x10000 | index] = randomFactor * 0x1 / 0xF;
+		this.noiseSampleTable[0x20000 | index] = randomFactor * 0x2 / 0xF;
+		this.noiseSampleTable[0x30000 | index] = randomFactor * 0x3 / 0xF;
+		this.noiseSampleTable[0x40000 | index] = randomFactor * 0x4 / 0xF;
+		this.noiseSampleTable[0x50000 | index] = randomFactor * 0x5 / 0xF;
+		this.noiseSampleTable[0x60000 | index] = randomFactor * 0x6 / 0xF;
+		this.noiseSampleTable[0x70000 | index] = randomFactor * 0x7 / 0xF;
+		this.noiseSampleTable[0x80000 | index] = randomFactor * 0x8 / 0xF;
+		this.noiseSampleTable[0x90000 | index] = randomFactor * 0x9 / 0xF;
+		this.noiseSampleTable[0xA0000 | index] = randomFactor * 0xA / 0xF;
+		this.noiseSampleTable[0xB0000 | index] = randomFactor * 0xB / 0xF;
+		this.noiseSampleTable[0xC0000 | index] = randomFactor * 0xC / 0xF;
+		this.noiseSampleTable[0xD0000 | index] = randomFactor * 0xD / 0xF;
+		this.noiseSampleTable[0xE0000 | index] = randomFactor * 0xE / 0xF;
+		this.noiseSampleTable[0xF0000 | index] = randomFactor;
 	}
-	this.noiseTableLookup = this.largeNoiseTable;
-	this.noiseTableLength = 0x8000;
 }
 GameBoyCore.prototype.playAudio = function () {
 	if (settings[0]) {
@@ -4995,7 +4967,6 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel4consecutive = true;
 	this.channel4volumeEnvTime = 0;
 	this.channel4lastTotalLength = 0;
-	this.noiseTableLookup = this.largeNoiseTable;
 	this.noiseTableLength = 0x8000;
 }
 GameBoyCore.prototype.generateAudio = function (numSamples) {
@@ -5133,11 +5104,9 @@ GameBoyCore.prototype.channel1Compute = function () {
 						this.channel1volumeEnvTime = this.channel1envelopeSweeps * this.volumeEnvelopePreMultiplier;
 					}
 				}
-				else {
-					if (this.channel1envelopeVolume < 0xF) {
-						this.channel1currentVolume = ++this.channel1envelopeVolume / 0xF;
-						this.channel1volumeEnvTime = this.channel1envelopeSweeps * this.volumeEnvelopePreMultiplier;
-					}
+				else if (this.channel1envelopeVolume < 0xF) {
+					this.channel1currentVolume = ++this.channel1envelopeVolume / 0xF;
+					this.channel1volumeEnvTime = this.channel1envelopeSweeps * this.volumeEnvelopePreMultiplier;
 				}
 			}
 		}
@@ -5178,11 +5147,9 @@ GameBoyCore.prototype.channel2Compute = function () {
 						this.channel2volumeEnvTime = this.channel2envelopeSweeps * this.volumeEnvelopePreMultiplier;
 					}
 				}
-				else {
-					if (this.channel2envelopeVolume < 0xF) {
-						this.channel2currentVolume = ++this.channel2envelopeVolume / 0xF;
-						this.channel2volumeEnvTime = this.channel2envelopeSweeps * this.volumeEnvelopePreMultiplier;
-					}
+				else if (this.channel2envelopeVolume < 0xF) {
+					this.channel2currentVolume = ++this.channel2envelopeVolume / 0xF;
+					this.channel2volumeEnvTime = this.channel2envelopeSweeps * this.volumeEnvelopePreMultiplier;
 				}
 			}
 		}
@@ -5225,7 +5192,7 @@ GameBoyCore.prototype.channel3Compute = function () {
 }
 GameBoyCore.prototype.channel4Compute = function () {
 	if (this.channel4consecutive || this.channel4totalLength > 0) {
-		var duty = this.noiseTableLookup[this.channel4currentVolume | this.channel4lastSampleLookup];
+		var duty = this.noiseSampleTable[this.channel4currentVolume | this.channel4lastSampleLookup];
 		if (this.leftChannel[3]) {
 			this.currentSampleLeft += duty;
 			this.channelLeftCount++;
@@ -5245,11 +5212,9 @@ GameBoyCore.prototype.channel4Compute = function () {
 						this.channel4volumeEnvTime = this.channel4envelopeSweeps * this.volumeEnvelopePreMultiplier;
 					}
 				}
-				else {
-					if (this.channel4envelopeVolume < 0xF) {
-						this.channel4currentVolume = ++this.channel4envelopeVolume << 16;
-						this.channel4volumeEnvTime = this.channel4envelopeSweeps * this.volumeEnvelopePreMultiplier;
-					}
+				else if (this.channel4envelopeVolume < 0xF) {
+					this.channel4currentVolume = ++this.channel4envelopeVolume << 16;
+					this.channel4volumeEnvTime = this.channel4envelopeSweeps * this.volumeEnvelopePreMultiplier;
 				}
 			}
 		}
@@ -6756,15 +6721,11 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		parentObj.memory[0xFF21] = data;
 	}
 	this.memoryWriter[0xFF22] = function (parentObj, address, data) {
-		parentObj.channel4lastSampleLookup = 0;
 		parentObj.channel4adjustedFrequencyPrep = parentObj.whiteNoiseFrequencyPreMultiplier / Math.max(data & 0x7, 0.5) / Math.pow(2, (data >> 4) + 1);
-		if ((data & 0x8) == 0x8) {
-			parentObj.noiseTableLookup = parentObj.smallNoiseTable;
-			parentObj.noiseTableLength = 0x80;
-		}
-		else {
-			parentObj.noiseTableLookup = parentObj.largeNoiseTable;
-			parentObj.noiseTableLength = 0x8000;
+		var bitWidth = (data & 0x8);
+		if ((bitWidth == 0x8 && parentObj.noiseTableLength == 0x8000) || (bitWidth == 0 && parentObj.noiseTableLength == 0x80)) {
+			parentObj.channel4lastSampleLookup = 0;
+			parentObj.noiseTableLength = (bitWidth == 0x8) ? 0x80 : 0x8000;
 		}
 		parentObj.memory[0xFF22] = data;
 	}
