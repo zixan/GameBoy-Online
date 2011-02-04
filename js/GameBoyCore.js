@@ -4773,12 +4773,11 @@ GameBoyCore.prototype.initSound = function () {
 			this.audioType = 0;
 		}
 		catch (error) {
-			try {
-				initializeWebKitAudio();	//Use our global initializer for this.
+			if (launchedContext) {
 				cout("WebKit Audio API Initialized:", 0);
 				this.audioType = 1;
 			}
-			catch (error) {
+			else {
 				try {
 					this.audioHandle = new AudioThread(this.soundChannelsAllocated, settings[14], settings[15], false);
 					cout("WAV PCM Audio Wrapper Initialized:", 0);
