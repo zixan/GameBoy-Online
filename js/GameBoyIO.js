@@ -251,14 +251,49 @@ addEvent("MozBeforePaint", window, function () {
 		}
 	}
 });
+var audioContextHandle = null;
+var audioNode = null;
+var audioSource = null;
+var launchedContext = false;
+var bufferLength = settings[18];
+var audioContextSampleBuffer = [];
+var startPosition = 0;
+var bufferEnd = 0;
+function initializeWebKitAudio() {
+	if (!launchedContext) {
+		/*Get the one continuous audio loop rolling, as the loop will update
+		the audio asynchronously by inspecting the gameboy object periodically.
+		Variables and event handling functions have to be globally declared to prevent a bad bug in an experimental Safari build!*/
+		try {
+			audioContextHandle = new webkitAudioContext();							//Create a system audio context.
+		}
+		catch (error) {
+			audioContextHandle = new AudioContext();								//Create a system audio context.
+		}
+		audioSource = audioContextHandle.createBufferSource();						//We need to create a false input to get the chain started.
+		audioSource.loop = true;	//Keep this alive forever (Event handler will know when to ouput.)
+		audioSource.buffer = audioContextHandle.createBuffer(1, 1, settings[14]);	//Create a zero'd input buffer for the input to be valid.
+		audioNode = audioContextHandle.createJavaScriptNode(settings[18], 1, 2);	//Create 2 outputs and ignore the input buffer (Just copy buffer 1 over if mono)
+		audioNode.onaudioprocess = audioOutputEvent;								//Connect the audio processing event to a handling function so we can manipulate output
+		audioSource.connect(audioNode);												//Send and chain the input to the audio manipulation.
+		audioNode.connect(audioContextHandle.destination);							//Send and chain the output of the audio manipulation to the system audio output.
+		audioSource.noteOn(0);														//Start the loop!
+		try {
+			audioContextSampleBuffer = new Float32Array(settings[23]);
+		}
+		catch (error) {
+			audioContextSampleBuffer = new Array(settings[23]);
+		}
+		launchedContext = true;
+	}
+}
 //Audio API Event Handler:
 function audioOutputEvent(event) {
 	var countDown = 0;
 	var buffer1 = event.outputBuffer.getChannelData(0);
 	var buffer2 = event.outputBuffer.getChannelData(1);
-	var bufferLength = buffer1.length;
 	if (settings[0] && typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
-		var singleChannelRemainingLength = gameboy.webkitAudioBuffer.length / gameboy.soundChannelsAllocated;
+		var singleChannelRemainingLength = ((startPosition > bufferEnd) ? (settings[23] - startPosition + bufferEnd) : (bufferEnd - startPosition));
 		if (singleChannelRemainingLength < bufferLength) {
 			countDown = bufferLength - singleChannelRemainingLength;
 			var count = 0;
@@ -270,15 +305,24 @@ function audioOutputEvent(event) {
 		if (settings[1]) {
 			//MONO:
 			while (countDown < bufferLength) {
-				buffer2[countDown] = buffer1[countDown] = gameboy.webkitAudioBuffer.shift();
+				buffer2[countDown] = buffer1[countDown] = audioContextSampleBuffer[startPosition++];
+				if (startPosition == settings[23]) {
+					startPosition = 0;
+				}
 				countDown++;
 			}
 		}
 		else {
 			//STEREO:
 			while (countDown < bufferLength) {
-				buffer1[countDown] = gameboy.webkitAudioBuffer.shift();
-				buffer2[countDown++] = gameboy.webkitAudioBuffer.shift();
+				buffer1[countDown] = audioContextSampleBuffer[startPosition++];
+				if (startPosition == settings[23]) {
+					startPosition = 0;
+				}
+				buffer2[countDown++] = audioContextSampleBuffer[startPosition++];
+				if (startPosition == settings[23]) {
+					startPosition = 0;
+				}
 			}
 		}
 	}

@@ -4774,20 +4774,7 @@ GameBoyCore.prototype.initSound = function () {
 		}
 		catch (error) {
 			try {
-				if (typeof audioContextHandle == "undefined") {									//Make sure we don't try to create more than one audio context.
-					/*Get the one continuous audio loop rolling, as the loop will update
-					the audio asynchronously by inspecting the gameboy object periodically.
-					Variables and event handling functions have to be globally declared to prevent a bad bug in an experimental Safari build!*/
-					audioContextHandle = new AudioContext();									//Create a system audio context.
-					audioSource = audioContextHandle.createBufferSource();						//We need to create a false input to get the chain started.
-					audioSource.loop = true;	//Keep this alive forever (Event handler will know when to ouput.)
-					audioSource.buffer = audioContextHandle.createBuffer(1, 1, settings[14]);	//Create a zero'd input buffer for the input to be valid.
-					audioNode = audioContextHandle.createJavaScriptNode(settings[18], 1, 2);	//Create 2 outputs and ignore the input buffer (Just copy buffer 1 over if mono)
-					audioNode.onaudioprocess = audioOutputEvent;								//Connect the audio processing event to a handling function so we can manipulate output
-					audioSource.connect(audioNode);												//Send and chain the input to the audio manipulation.
-					audioNode.connect(audioContextHandle.destination);							//Send and chain the output of the audio manipulation to the system audio output.
-					audioSource.noteOn(0);														//Start the loop!
-				}
+				initializeWebKitAudio();	//Use our global initializer for this.
 				cout("WebKit Audio API Initialized:", 0);
 				this.audioType = 1;
 			}
@@ -4796,7 +4783,7 @@ GameBoyCore.prototype.initSound = function () {
 					this.audioHandle = new AudioThread(this.soundChannelsAllocated, settings[14], settings[15], false);
 					cout("WAV PCM Audio Wrapper Initialized:", 0);
 					this.audioType = 2;
-					this.outTrackerLimit = 20/* * (settings[14] / 44100)*/;
+					this.outTrackerLimit = 20;
 					
 				}
 				catch (error) {
@@ -4885,16 +4872,52 @@ GameBoyCore.prototype.playAudio = function () {
 		}
 		else if (this.audioType == 1) {
 			//WebKit Audio:
-			var bufferCounter = 0;
-			if (this.webkitAudioBuffer.length < (settings[14] * this.soundChannelsAllocated)) {	//Do not update if it gets longer than one second.
-				while (bufferCounter < this.numSamplesTotal) {
-					this.webkitAudioBuffer.push(buffer[bufferCounter++]);
+			for (var bufferCounter = 0; bufferCounter < this.numSamplesTotal; bufferCounter++) {
+				audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
+				if (bufferEnd == settings[23]) {
+					bufferEnd = 0;
 				}
 			}
-			else {
-				while (bufferCounter < this.numSamplesTotal) {
-					this.webkitAudioBuffer.shift();
-					this.webkitAudioBuffer.push(buffer[bufferCounter++]);
+			var samplesRequested = Math.min(Math.max(settings[23] - this.samplesAlreadyWritten + ((startPosition > bufferEnd) ? (settings[23] - startPosition + bufferEnd) : (bufferEnd - startPosition)), 0), this.numSamplesTotal - this.soundChannelsAllocated);
+			this.samplesAlreadyWritten += this.numSamplesTotal;
+			if (samplesRequested > 0) {
+				//We need more audio samples since we went below our set low limit:
+				var neededSamples = samplesRequested - this.audioIndex;
+				if (neededSamples > 0) {
+					//Use any existing samples and then create some:
+					for (var bufferCounter = 0; bufferCounter < this.audioIndex; bufferCounter++) {
+						audioContextSampleBuffer[bufferEnd++] = this.currentBuffer[bufferCounter];
+						if (bufferEnd == settings[23]) {
+							bufferEnd = 0;
+						}
+					}
+					this.samplesAlreadyWritten += this.audioIndex;
+					this.audioIndex = 0;
+					this.generateAudio(neededSamples / this.soundChannelsAllocated);
+					for (var bufferCounter = 0; bufferCounter < this.audioIndex; bufferCounter++) {
+						audioContextSampleBuffer[bufferEnd++] = this.currentBuffer[bufferCounter];
+						if (bufferEnd == settings[23]) {
+							bufferEnd = 0;
+						}
+					}
+					this.samplesAlreadyWritten += this.audioIndex;
+					this.audioIndex = 0;
+				}
+				else {
+					//Use the overflow buffer's existing samples:
+					for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
+						audioContextSampleBuffer[bufferEnd++] = this.currentBuffer[bufferCounter];
+						if (bufferEnd == settings[23]) {
+							bufferEnd = 0;
+						}
+					}
+					this.samplesAlreadyWritten += samplesRequested;
+					neededSamples = this.audioIndex - samplesRequested;
+					while (--neededSamples >= 0) {
+						//Move over the remaining samples to their new positions:
+						this.currentBuffer[neededSamples] = this.currentBuffer[samplesRequested + neededSamples];
+					}
+					this.audioIndex -= samplesRequested;
 				}
 			}
 		}
