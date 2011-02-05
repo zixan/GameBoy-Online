@@ -19,12 +19,13 @@ var settings = [						//Some settings.
 	0x10,								//How many bits per WAV PCM sample (For browsers that fall back to WAV PCM generation)
 	true,								//Use the GBC BIOS?
 	true,								//Colorize GB mode?
-	512,								//Sample size for webkit audio.
+	1024,								//Sample size for webkit audio.
 	false,								//Whether to display the canvas at 144x160 on fullscreen or as stretched.
 	17,									//Interval for the emulator loop.
 	false,								//Render nearest-neighbor scaling in javascript?
 	false,								//Disallow typed arrays?
-	10000								//Audio Buffer Low Limit.
+	10000,								//Audio Buffer Low Limit.
+	25000								//Audio Buffer High Limit
 ];
 function start(canvas, canvasAlt, ROM) {
 	clearLastEmulation();
@@ -258,46 +259,7 @@ var launchedContext = false;
 var bufferLength = settings[18];
 var audioContextSampleBuffer = [];
 var startPosition = 0;
-var bufferEnd = 0;
-(function () {
-	if (!launchedContext) {
-		/*Get the one continuous audio loop rolling, as the loop will update
-		the audio asynchronously by inspecting the gameboy object periodically.
-		Variables and event handling functions have to be globally declared to prevent a bad bug in an experimental Safari build!*/
-		try {
-			audioContextHandle = new webkitAudioContext();							//Create a system audio context.
-		}
-		catch (error) {
-			try {
-				audioContextHandle = new AudioContext();								//Create a system audio context.
-			}
-			catch (error) {
-				return;
-			}
-		}
-		try {
-			audioSource = audioContextHandle.createBufferSource();						//We need to create a false input to get the chain started.
-			audioSource.loop = true;	//Keep this alive forever (Event handler will know when to ouput.)
-			//settings[14] = audioContextHandle.sampleRate;
-			audioSource.buffer = audioContextHandle.createBuffer(1, 1, settings[14]);	//Create a zero'd input buffer for the input to be valid.
-			audioNode = audioContextHandle.createJavaScriptNode(settings[18], 1, 2);	//Create 2 outputs and ignore the input buffer (Just copy buffer 1 over if mono)
-			audioNode.onaudioprocess = audioOutputEvent;								//Connect the audio processing event to a handling function so we can manipulate output
-			audioSource.connect(audioNode);												//Send and chain the input to the audio manipulation.
-			audioNode.connect(audioContextHandle.destination);							//Send and chain the output of the audio manipulation to the system audio output.
-			audioSource.noteOn(0);														//Start the loop!
-		}
-		catch (error) {
-			return;
-		}
-		try {
-			audioContextSampleBuffer = new Float32Array(settings[23]);
-		}
-		catch (error) {
-			audioContextSampleBuffer = new Array(settings[23]);
-		}
-		launchedContext = true;
-	}
-})();
+var bufferEnd = settings[23];
 //Audio API Event Handler:
 function audioOutputEvent(event) {
 	var countDown = 0;
@@ -317,7 +279,7 @@ function audioOutputEvent(event) {
 			//MONO:
 			while (countDown < bufferLength) {
 				buffer2[countDown] = buffer1[countDown] = audioContextSampleBuffer[startPosition++];
-				if (startPosition == settings[23]) {
+				if (startPosition == settings[24]) {
 					startPosition = 0;
 				}
 				countDown++;
@@ -327,11 +289,8 @@ function audioOutputEvent(event) {
 			//STEREO:
 			while (countDown < bufferLength) {
 				buffer1[countDown] = audioContextSampleBuffer[startPosition++];
-				if (startPosition == settings[23]) {
-					startPosition = 0;
-				}
 				buffer2[countDown++] = audioContextSampleBuffer[startPosition++];
-				if (startPosition == settings[23]) {
+				if (startPosition == settings[24]) {
 					startPosition = 0;
 				}
 			}
@@ -344,3 +303,43 @@ function audioOutputEvent(event) {
 		}
 	}
 }
+//Initialize WebKit Audio:
+(function () {
+	if (!launchedContext) {
+		/*Get the one continuous audio loop rolling, as the loop will update
+		the audio asynchronously by inspecting the gameboy object periodically.
+		Variables and event handling functions have to be globally declared to prevent a bad bug in an experimental Safari build!*/
+		try {
+			audioContextHandle = new webkitAudioContext();							//Create a system audio context.
+		}
+		catch (error) {
+			try {
+				audioContextHandle = new AudioContext();								//Create a system audio context.
+			}
+			catch (error) {
+				return;
+			}
+		}
+		try {
+			audioSource = audioContextHandle.createBufferSource();						//We need to create a false input to get the chain started.
+			audioSource.loop = false;	//Keep this alive forever (Event handler will know when to ouput.)
+			settings[14] = audioContextHandle.sampleRate;
+			audioSource.buffer = audioContextHandle.createBuffer(1, 1, settings[14]);	//Create a zero'd input buffer for the input to be valid.
+			audioNode = audioContextHandle.createJavaScriptNode(settings[18], 1, 2);	//Create 2 outputs and ignore the input buffer (Just copy buffer 1 over if mono)
+			audioNode.onaudioprocess = audioOutputEvent;								//Connect the audio processing event to a handling function so we can manipulate output
+			audioSource.connect(audioNode);												//Send and chain the input to the audio manipulation.
+			audioNode.connect(audioContextHandle.destination);							//Send and chain the output of the audio manipulation to the system audio output.
+			audioSource.noteOn(0);														//Start the loop!
+		}
+		catch (error) {
+			return;
+		}
+		try {
+			audioContextSampleBuffer = new Float32Array(settings[24]);
+		}
+		catch (error) {
+			audioContextSampleBuffer = new Array(settings[24]);
+		}
+		launchedContext = true;
+	}
+})();

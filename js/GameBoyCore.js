@@ -4840,7 +4840,7 @@ GameBoyCore.prototype.playAudio = function () {
 		var buffer = (this.audioOverflow != this.usingBackupAsMain) ? this.audioBackup : this.audioSamples;
 		if (this.audioType == 0) {
 			//mozAudio
-			var samplesRequested = Math.min(Math.max(settings[23] - this.samplesAlreadyWritten + this.audioHandle.mozCurrentSampleOffset(), 0), this.numSamplesTotal - this.soundChannelsAllocated);
+			var samplesRequested = Math.min(settings[23] - this.samplesAlreadyWritten + this.audioHandle.mozCurrentSampleOffset(), this.numSamplesTotal - this.soundChannelsAllocated);
 			this.audioHandle.mozWriteAudio(buffer);
 			this.samplesAlreadyWritten += this.numSamplesTotal;
 			if (samplesRequested > 0) {
@@ -4873,44 +4873,60 @@ GameBoyCore.prototype.playAudio = function () {
 			//WebKit Audio:
 			for (var bufferCounter = 0; bufferCounter < this.numSamplesTotal; bufferCounter++) {
 				audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
-				if (bufferEnd == settings[23]) {
+				if (bufferEnd == startPosition) {
+					bufferEnd -= this.soundChannelsAllocated;
+					return;
+				}
+				else if (bufferEnd == settings[24]) {
 					bufferEnd = 0;
 				}
 			}
-			var samplesRequested = Math.min(Math.max(settings[23] - this.samplesAlreadyWritten + ((startPosition > bufferEnd) ? (settings[23] - startPosition + bufferEnd) : (bufferEnd - startPosition)), 0), this.numSamplesTotal - this.soundChannelsAllocated);
-			this.samplesAlreadyWritten += this.numSamplesTotal;
-			if (samplesRequested > 0) {
+			var samplesRequested = Math.min(settings[23] - ((startPosition > bufferEnd) ? (settings[23] - startPosition + bufferEnd) : (bufferEnd - startPosition)), this.numSamplesTotal - this.soundChannelsAllocated);
+			//this.samplesAlreadyWritten += this.numSamplesTotal;
+			if (samplesRequested > 0 && bufferEnd != startPosition - this.soundChannelsAllocated) {
 				//We need more audio samples since we went below our set low limit:
 				var neededSamples = samplesRequested - this.audioIndex;
 				if (neededSamples > 0) {
 					//Use any existing samples and then create some:
 					for (var bufferCounter = 0; bufferCounter < this.audioIndex; bufferCounter++) {
 						audioContextSampleBuffer[bufferEnd++] = this.currentBuffer[bufferCounter];
-						if (bufferEnd == settings[23]) {
+						if (bufferEnd == startPosition) {
+							bufferEnd -= this.soundChannelsAllocated;
+							break;
+						}
+						else if (bufferEnd == settings[24]) {
 							bufferEnd = 0;
 						}
 					}
-					this.samplesAlreadyWritten += this.audioIndex;
+					//this.samplesAlreadyWritten += this.audioIndex;
 					this.audioIndex = 0;
 					this.generateAudio(neededSamples / this.soundChannelsAllocated);
 					for (var bufferCounter = 0; bufferCounter < this.audioIndex; bufferCounter++) {
 						audioContextSampleBuffer[bufferEnd++] = this.currentBuffer[bufferCounter];
-						if (bufferEnd == settings[23]) {
+						if (bufferEnd == startPosition) {
+							bufferEnd -= this.soundChannelsAllocated;
+							break;
+						}
+						else if (bufferEnd == settings[24]) {
 							bufferEnd = 0;
 						}
 					}
-					this.samplesAlreadyWritten += this.audioIndex;
+					//this.samplesAlreadyWritten += this.audioIndex;
 					this.audioIndex = 0;
 				}
 				else {
 					//Use the overflow buffer's existing samples:
 					for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
 						audioContextSampleBuffer[bufferEnd++] = this.currentBuffer[bufferCounter];
-						if (bufferEnd == settings[23]) {
+						if (bufferEnd == startPosition) {
+							bufferEnd -= this.soundChannelsAllocated;
+							break;
+						}
+						else if (bufferEnd == settings[24]) {
 							bufferEnd = 0;
 						}
 					}
-					this.samplesAlreadyWritten += samplesRequested;
+					//this.samplesAlreadyWritten += samplesRequested;
 					neededSamples = this.audioIndex - samplesRequested;
 					while (--neededSamples >= 0) {
 						//Move over the remaining samples to their new positions:
