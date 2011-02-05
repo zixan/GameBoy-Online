@@ -19,7 +19,7 @@ var settings = [						//Some settings.
 	0x10,								//How many bits per WAV PCM sample (For browsers that fall back to WAV PCM generation)
 	true,								//Use the GBC BIOS?
 	true,								//Colorize GB mode?
-	1024,								//Sample size for webkit audio.
+	4096,								//Sample size for webkit audio.
 	false,								//Whether to display the canvas at 144x160 on fullscreen or as stretched.
 	17,									//Interval for the emulator loop.
 	false,								//Render nearest-neighbor scaling in javascript?
@@ -244,14 +244,17 @@ function GameBoyJoyStickSignalHandler(e) {
 		catch (error) { }
 	}
 }
-//MozBeforePaint Event Handler:
-addEvent("MozBeforePaint", window, function () {
+//Generic vsync function for use in multiple APIs:
+function vSyncGFX() {
 	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
 		if (gameboy.drewBlank == 0) {	//LCD off takes at least 2 frames.
 			gameboy.drawToCanvas();		//Display frame
 		}
 	}
-});
+}
+//MozBeforePaint Event Handler:
+addEvent("MozBeforePaint", window, vSyncGFX);
+//Audio API Event Handler:
 var audioContextHandle = null;
 var audioNode = null;
 var audioSource = null;
@@ -260,7 +263,6 @@ var bufferLength = settings[18];
 var audioContextSampleBuffer = [];
 var startPosition = 0;
 var bufferEnd = settings[23];
-//Audio API Event Handler:
 function audioOutputEvent(event) {
 	var countDown = 0;
 	var buffer1 = event.outputBuffer.getChannelData(0);

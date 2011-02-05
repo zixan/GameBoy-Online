@@ -4686,11 +4686,17 @@ GameBoyCore.prototype.initLCD = function () {
 	this.transparentCutoff = (this.cGBC) ? 32 : 4;
 	try {
 		window.mozRequestAnimationFrame();
-		this.asyncDrawSupportDetected = true;
+		this.asyncDrawSupportDetected = 1;
 	}
 	catch (error) {
-		this.asyncDrawSupportDetected = false;
-		cout("window.mozRequestAnimationFrame was not found.", 1);
+		try {
+			window.webkitRequestAnimationFrame(vSyncGFX);
+			this.asyncDrawSupportDetected = 2;
+		}
+		catch (error) {
+			this.asyncDrawSupportDetected = 0;
+			cout("window.mozRequestAnimationFrame was not found.", 1);
+		}
 	}
 	if (this.weaveLookup.length == 0) {
 		//Setup the image decoding lookup table:
@@ -4874,7 +4880,7 @@ GameBoyCore.prototype.playAudio = function () {
 			for (var bufferCounter = 0; bufferCounter < this.numSamplesTotal; bufferCounter++) {
 				audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
 				if (bufferEnd == startPosition) {
-					bufferEnd -= this.soundChannelsAllocated;
+					bufferEnd = ((bufferEnd < this.soundChannelsAllocated) ? settings[24] : bufferEnd) - this.soundChannelsAllocated;
 					return;
 				}
 				else if (bufferEnd == settings[24]) {
@@ -4891,7 +4897,7 @@ GameBoyCore.prototype.playAudio = function () {
 					for (var bufferCounter = 0; bufferCounter < this.audioIndex; bufferCounter++) {
 						audioContextSampleBuffer[bufferEnd++] = this.currentBuffer[bufferCounter];
 						if (bufferEnd == startPosition) {
-							bufferEnd -= this.soundChannelsAllocated;
+							bufferEnd = ((bufferEnd < this.soundChannelsAllocated) ? settings[24] : bufferEnd) - this.soundChannelsAllocated;
 							break;
 						}
 						else if (bufferEnd == settings[24]) {
@@ -4904,7 +4910,7 @@ GameBoyCore.prototype.playAudio = function () {
 					for (var bufferCounter = 0; bufferCounter < this.audioIndex; bufferCounter++) {
 						audioContextSampleBuffer[bufferEnd++] = this.currentBuffer[bufferCounter];
 						if (bufferEnd == startPosition) {
-							bufferEnd -= this.soundChannelsAllocated;
+							bufferEnd = ((bufferEnd < this.soundChannelsAllocated) ? settings[24] : bufferEnd) - this.soundChannelsAllocated;
 							break;
 						}
 						else if (bufferEnd == settings[24]) {
@@ -4919,7 +4925,7 @@ GameBoyCore.prototype.playAudio = function () {
 					for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
 						audioContextSampleBuffer[bufferEnd++] = this.currentBuffer[bufferCounter];
 						if (bufferEnd == startPosition) {
-							bufferEnd -= this.soundChannelsAllocated;
+							bufferEnd = ((bufferEnd < this.soundChannelsAllocated) ? settings[24] : bufferEnd) - this.soundChannelsAllocated;
 							break;
 						}
 						else if (bufferEnd == settings[24]) {
@@ -5433,9 +5439,13 @@ GameBoyCore.prototype.updateCore = function () {
 		this.emulatorTicks += this.audioTicks;
 		if (this.emulatorTicks >= settings[13]) {
 			this.playAudio();				//Output all the samples built up.
-			if (this.asyncDrawSupportDetected) {
-				//Async Event Handler for requesting frame time:
+			if (this.asyncDrawSupportDetected == 1) {
+				//Async Event Handler for requesting frame time (Firefox 4):
 				window.mozRequestAnimationFrame();
+			}
+			else if (this.asyncDrawSupportDetected == 2) {
+				//Async Event Handler for requesting frame time (Chrome 11):
+				window.webkitRequestAnimationFrame(vSyncGFX);
 			}
 			else if (this.drewBlank == 0) {	//LCD off takes at least 2 frames.
 				this.drawToCanvas();		//Display frame
