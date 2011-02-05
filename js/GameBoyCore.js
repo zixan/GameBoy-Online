@@ -4889,7 +4889,7 @@ GameBoyCore.prototype.playAudio = function () {
 			}
 			var samplesRequested = Math.min(settings[23] - ((startPosition > bufferEnd) ? (settings[23] - startPosition + bufferEnd) : (bufferEnd - startPosition)), this.numSamplesTotal - this.soundChannelsAllocated);
 			//this.samplesAlreadyWritten += this.numSamplesTotal;
-			if (samplesRequested > 0 && bufferEnd != startPosition - this.soundChannelsAllocated) {
+			if (samplesRequested > this.soundChannelsAllocated) {
 				//We need more audio samples since we went below our set low limit:
 				var neededSamples = samplesRequested - this.audioIndex;
 				if (neededSamples > 0) {
