@@ -4847,21 +4847,21 @@ GameBoyCore.prototype.playAudio = function () {
 		if (this.audioType == 0) {
 			//mozAudio
 			var samplesRequested = Math.min(settings[23] - this.samplesAlreadyWritten + this.audioHandle.mozCurrentSampleOffset(), this.numSamplesTotal - this.soundChannelsAllocated);
-			this.samplesAlreadyWritten += this.numSamplesTotal - this.audioHandle.mozWriteAudio(buffer);
+			this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(buffer);
 			if (samplesRequested > 0) {
 				//We need more audio samples since we went below our set low limit:
 				var neededSamples = samplesRequested - this.audioIndex;
 				if (neededSamples > 0) {
 					//Use any existing samples and then create some:
-					this.samplesAlreadyWritten += this.audioIndex - this.audioHandle.mozWriteAudio(this.audioBufferSlice(this.audioIndex));
+					this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.audioBufferSlice(this.audioIndex));
 					this.audioIndex = 0;
 					this.generateAudio(neededSamples / this.soundChannelsAllocated);
-					this.samplesAlreadyWritten += this.audioIndex - this.audioHandle.mozWriteAudio(this.audioBufferSlice(this.audioIndex));
+					this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.audioBufferSlice(this.audioIndex));
 					this.audioIndex = 0;
 				}
 				else {
 					//Use the overflow buffer's existing samples:
-					this.samplesAlreadyWritten += samplesRequested - this.audioHandle.mozWriteAudio(this.audioBufferSlice(samplesRequested));
+					this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.audioBufferSlice(samplesRequested));
 					neededSamples = this.audioIndex - samplesRequested;
 					while (--neededSamples >= 0) {
 						//Move over the remaining samples to their new positions:
