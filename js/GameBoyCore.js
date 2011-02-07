@@ -4376,7 +4376,7 @@ GameBoyCore.prototype.initBootstrap = function () {
 	this.rightChannel = this.ArrayPad(4, false);
 	this.channel2frequency = this.channel1frequency = 0;
 	this.channel2volumeEnvTime = this.channel1volumeEnvTime = 0;
-	this.channel2consecutive = this.channel1consecutive = true;
+	this.channel4consecutive = this.channel2consecutive = this.channel1consecutive = false;
 	this.memory[0xFF00] = 0xF;	//Set the joypad state.
 }
 GameBoyCore.prototype.ROMLoad = function () {
