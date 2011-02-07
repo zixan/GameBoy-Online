@@ -4853,10 +4853,17 @@ GameBoyCore.prototype.playAudio = function () {
 				var neededSamples = samplesRequested - this.audioIndex;
 				if (neededSamples > 0) {
 					//Use any existing samples and then create some:
-					this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.audioBufferSlice(this.audioIndex));
-					this.audioIndex = 0;
+					if (this.audioIndex > 0) {
+						this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.audioBufferSlice(this.audioIndex));
+						this.audioIndex = 0;
+					}
 					this.generateAudio(neededSamples / this.soundChannelsAllocated);
 					this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.audioBufferSlice(this.audioIndex));
+					this.audioIndex = 0;
+				}
+				else if (neededSamples == 0) {
+					//Use the overflow buffer's existing samples:
+					this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.currentBuffer);
 					this.audioIndex = 0;
 				}
 				else {
@@ -4884,7 +4891,6 @@ GameBoyCore.prototype.playAudio = function () {
 				}
 			}
 			var samplesRequested = Math.min(settings[23] - ((startPosition > bufferEnd) ? (settings[23] - startPosition + bufferEnd) : (bufferEnd - startPosition)), this.numSamplesTotal - this.soundChannelsAllocated);
-			//this.samplesAlreadyWritten += this.numSamplesTotal;
 			if (samplesRequested > this.soundChannelsAllocated) {
 				//We need more audio samples since we went below our set low limit:
 				var neededSamples = samplesRequested - this.audioIndex;
@@ -4900,7 +4906,6 @@ GameBoyCore.prototype.playAudio = function () {
 							bufferEnd = 0;
 						}
 					}
-					//this.samplesAlreadyWritten += this.audioIndex;
 					this.audioIndex = 0;
 					this.generateAudio(neededSamples / this.soundChannelsAllocated);
 					for (var bufferCounter = 0; bufferCounter < this.audioIndex; bufferCounter++) {
@@ -4913,7 +4918,6 @@ GameBoyCore.prototype.playAudio = function () {
 							bufferEnd = 0;
 						}
 					}
-					//this.samplesAlreadyWritten += this.audioIndex;
 					this.audioIndex = 0;
 				}
 				else {
@@ -4928,7 +4932,6 @@ GameBoyCore.prototype.playAudio = function () {
 							bufferEnd = 0;
 						}
 					}
-					//this.samplesAlreadyWritten += samplesRequested;
 					neededSamples = this.audioIndex - samplesRequested;
 					while (--neededSamples >= 0) {
 						//Move over the remaining samples to their new positions:
