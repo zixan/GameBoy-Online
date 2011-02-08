@@ -19,7 +19,7 @@ var settings = [						//Some settings.
 	0x10,								//How many bits per WAV PCM sample (For browsers that fall back to WAV PCM generation)
 	true,								//Use the GBC BIOS?
 	true,								//Colorize GB mode?
-	4096,								//Sample size for webkit audio.
+	2048,								//Sample size for webkit audio.
 	false,								//Whether to display the canvas at 144x160 on fullscreen or as stretched.
 	17,									//Interval for the emulator loop.
 	false,								//Render nearest-neighbor scaling in javascript?

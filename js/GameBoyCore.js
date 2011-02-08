@@ -4882,16 +4882,12 @@ GameBoyCore.prototype.playAudio = function () {
 			//WebKit Audio:
 			for (var bufferCounter = 0; bufferCounter < this.numSamplesTotal; bufferCounter++) {
 				audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
-				if (bufferEnd == startPosition) {
-					bufferEnd = ((bufferEnd < this.soundChannelsAllocated) ? settings[24] : bufferEnd) - this.soundChannelsAllocated;
-					return;
-				}
-				else if (bufferEnd == settings[24]) {
+				if (bufferEnd == settings[24]) {
 					bufferEnd = 0;
 				}
 			}
-			var samplesRequested = Math.min(settings[23] - ((startPosition > bufferEnd) ? (settings[23] - startPosition + bufferEnd) : (bufferEnd - startPosition)), this.numSamplesTotal - this.soundChannelsAllocated);
-			if (samplesRequested > this.soundChannelsAllocated) {
+			var samplesRequested = Math.min(settings[23] - ((startPosition > bufferEnd) ? (settings[24] - startPosition + bufferEnd) : (bufferEnd - startPosition)), this.numSamplesTotal - this.soundChannelsAllocated);
+			if (samplesRequested > 0) {
 				//We need more audio samples since we went below our set low limit:
 				var neededSamples = samplesRequested - this.audioIndex;
 				if (neededSamples > 0) {
@@ -4899,8 +4895,10 @@ GameBoyCore.prototype.playAudio = function () {
 					for (var bufferCounter = 0; bufferCounter < this.audioIndex; bufferCounter++) {
 						audioContextSampleBuffer[bufferEnd++] = this.currentBuffer[bufferCounter];
 						if (bufferEnd == startPosition) {
-							bufferEnd = ((bufferEnd < this.soundChannelsAllocated) ? settings[24] : bufferEnd) - this.soundChannelsAllocated;
-							break;
+							startPosition += this.soundChannelsAllocated;
+							if (settings[24] <= startPosition) {
+								startPosition -= settings[24];
+							}
 						}
 						else if (bufferEnd == settings[24]) {
 							bufferEnd = 0;
@@ -4911,8 +4909,10 @@ GameBoyCore.prototype.playAudio = function () {
 					for (var bufferCounter = 0; bufferCounter < this.audioIndex; bufferCounter++) {
 						audioContextSampleBuffer[bufferEnd++] = this.currentBuffer[bufferCounter];
 						if (bufferEnd == startPosition) {
-							bufferEnd = ((bufferEnd < this.soundChannelsAllocated) ? settings[24] : bufferEnd) - this.soundChannelsAllocated;
-							break;
+							startPosition += this.soundChannelsAllocated;
+							if (settings[24] <= startPosition) {
+								startPosition -= settings[24];
+							}
 						}
 						else if (bufferEnd == settings[24]) {
 							bufferEnd = 0;
@@ -4925,8 +4925,10 @@ GameBoyCore.prototype.playAudio = function () {
 					for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
 						audioContextSampleBuffer[bufferEnd++] = this.currentBuffer[bufferCounter];
 						if (bufferEnd == startPosition) {
-							bufferEnd = ((bufferEnd < this.soundChannelsAllocated) ? settings[24] : bufferEnd) - this.soundChannelsAllocated;
-							break;
+							startPosition += this.soundChannelsAllocated;
+							if (settings[24] <= startPosition) {
+								startPosition -= settings[24];
+							}
 						}
 						else if (bufferEnd == settings[24]) {
 							bufferEnd = 0;
