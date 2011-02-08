@@ -4882,7 +4882,13 @@ GameBoyCore.prototype.playAudio = function () {
 			//WebKit Audio:
 			for (var bufferCounter = 0; bufferCounter < this.numSamplesTotal; bufferCounter++) {
 				audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
-				if (bufferEnd == settings[24]) {
+				if (bufferEnd == startPosition) {
+					startPosition += this.soundChannelsAllocated;
+					if (settings[24] <= startPosition) {
+						startPosition -= settings[24];
+					}
+				}
+				else if (bufferEnd == settings[24]) {
 					bufferEnd = 0;
 				}
 			}
