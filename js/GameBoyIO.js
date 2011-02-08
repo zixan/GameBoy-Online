@@ -267,9 +267,9 @@ function audioOutputEvent(event) {
 	var buffer1 = event.outputBuffer.getChannelData(0);
 	var buffer2 = event.outputBuffer.getChannelData(1);
 	if (settings[0] && typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
-		var singleChannelRemainingLength = ((startPosition > bufferEnd) ? (settings[24] - startPosition + bufferEnd) : (bufferEnd - startPosition));
-		if (singleChannelRemainingLength < settings[18]) {
-			countDown = settings[18] - singleChannelRemainingLength;
+		var samplesInBuffer = ((startPosition > bufferEnd) ? (settings[24] - startPosition + bufferEnd) : (bufferEnd - startPosition));
+		if (samplesInBuffer < settings[18]) {
+			countDown = settings[18] - samplesInBuffer;
 			var count = 0;
 			while (countDown > count) {
 				buffer2[count] = buffer1[count] = 0;
