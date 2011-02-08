@@ -43,7 +43,7 @@ function windowingInitialize() {
 		}
 		catch (error) {
 			//Check for the proposed standard Audio API's context object.
-			if (typeof AudioContext == "undefined") {
+			if (typeof AudioContext == "undefined" && typeof webkitAudioContext == "undefined") {
 				throw(new Error(""));
 			}
 		}
