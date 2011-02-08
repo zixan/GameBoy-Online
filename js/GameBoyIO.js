@@ -259,18 +259,17 @@ var audioContextHandle = null;
 var audioNode = null;
 var audioSource = null;
 var launchedContext = false;
-var bufferLength = settings[18];
-var audioContextSampleBuffer = [];
 var startPosition = 0;
-var bufferEnd = settings[23];
+var bufferEnd = 0;
+var audioContextSampleBuffer = [];
 function audioOutputEvent(event) {
 	var countDown = 0;
 	var buffer1 = event.outputBuffer.getChannelData(0);
 	var buffer2 = event.outputBuffer.getChannelData(1);
 	if (settings[0] && typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
 		var singleChannelRemainingLength = ((startPosition > bufferEnd) ? (settings[24] - startPosition + bufferEnd) : (bufferEnd - startPosition));
-		if (singleChannelRemainingLength < bufferLength) {
-			countDown = bufferLength - singleChannelRemainingLength;
+		if (singleChannelRemainingLength < settings[18]) {
+			countDown = settings[18] - singleChannelRemainingLength;
 			var count = 0;
 			while (countDown > count) {
 				buffer2[count] = buffer1[count] = 0;
@@ -279,7 +278,7 @@ function audioOutputEvent(event) {
 		}
 		if (settings[1]) {
 			//MONO:
-			while (countDown < bufferLength) {
+			while (countDown < settings[18]) {
 				buffer2[countDown] = buffer1[countDown] = audioContextSampleBuffer[startPosition++];
 				if (startPosition == settings[24]) {
 					startPosition = 0;
@@ -289,7 +288,7 @@ function audioOutputEvent(event) {
 		}
 		else {
 			//STEREO:
-			while (countDown < bufferLength) {
+			while (countDown < settings[18]) {
 				buffer1[countDown] = audioContextSampleBuffer[startPosition++];
 				buffer2[countDown++] = audioContextSampleBuffer[startPosition++];
 				if (startPosition == settings[24]) {
@@ -299,10 +298,27 @@ function audioOutputEvent(event) {
 		}
 	}
 	else {
-		while (countDown < bufferLength) {
+		while (countDown < settings[18]) {
 			buffer2[countDown] = buffer1[countDown] = 0;
 			countDown++;
 		}
+	}
+}
+//Initialize WebKit Audio Buffer:
+function resetWebAudioBuffer() {
+	if (launchedContext) {
+		try {
+			audioContextSampleBuffer = new Float32Array(settings[24]);
+		}
+		catch (error) {
+			audioContextSampleBuffer = new Array(settings[24]);
+			for (var audioSampleIndice = 0; audioSampleIndice < settings[24]; audioSampleIndice++) {
+				//Initialize to zero:
+				audioContextSampleBuffer[audioSampleIndice] = 0;
+			}
+		}
+		startPosition = 0;
+		bufferEnd = 0;
 	}
 }
 //Initialize WebKit Audio:
@@ -335,12 +351,6 @@ function audioOutputEvent(event) {
 		}
 		catch (error) {
 			return;
-		}
-		try {
-			audioContextSampleBuffer = new Float32Array(settings[24]);
-		}
-		catch (error) {
-			audioContextSampleBuffer = new Array(settings[24]);
 		}
 		launchedContext = true;
 	}

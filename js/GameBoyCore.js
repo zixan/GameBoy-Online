@@ -4781,6 +4781,7 @@ GameBoyCore.prototype.initSound = function () {
 		catch (error) {
 			if (launchedContext) {
 				cout("WebKit Audio API Initialized:", 0);
+				resetWebAudioBuffer();
 				this.audioType = 1;
 			}
 			else {
