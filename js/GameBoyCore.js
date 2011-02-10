@@ -4847,35 +4847,44 @@ GameBoyCore.prototype.playAudio = function () {
 		var buffer = (this.audioOverflow != this.usingBackupAsMain) ? this.audioBackup : this.audioSamples;
 		if (this.audioType == 0) {
 			//mozAudio
-			var samplesRequested = Math.min(settings[23] - this.samplesAlreadyWritten + this.audioHandle.mozCurrentSampleOffset(), this.numSamplesTotal - this.soundChannelsAllocated);
-			this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(buffer);
-			if (samplesRequested > 0) {
-				//We need more audio samples since we went below our set low limit:
-				var neededSamples = samplesRequested - this.audioIndex;
-				if (neededSamples > 0) {
-					//Use any existing samples and then create some:
-					if (this.audioIndex > 0) {
+			var sampleOffset = this.audioHandle.mozCurrentSampleOffset();
+			if (sampleOffset < 0) {
+				//WTF Error Instance:
+				this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(buffer);
+				cout("mozCurrentSampleOffset gave an impossible number.", 1);
+				return;
+			}
+			else {
+				var samplesRequested = Math.min(settings[23] - this.samplesAlreadyWritten + sampleOffset, this.numSamplesTotal - this.soundChannelsAllocated);
+				this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(buffer);
+				if (samplesRequested > 0) {
+					//We need more audio samples since we went below our set low limit:
+					var neededSamples = samplesRequested - this.audioIndex;
+					if (neededSamples > 0) {
+						//Use any existing samples and then create some:
+						if (this.audioIndex > 0) {
+							this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.audioBufferSlice(this.audioIndex));
+							this.audioIndex = 0;
+						}
+						this.generateAudio(neededSamples / this.soundChannelsAllocated);
 						this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.audioBufferSlice(this.audioIndex));
 						this.audioIndex = 0;
 					}
-					this.generateAudio(neededSamples / this.soundChannelsAllocated);
-					this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.audioBufferSlice(this.audioIndex));
-					this.audioIndex = 0;
-				}
-				else if (neededSamples == 0) {
-					//Use the overflow buffer's existing samples:
-					this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.currentBuffer);
-					this.audioIndex = 0;
-				}
-				else {
-					//Use the overflow buffer's existing samples:
-					this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.audioBufferSlice(samplesRequested));
-					neededSamples = this.audioIndex - samplesRequested;
-					while (--neededSamples >= 0) {
-						//Move over the remaining samples to their new positions:
-						this.currentBuffer[neededSamples] = this.currentBuffer[samplesRequested + neededSamples];
+					else if (neededSamples == 0) {
+						//Use the overflow buffer's existing samples:
+						this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.currentBuffer);
+						this.audioIndex = 0;
 					}
-					this.audioIndex -= samplesRequested;
+					else {
+						//Use the overflow buffer's existing samples:
+						this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.audioBufferSlice(samplesRequested));
+						neededSamples = this.audioIndex - samplesRequested;
+						while (--neededSamples >= 0) {
+							//Move over the remaining samples to their new positions:
+							this.currentBuffer[neededSamples] = this.currentBuffer[samplesRequested + neededSamples];
+						}
+						this.audioIndex -= samplesRequested;
+					}
 				}
 			}
 		}
