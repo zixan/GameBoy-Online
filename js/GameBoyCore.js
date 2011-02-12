@@ -5121,9 +5121,13 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 }
 GameBoyCore.prototype.channel1Compute = function () {
 	if ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1frequency <= 0x7FF) {
-		var duty = (this.channel1lastSampleLookup <= this.channel1adjustedDuty) ? this.channel1currentVolume : 0;
-		this.currentSampleLeft = (this.leftChannel[0]) ? duty : 0;
-		this.currentSampleRight = (this.rightChannel[0]) ? duty : 0;
+		if (this.channel1lastSampleLookup <= this.channel1adjustedDuty) {
+			this.currentSampleLeft = (this.leftChannel[0]) ? this.channel1currentVolume : 0;
+			this.currentSampleRight = (this.rightChannel[0]) ? this.channel1currentVolume : 0;
+		}
+		else {
+			this.currentSampleLeft = this.currentSampleRight = 0;
+		}
 		if (this.channel1numSweep > 0) {
 			if (--this.channel1timeSweep == 0) {
 				this.channel1numSweep--;
@@ -5175,12 +5179,13 @@ GameBoyCore.prototype.channel1Compute = function () {
 }
 GameBoyCore.prototype.channel2Compute = function () {
 	if (this.channel2consecutive || this.channel2totalLength > 0) {
-		var duty = (this.channel2lastSampleLookup <= this.channel2adjustedDuty) ? this.channel2currentVolume : 0;
-		if (this.leftChannel[1]) {
-			this.currentSampleLeft += duty;
-		}
-		if (this.rightChannel[1]) {
-			this.currentSampleRight += duty;
+		if (this.channel2lastSampleLookup <= this.channel2adjustedDuty) {
+			if (this.leftChannel[1]) {
+				this.currentSampleLeft += this.channel2currentVolume;
+			}
+			if (this.rightChannel[1]) {
+				this.currentSampleRight += this.channel2currentVolume;
+			}
 		}
 		if (this.channel2envelopeSweeps > 0) {
 			if (this.channel2volumeEnvTime > 0) {
