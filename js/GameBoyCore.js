@@ -5122,18 +5122,8 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 GameBoyCore.prototype.channel1Compute = function () {
 	if ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1frequency <= 0x7FF) {
 		var duty = (this.channel1lastSampleLookup <= this.channel1adjustedDuty) ? this.channel1currentVolume : 0;
-		if (this.leftChannel[0]) {
-			this.currentSampleLeft = duty;
-		}
-		else {
-			this.currentSampleLeft = 0;
-		}
-		if (this.rightChannel[0]) {
-			this.currentSampleRight = duty;
-		}
-		else {
-			this.currentSampleRight = 0;
-		}
+		this.currentSampleLeft = (this.leftChannel[0]) ? duty : 0;
+		this.currentSampleRight = (this.rightChannel[0]) ? duty : 0;
 		if (this.channel1numSweep > 0) {
 			if (--this.channel1timeSweep == 0) {
 				this.channel1numSweep--;
