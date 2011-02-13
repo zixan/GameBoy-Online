@@ -24,8 +24,8 @@ var settings = [						//Some settings.
 	17,									//Interval for the emulator loop.
 	false,								//Render nearest-neighbor scaling in javascript?
 	false,								//Disallow typed arrays?
-	10000,								//Audio Buffer Low Limit.
-	15000								//Audio Buffer High Limit
+	15000,								//Audio Buffer Low Limit.
+	25000								//Audio Buffer High Limit
 ];
 function start(canvas, canvasAlt, ROM) {
 	clearLastEmulation();
