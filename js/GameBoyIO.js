@@ -272,7 +272,7 @@ function audioOutputEvent(event) {
 			countDown = settings[18] - samplesInBuffer;
 			var count = 0;
 			while (countDown > count) {
-				buffer2[count] = buffer1[count] = 0;
+				buffer2[count] = buffer1[count] = -1;
 				count++;
 			}
 		}
@@ -299,7 +299,7 @@ function audioOutputEvent(event) {
 	}
 	else {
 		while (countDown < settings[18]) {
-			buffer2[countDown] = buffer1[countDown] = 0;
+			buffer2[countDown] = buffer1[countDown] = -1;
 			countDown++;
 		}
 	}

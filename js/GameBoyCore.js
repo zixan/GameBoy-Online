@@ -5089,7 +5089,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			if (settings[1]) {
 				while (--numSamples >= 0) {
 					//MONO
-					this.currentBuffer[this.audioIndex++] = 0;
+					this.currentBuffer[this.audioIndex++] = -1;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
 						if (this.usingBackupAsMain) {
@@ -5107,7 +5107,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			else {
 				while (--numSamples >= 0) {
 					//STEREO
-					this.currentBuffer[this.audioIndex++] = this.currentBuffer[this.audioIndex++] = 0;
+					this.currentBuffer[this.audioIndex++] = this.currentBuffer[this.audioIndex++] = -1;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
 						if (this.usingBackupAsMain) {
