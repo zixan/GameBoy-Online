@@ -4028,6 +4028,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.channel1consecutive,
 		this.channel1frequency,
 		this.channel1volumeEnvTime,
+		this.channel1volumeEnvTimeLast,
 		this.channel1lastTotalLength,
 		this.channel1timeSweep,
 		this.channel1lastTimeSweep,
@@ -4045,6 +4046,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.channel2consecutive,
 		this.channel2frequency,
 		this.channel2volumeEnvTime,
+		this.channel2volumeEnvTimeLast,
 		this.channel2lastTotalLength,
 		this.channel3canPlay,
 		this.channel3totalLength,
@@ -4063,6 +4065,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.channel4envelopeSweeps,
 		this.channel4consecutive,
 		this.channel4volumeEnvTime,
+		this.channel4volumeEnvTimeLast,
 		this.channel4lastTotalLength,
 		this.soundMasterEnabled,
 		this.VinLeftChannelEnabled,
@@ -4187,6 +4190,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel1consecutive = state[index++];
 	this.channel1frequency = state[index++];
 	this.channel1volumeEnvTime = state[index++];
+	this.channel1volumeEnvTimeLast = state[index++];
 	this.channel1lastTotalLength = state[index++];
 	this.channel1timeSweep = state[index++];
 	this.channel1lastTimeSweep = state[index++];
@@ -4204,6 +4208,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel2consecutive = state[index++];
 	this.channel2frequency = state[index++];
 	this.channel2volumeEnvTime = state[index++];
+	this.channel2volumeEnvTimeLast = state[index++];
 	this.channel2lastTotalLength = state[index++];
 	this.channel3canPlay = state[index++];
 	this.channel3totalLength = state[index++];
@@ -4222,6 +4227,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel4envelopeSweeps = state[index++];
 	this.channel4consecutive = state[index++];
 	this.channel4volumeEnvTime = state[index++];
+	this.channel4volumeEnvTimeLast = state[index++];
 	this.channel4lastTotalLength = state[index++];
 	this.soundMasterEnabled = state[index++];
 	this.VinLeftChannelEnabled = state[index++];
@@ -4997,6 +5003,7 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel1consecutive = true;
 	this.channel1frequency = 0;
 	this.channel1volumeEnvTime = 0;
+	this.channel1volumeEnvTimeLast = 0;
 	this.channel1lastTotalLength = 0;
 	this.channel1timeSweep = 0;
 	this.channel1lastTimeSweep = 0;
@@ -5014,6 +5021,7 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel2consecutive = true;
 	this.channel2frequency = 0;
 	this.channel2volumeEnvTime = 0;
+	this.channel2volumeEnvTimeLast = 0;
 	this.channel2lastTotalLength = 0;
 	this.channel3canPlay = false;
 	this.channel3totalLength = 0;
@@ -5032,6 +5040,7 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel4envelopeSweeps = 0;
 	this.channel4consecutive = true;
 	this.channel4volumeEnvTime = 0;
+	this.channel4volumeEnvTimeLast = 0;
 	this.channel4lastTotalLength = 0;
 	this.noiseTableLength = 0x8000;
 }
@@ -5159,12 +5168,12 @@ GameBoyCore.prototype.channel1Compute = function () {
 				if (!this.channel1envelopeType) {
 					if (this.channel1envelopeVolume > 0) {
 						this.channel1currentVolume = (--this.channel1envelopeVolume / 0x1E) - 1;
-						this.channel1volumeEnvTime = this.channel1envelopeSweeps * this.volumeEnvelopePreMultiplier;
+						this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
 					}
 				}
 				else if (this.channel1envelopeVolume < 0xF) {
 					this.channel1currentVolume = (++this.channel1envelopeVolume / 0x1E) - 1;
-					this.channel1volumeEnvTime = this.channel1envelopeSweeps * this.volumeEnvelopePreMultiplier;
+					this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
 				}
 			}
 		}
@@ -5201,12 +5210,12 @@ GameBoyCore.prototype.channel2Compute = function () {
 				if (!this.channel2envelopeType) {
 					if (this.channel2envelopeVolume > 0) {
 						this.channel2currentVolume = --this.channel2envelopeVolume / 0x1E;
-						this.channel2volumeEnvTime = this.channel2envelopeSweeps * this.volumeEnvelopePreMultiplier;
+						this.channel2volumeEnvTime = this.channel2volumeEnvTimeLast;
 					}
 				}
 				else if (this.channel2envelopeVolume < 0xF) {
 					this.channel2currentVolume = ++this.channel2envelopeVolume / 0x1E;
-					this.channel2volumeEnvTime = this.channel2envelopeSweeps * this.volumeEnvelopePreMultiplier;
+					this.channel2volumeEnvTime = this.channel2volumeEnvTimeLast;
 				}
 			}
 		}
@@ -5262,12 +5271,12 @@ GameBoyCore.prototype.channel4Compute = function () {
 				if (!this.channel4envelopeType) {
 					if (this.channel4envelopeVolume > 0) {
 						this.channel4currentVolume = --this.channel4envelopeVolume << 15;
-						this.channel4volumeEnvTime = this.channel4envelopeSweeps * this.volumeEnvelopePreMultiplier;
+						this.channel4volumeEnvTime = this.channel4volumeEnvTimeLast;
 					}
 				}
 				else if (this.channel4envelopeVolume < 0xF) {
 					this.channel4currentVolume = ++this.channel4envelopeVolume << 15;
-					this.channel4volumeEnvTime = this.channel4envelopeSweeps * this.volumeEnvelopePreMultiplier;
+					this.channel4volumeEnvTime = this.channel4volumeEnvTimeLast;
 				}
 			}
 		}
@@ -6667,7 +6676,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		parentObj.channel1currentVolume = (parentObj.channel1envelopeVolume / 0x1E) - 1;
 		parentObj.channel1envelopeType = ((data & 0x08) == 0x08);
 		parentObj.channel1envelopeSweeps = data & 0x7;
-		parentObj.channel1volumeEnvTime = parentObj.channel1envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
+		parentObj.channel1volumeEnvTime = parentObj.channel1volumeEnvTimeLast = parentObj.channel1envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
 		parentObj.memory[0xFF12] = data;
 	}
 	this.memoryWriter[0xFF13] = function (parentObj, address, data) {
@@ -6680,8 +6689,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if ((data & 0x80) == 0x80) {
 			parentObj.channel1envelopeVolume = parentObj.memory[0xFF12] >> 4;
 			parentObj.channel1currentVolume = (parentObj.channel1envelopeVolume / 0x1E) - 1;
-			parentObj.channel1envelopeSweeps = parentObj.memory[0xFF12] & 0x7;
-			parentObj.channel1volumeEnvTime = parentObj.channel1envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
+			parentObj.channel1volumeEnvTime = parentObj.channel1volumeEnvTimeLast;
 			parentObj.channel1totalLength = parentObj.channel1lastTotalLength;
 			parentObj.channel1timeSweep = parentObj.channel1lastTimeSweep;
 			parentObj.channel1numSweep = parentObj.memory[0xFF10] & 0x07;
@@ -6706,7 +6714,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		parentObj.channel2currentVolume = parentObj.channel2envelopeVolume / 0x1E;
 		parentObj.channel2envelopeType = ((data & 0x08) == 0x08);
 		parentObj.channel2envelopeSweeps = data & 0x7;
-		parentObj.channel2volumeEnvTime = parentObj.channel2envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
+		parentObj.channel2volumeEnvTime = parentObj.channel2volumeEnvTimeLast = parentObj.channel2envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
 		parentObj.memory[0xFF17] = data;
 	}
 	this.memoryWriter[0xFF18] = function (parentObj, address, data) {
@@ -6719,8 +6727,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if ((data & 0x80) == 0x80) {
 			parentObj.channel2envelopeVolume = parentObj.memory[0xFF17] >> 4;
 			parentObj.channel2currentVolume = parentObj.channel2envelopeVolume / 0x1E;
-			parentObj.channel2envelopeSweeps = parentObj.memory[0xFF17] & 0x7;
-			parentObj.channel2volumeEnvTime = parentObj.channel2envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
+			parentObj.channel2volumeEnvTime = parentObj.channel2volumeEnvTimeLast;
 			parentObj.channel2totalLength = parentObj.channel2lastTotalLength;
 			if ((data & 0x40) == 0x40) {
 				parentObj.memory[0xFF26] |= 0x2;
@@ -6776,7 +6783,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << 15;
 		parentObj.channel4envelopeType = ((data & 0x08) == 0x08);
 		parentObj.channel4envelopeSweeps = data & 0x7;
-		parentObj.channel4volumeEnvTime = parentObj.channel4envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
+		parentObj.channel4volumeEnvTime = parentObj.channel4volumeEnvTimeLast = parentObj.channel4envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
 		parentObj.memory[0xFF21] = data;
 	}
 	this.memoryWriter[0xFF22] = function (parentObj, address, data) {
@@ -6795,8 +6802,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.channel4lastSampleLookup = 0;
 			parentObj.channel4envelopeVolume = parentObj.memory[0xFF21] >> 4;
 			parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << 15;
-			parentObj.channel4envelopeSweeps = parentObj.memory[0xFF21] & 0x7;
-			parentObj.channel4volumeEnvTime = parentObj.channel4envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
+			parentObj.channel4volumeEnvTime = parentObj.channel4volumeEnvTimeLast;
 			parentObj.channel4totalLength = parentObj.channel4lastTotalLength;
 			if ((data & 0x40) == 0x40) {
 				parentObj.memory[0xFF26] |= 0x8;
