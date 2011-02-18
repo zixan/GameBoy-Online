@@ -6171,6 +6171,19 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 						return 0x70 | parentObj.memory[0xFF26];
 					}
 					break;
+				case 0xFF27:
+				case 0xFF28:
+				case 0xFF29:
+				case 0xFF2A:
+				case 0xFF2B:
+				case 0xFF2C:
+				case 0xFF2D:
+				case 0xFF2E:
+				case 0xFF2F:
+					this.memoryReader[index] = function (parentObj, address) {
+						return 0xFF;
+					}
+					break;
 				case 0xFF30:
 				case 0xFF31:
 				case 0xFF32:
@@ -6827,6 +6840,17 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}*/
 		parentObj.soundMasterEnabled = (soundEnabled == 0x80);
 	}
+	//0xFF27 to 0xFF2F don't do anything...
+	this.memoryWriter[0xFF27] = this.cartIgnoreWrite;
+	this.memoryWriter[0xFF28] = this.cartIgnoreWrite;
+	this.memoryWriter[0xFF29] = this.cartIgnoreWrite;
+	this.memoryWriter[0xFF2A] = this.cartIgnoreWrite;
+	this.memoryWriter[0xFF2B] = this.cartIgnoreWrite;
+	this.memoryWriter[0xFF2C] = this.cartIgnoreWrite;
+	this.memoryWriter[0xFF2D] = this.cartIgnoreWrite;
+	this.memoryWriter[0xFF2E] = this.cartIgnoreWrite;
+	this.memoryWriter[0xFF2F] = this.cartIgnoreWrite;
+	//WAVE PCM RAM:
 	this.memoryWriter[0xFF30] = function (parentObj, address, data) {
 		parentObj.memory[0xFF30] = data;
 		parentObj.channel3PCM[0x00] = (data >> 4) / 0x1E;

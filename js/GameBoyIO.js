@@ -262,6 +262,12 @@ var launchedContext = false;
 var startPosition = 0;
 var bufferEnd = 0;
 var audioContextSampleBuffer = [];
+var startPositionOverflow = 0;
+var resampleAmount = 0;
+var resampleAmountFloor = 0;
+var resampleAmountRemainder = 0;
+var sampleBase1 = 0;
+var sampleBase2 = 0;
 function audioOutputEvent(event) {
 	var countDown = 0;
 	var buffer1 = event.outputBuffer.getChannelData(0);
@@ -276,24 +282,60 @@ function audioOutputEvent(event) {
 				count++;
 			}
 		}
+		//A nearest-neighbor algorithm is used for resampling:
 		if (settings[1]) {
 			//MONO:
 			while (countDown < settings[18]) {
-				buffer2[countDown] = buffer1[countDown] = audioContextSampleBuffer[startPosition++];
+				sampleBase1 = audioContextSampleBuffer[startPosition++];
 				if (startPosition == settings[24]) {
 					startPosition = 0;
 				}
+				for (var sampleIndice = 1; sampleIndice < resampleAmountFloor; sampleIndice++) {
+					sampleBase1 += audioContextSampleBuffer[startPosition++];
+					if (startPosition == settings[24]) {
+						startPosition = 0;
+					}
+				}
+				startPositionOverflow += resampleAmountRemainder;
+				if (startPositionOverflow >= 1) {
+					startPositionOverflow--;
+					sampleBase1 += audioContextSampleBuffer[startPosition++];
+					if (startPosition == settings[24]) {
+						startPosition = 0;
+					}
+					sampleIndice++;
+				}
+				buffer2[countDown] = buffer1[countDown] = sampleBase1 / sampleIndice;
 				countDown++;
 			}
 		}
 		else {
 			//STEREO:
 			while (countDown < settings[18]) {
-				buffer1[countDown] = audioContextSampleBuffer[startPosition++];
-				buffer2[countDown++] = audioContextSampleBuffer[startPosition++];
+				sampleBase1 = audioContextSampleBuffer[startPosition++];
+				sampleBase2 = audioContextSampleBuffer[startPosition++];
 				if (startPosition == settings[24]) {
 					startPosition = 0;
 				}
+				for (var sampleIndice = 1; sampleIndice < resampleAmountFloor; sampleIndice++) {
+					sampleBase1 += audioContextSampleBuffer[startPosition++];
+					sampleBase2 += audioContextSampleBuffer[startPosition++];
+					if (startPosition == settings[24]) {
+						startPosition = 0;
+					}
+				}
+				startPositionOverflow += resampleAmountRemainder;
+				if (startPositionOverflow >= 1) {
+					startPositionOverflow--;
+					sampleBase1 += audioContextSampleBuffer[startPosition++];
+					sampleBase2 += audioContextSampleBuffer[startPosition++];
+					if (startPosition == settings[24]) {
+						startPosition = 0;
+					}
+					sampleIndice++;
+				}
+				buffer1[countDown] = sampleBase1 / sampleIndice;
+				buffer2[countDown++] = sampleBase2 / sampleIndice;
 			}
 		}
 	}
@@ -341,8 +383,13 @@ function resetWebAudioBuffer() {
 		try {
 			audioSource = audioContextHandle.createBufferSource();						//We need to create a false input to get the chain started.
 			audioSource.loop = false;	//Keep this alive forever (Event handler will know when to ouput.)
-			settings[14] = audioContextHandle.sampleRate;
-			audioSource.buffer = audioContextHandle.createBuffer(1, 1, settings[14]);	//Create a zero'd input buffer for the input to be valid.
+			/*if (audioContextHandle.sampleRate < settings[14]) {
+				settings[14] = audioContextHandle.sampleRate * 2;
+			}*/
+			audioSource.buffer = audioContextHandle.createBuffer(1, 1, audioContextHandle.sampleRate);	//Create a zero'd input buffer for the input to be valid.
+			resampleAmount = settings[14] / audioContextHandle.sampleRate;
+			resampleAmountFloor = resampleAmount | 0;
+			resampleAmountRemainder = resampleAmount - resampleAmountFloor;
 			audioNode = audioContextHandle.createJavaScriptNode(settings[18], 1, 2);	//Create 2 outputs and ignore the input buffer (Just copy buffer 1 over if mono)
 			audioNode.onaudioprocess = audioOutputEvent;								//Connect the audio processing event to a handling function so we can manipulate output
 			audioSource.connect(audioNode);												//Send and chain the input to the audio manipulation.
@@ -350,6 +397,7 @@ function resetWebAudioBuffer() {
 			audioSource.noteOn(0);														//Start the loop!
 		}
 		catch (error) {
+			alert(error.message);
 			return;
 		}
 		launchedContext = true;
