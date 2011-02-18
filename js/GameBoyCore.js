@@ -144,10 +144,8 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	//Vin Shit:
 	this.VinLeftChannelEnabled = false;			//Is the VIN left channel enabled?
 	this.VinRightChannelEnabled = false;		//Is the VIN right channel enabled?
-	this.VinLeftChannelMasterVolume = 0;		//Computed VIN left absolute volume.
-	this.VinRightChannelMasterVolume = 0;		//Computed VIN right absolute volume.
-	this.vinLeft = 1;							//Computed VIN left adjusted volume.
-	this.vinRight = 1;							//Computed VIN right adjusted volume.
+	this.VinLeftChannelMasterVolume = 0;		//Computed post-mixing volume.
+	this.VinRightChannelMasterVolume = 0;		//Computed post-mixing volume.
 	//Channels Enabled:
 	this.leftChannel = this.ArrayPad(4, false);	//Which channels are enabled for left side stereo / mono?
 	this.rightChannel = this.ArrayPad(4, false);//Which channels are enabled for right side stereo?
@@ -4072,8 +4070,6 @@ GameBoyCore.prototype.saveState = function () {
 		this.VinRightChannelEnabled,
 		this.VinLeftChannelMasterVolume,
 		this.VinRightChannelMasterVolume,
-		this.vinLeft,
-		this.vinRight,
 		this.leftChannel,
 		this.rightChannel,
 		this.actualScanLine,
@@ -4234,8 +4230,6 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.VinRightChannelEnabled = state[index++];
 	this.VinLeftChannelMasterVolume = state[index++];
 	this.VinRightChannelMasterVolume = state[index++];
-	this.vinLeft = state[index++];
-	this.vinRight = state[index++];
 	this.leftChannel = state[index++];
 	this.rightChannel = state[index++];
 	this.actualScanLine = state[index++];
@@ -5054,7 +5048,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 					this.channel2Compute();
 					this.channel3Compute();
 					this.channel4Compute();
-					this.currentBuffer[this.audioIndex++] = this.currentSampleLeft;
+					this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
 						if (this.usingBackupAsMain) {
@@ -5076,8 +5070,8 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 					this.channel2Compute();
 					this.channel3Compute();
 					this.channel4Compute();
-					this.currentBuffer[this.audioIndex++] = this.currentSampleRight;
-					this.currentBuffer[this.audioIndex++] = this.currentSampleLeft;
+					this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume;
+					this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
 						if (this.usingBackupAsMain) {
@@ -6811,17 +6805,15 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryWriter[0xFF24] = function (parentObj, address, data) {
 		parentObj.memory[0xFF24] = data;
-		/*parentObj.VinLeftChannelEnabled = ((data >> 7) == 0x1);
-		parentObj.VinRightChannelEnabled = (((data >> 3) & 0x1) == 0x1);
-		parentObj.VinLeftChannelMasterVolume = ((data >> 4) & 0x07);
-		parentObj.VinRightChannelMasterVolume = (data & 0x07);
-		parentObj.vinLeft = (parentObj.VinLeftChannelEnabled) ? parentObj.VinLeftChannelMasterVolume / 7 : 1;
-		parentObj.vinRight = (parentObj.VinRightChannelEnabled) ? parentObj.VinRightChannelMasterVolume / 7 : 1;*/
+		parentObj.VinLeftChannelEnabled = ((data & 0x80) == 0x80);
+		parentObj.VinRightChannelEnabled = ((data & 0x8) == 0x8);
+		parentObj.VinLeftChannelMasterVolume = (((data >> 4) & 0x07) + 1) / 8;
+		parentObj.VinRightChannelMasterVolume = ((data & 0x07) + 1) / 8;
 	}
 	this.memoryWriter[0xFF25] = function (parentObj, address, data) {
 		parentObj.memory[0xFF25] = data;
-		parentObj.leftChannel = [(data & 0x01) == 0x01, (data & 0x02) == 0x02, (data & 0x04) == 0x04, (data & 0x08) == 0x08];
-		parentObj.rightChannel = [(data & 0x10) == 0x10, (data & 0x20) == 0x20, (data & 0x40) == 0x40, (data & 0x80) == 0x80];
+		parentObj.rightChannel = [(data & 0x01) == 0x01, (data & 0x02) == 0x02, (data & 0x04) == 0x04, (data & 0x08) == 0x08];
+		parentObj.leftChannel = [(data & 0x10) == 0x10, (data & 0x20) == 0x20, (data & 0x40) == 0x40, (data & 0x80) == 0x80];
 	}
 	this.memoryWriter[0xFF26] = function (parentObj, address, data) {
 		var soundEnabled = (data & 0x80);
