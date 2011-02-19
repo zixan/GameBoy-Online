@@ -4818,7 +4818,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioIndex = 0;
 	this.sampleSize = Math.floor(settings[14] / 1000 * settings[20]);
 	cout("...Samples Per VBlank (Per Channel): " + this.sampleSize, 0);
-	this.samplesOut = this.sampleSize / (settings[11] * Math.ceil(settings[13] / settings[11]));
+	this.samplesOut = this.sampleSize / settings[13];
 	cout("...Samples Per machine cycle (Per Channel): " + this.samplesOut, 0);
 	this.numSamplesTotal = this.sampleSize * this.soundChannelsAllocated;
 	this.audioSamples = this.getTypedArray(this.numSamplesTotal, 0, "float32");
@@ -5027,7 +5027,7 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel3patternType = -20;
 	this.channel3frequency = 0;
 	this.channel3consecutive = true;
-	this.channel3PCM = this.getTypedArray(0x60, 0xF, "float32");
+	this.channel3PCM = this.getTypedArray(0x60, 0, "float32");
 	this.channel3adjustedFrequencyPrep = 0x20000 / settings[14];
 	this.channel4adjustedFrequencyPrep = 0;
 	this.channel4lastSampleLookup = 0;				//Keeps track of the audio timing.
