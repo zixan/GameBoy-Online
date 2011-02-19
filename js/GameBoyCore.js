@@ -144,8 +144,8 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	//Vin Shit:
 	this.VinLeftChannelEnabled = false;			//Is the VIN left channel enabled?
 	this.VinRightChannelEnabled = false;		//Is the VIN right channel enabled?
-	this.VinLeftChannelMasterVolume = 0;		//Computed post-mixing volume.
-	this.VinRightChannelMasterVolume = 0;		//Computed post-mixing volume.
+	this.VinLeftChannelMasterVolume = 1;		//Computed post-mixing volume.
+	this.VinRightChannelMasterVolume = 1;		//Computed post-mixing volume.
 	//Channels Enabled:
 	this.leftChannel = this.ArrayPad(4, false);	//Which channels are enabled for left side stereo / mono?
 	this.rightChannel = this.ArrayPad(4, false);//Which channels are enabled for right side stereo?
