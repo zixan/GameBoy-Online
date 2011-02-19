@@ -12,7 +12,7 @@ var settings = [						//Some settings.
 	29,									//Maximum Frame Skip
 	false,								//Override to allow for MBC1 instead of ROM only (compatibility for broken 3rd-party cartridges).
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
-	100,								//Audio granularity setting (Sampling of audio every x many machine cycles)
+	null,								//TODO: Update the indices to remove this.
 	10,									//Frameskip base factor
 	17826,								//Target number of machine cycles per loop. (4,194,300 / 1000 * 17)
 	70000,								//Sample Rate
