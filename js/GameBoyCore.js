@@ -4334,6 +4334,8 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.FHalfCarry = true;
 	this.FCarry = true;
 	this.registersHL = 0x014D;
+	this.VinLeftChannelMasterVolume = 8;
+	this.VinRightChannelMasterVolume = 8;
 	this.leftChannel = this.ArrayPad(4, true);
 	this.rightChannel = this.ArrayPad(4, true);
 	//Fill in the boot ROM set register values
@@ -4381,6 +4383,8 @@ GameBoyCore.prototype.initBootstrap = function () {
 	this.channel2frequency = this.channel1frequency = 0;
 	this.channel2volumeEnvTime = this.channel1volumeEnvTime = 0;
 	this.channel4consecutive = this.channel2consecutive = this.channel1consecutive = false;
+	this.VinLeftChannelMasterVolume = 1;
+	this.VinRightChannelMasterVolume = 1;
 	this.memory[0xFF00] = 0xF;	//Set the joypad state.
 }
 GameBoyCore.prototype.ROMLoad = function () {
@@ -6121,6 +6125,9 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 						return 0x3F | parentObj.memory[0xFF11];
 					}
 					break;
+				case 0xFF13:
+					this.memoryReader[0xFF13] = this.memoryReadBAD;
+					break;
 				case 0xFF14:
 					this.memoryReader[0xFF14] = function (parentObj, address) {
 						return 0xBF | parentObj.memory[0xFF14];
@@ -6130,6 +6137,9 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 					this.memoryReader[0xFF16] = function (parentObj, address) {
 						return 0x3F | parentObj.memory[0xFF16];
 					}
+					break;
+				case 0xFF18:
+					this.memoryReader[0xFF18] = this.memoryReadBAD;
 					break;
 				case 0xFF19:
 					this.memoryReader[0xFF19] = function (parentObj, address) {
@@ -6142,13 +6152,16 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 					}
 					break;
 				case 0xFF1B:
-					this.memoryReader[0xFF1B] = function (parentObj, address) {
-						return 0xFF;
-					}
+					this.memoryReader[0xFF1B] = this.memoryReadBAD;
 					break;
 				case 0xFF1C:
 					this.memoryReader[0xFF1C] = function (parentObj, address) {
 						return 0x9F | parentObj.memory[0xFF1C];
+					}
+					break;
+				case 0xFF1D:
+					this.memoryReader[0xFF1D] = function (parentObj, address) {
+						return 0xFF;
 					}
 					break;
 				case 0xFF1E:
@@ -6156,10 +6169,9 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 						return 0xBF | parentObj.memory[0xFF1E];
 					}
 					break;
+				case 0xFF1F:
 				case 0xFF20:
-					this.memoryReader[0xFF20] = function (parentObj, address) {
-						return 0xFF;
-					}
+					this.memoryReader[index] = this.memoryReadBAD;
 					break;
 				case 0xFF23:
 					this.memoryReader[0xFF23] = function (parentObj, address) {
@@ -6180,9 +6192,7 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 				case 0xFF2D:
 				case 0xFF2E:
 				case 0xFF2F:
-					this.memoryReader[index] = function (parentObj, address) {
-						return 0xFF;
-					}
+					this.memoryReader[index] = this.memoryReadBAD;
 					break;
 				case 0xFF30:
 				case 0xFF31:
