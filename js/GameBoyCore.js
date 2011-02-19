@@ -65,8 +65,8 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.multiplier = 1;						//GBC Speed Multiplier
 	this.JoyPad = 0xFF;							//Joypad State (two four-bit states actually)
 	//Main RAM, MBC RAM, GBC Main RAM, VRAM, etc.
-	this.memoryReader = null;					//Array of functions mapped to read back memory
-	this.memoryWriter = null;					//Array of functions mapped to write to memory
+	this.memoryReader = [];						//Array of functions mapped to read back memory
+	this.memoryWriter = [];						//Array of functions mapped to write to memory
 	this.ROM = [];								//The full ROM file dumped to an array.
 	this.memory = [];							//Main Core Memory
 	this.MBCRam = [];							//Switchable RAM (Used by games for more RAM) for the main memory range 0xA000 - 0xC000.
