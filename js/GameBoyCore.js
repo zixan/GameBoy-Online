@@ -4634,8 +4634,7 @@ GameBoyCore.prototype.disableBootROM = function () {
 		}
 		this.colorCount = 12;
 		this.tileData.length = this.tileCount * this.colorCount;
-		delete this.VRAM;
-		delete this.GBCMemory;
+		this.VRAM = this.GBCMemory = null;	//Deleting these causes Google's V8 engine and Safari's JSC to deoptimize heavily.
 		//Possible Extra: shorten some gfx arrays to the length that we need (Remove the unused indices)
 	}
 	this.memoryReadJumpCompile();
