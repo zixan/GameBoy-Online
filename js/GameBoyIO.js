@@ -262,10 +262,9 @@ var launchedContext = false;
 var startPosition = 0;
 var bufferEnd = 0;
 var audioContextSampleBuffer = [];
-var startPositionOverflow = 0;
-var resampleAmount = 0;
+//var startPositionOverflow = 0;
 var resampleAmountFloor = 0;
-var resampleAmountRemainder = 0;
+//var resampleAmountRemainder = 0;
 var sampleBase1 = 0;
 var sampleBase2 = 0;
 function audioOutputEvent(event) {
@@ -296,7 +295,8 @@ function audioOutputEvent(event) {
 						startPosition = 0;
 					}
 				}
-				startPositionOverflow += resampleAmountRemainder;
+				//We can comment out the overflow counter procedure here, since we are using a multiple of the hardware's sample rate:
+				/*startPositionOverflow += resampleAmountRemainder;
 				if (startPositionOverflow >= 1) {
 					startPositionOverflow--;
 					sampleBase1 += audioContextSampleBuffer[startPosition++];
@@ -304,7 +304,7 @@ function audioOutputEvent(event) {
 						startPosition = 0;
 					}
 					sampleIndice++;
-				}
+				}*/
 				buffer2[countDown] = buffer1[countDown] = sampleBase1 / sampleIndice;
 				countDown++;
 			}
@@ -324,7 +324,8 @@ function audioOutputEvent(event) {
 						startPosition = 0;
 					}
 				}
-				startPositionOverflow += resampleAmountRemainder;
+				//We can comment out the overflow counter procedure here, since we are using a multiple of the hardware's sample rate:
+				/*startPositionOverflow += resampleAmountRemainder;
 				if (startPositionOverflow >= 1) {
 					startPositionOverflow--;
 					sampleBase1 += audioContextSampleBuffer[startPosition++];
@@ -333,7 +334,7 @@ function audioOutputEvent(event) {
 						startPosition = 0;
 					}
 					sampleIndice++;
-				}
+				}*/
 				buffer1[countDown] = sampleBase1 / sampleIndice;
 				buffer2[countDown++] = sampleBase2 / sampleIndice;
 			}
@@ -390,11 +391,11 @@ function resetWebAudioBuffer() {
 				hardwareSampleRate += audioContextHandle.sampleRate;
 			}
 			settings[14] = hardwareSampleRate;
-			//
+			//Setting up the chaining system for the audio processing:
 			audioSource.buffer = audioContextHandle.createBuffer(1, 1, audioContextHandle.sampleRate);	//Create a zero'd input buffer for the input to be valid.
-			resampleAmount = settings[14] / audioContextHandle.sampleRate;
+			var resampleAmount = settings[14] / audioContextHandle.sampleRate;
 			resampleAmountFloor = resampleAmount | 0;
-			resampleAmountRemainder = resampleAmount - resampleAmountFloor;
+			//resampleAmountRemainder = resampleAmount - resampleAmountFloor;
 			audioNode = audioContextHandle.createJavaScriptNode(settings[18], 1, 2);	//Create 2 outputs and ignore the input buffer (Just copy buffer 1 over if mono)
 			audioNode.onaudioprocess = audioOutputEvent;								//Connect the audio processing event to a handling function so we can manipulate output
 			audioSource.connect(audioNode);												//Send and chain the input to the audio manipulation.
