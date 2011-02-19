@@ -67,12 +67,6 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	//Main RAM, MBC RAM, GBC Main RAM, VRAM, etc.
 	this.memoryReader = null;					//Array of functions mapped to read back memory
 	this.memoryWriter = null;					//Array of functions mapped to write to memory
-	this.CGBBootMemoryWriter = [];
-	this.CGBBootMemoryReader = [];
-	this.DMGMemoryWriter = [];
-	this.DMGMemoryReader = [];
-	this.CGBMemoryWriter = [];
-	this.CGBMemoryReader = [];
 	this.ROM = [];								//The full ROM file dumped to an array.
 	this.memory = [];							//Main Core Memory
 	this.MBCRam = [];							//Switchable RAM (Used by games for more RAM) for the main memory range 0xA000 - 0xC000.
@@ -6026,7 +6020,6 @@ GameBoyCore.prototype.memoryRead = function (address) {
 }
 GameBoyCore.prototype.memoryReadJumpCompile = function () {
 	//Faster in some browsers, since we are doing less conditionals overall by implementing them in advance.
-	this.memoryReader = (this.inBootstrap) ? this.CGBBootMemoryReader : ((this.cGBC) ? this.CGBMemoryReader : this.DMGMemoryReader);
 	for (var index = 0x0000; index <= 0xFFFF; index++) {
 		if (index < 0x4000) {
 			this.memoryReader[index] = this.memoryReadNormal;
@@ -6348,7 +6341,6 @@ GameBoyCore.prototype.memoryWrite = function (address, data) {
 }
 GameBoyCore.prototype.memoryWriteJumpCompile = function () {
 	//Faster in some browsers, since we are doing less conditionals overall by implementing them in advance.
-	this.memoryWriter = (this.inBootstrap) ? this.CGBBootMemoryWriter : ((this.cGBC) ? this.CGBMemoryWriter : this.DMGMemoryWriter);
 	for (var index = 0x0000; index <= 0xFFFF; index++) {
 		if (index < 0x8000) {
 			if (this.cMBC1) {
