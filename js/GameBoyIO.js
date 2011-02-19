@@ -383,9 +383,14 @@ function resetWebAudioBuffer() {
 		try {
 			audioSource = audioContextHandle.createBufferSource();						//We need to create a false input to get the chain started.
 			audioSource.loop = false;	//Keep this alive forever (Event handler will know when to ouput.)
-			/*if (audioContextHandle.sampleRate < settings[14]) {
-				settings[14] = audioContextHandle.sampleRate * 2;
-			}*/
+			//We're making sure we don't alias on the nearest-neighbor resampling of audio by
+			//tuning the emulator's internal sample rate to a multiple of the hardware's sample rate:
+			var hardwareSampleRate = audioContextHandle.sampleRate;
+			while (hardwareSampleRate < settings[14]) {
+				hardwareSampleRate += audioContextHandle.sampleRate;
+			}
+			settings[14] = hardwareSampleRate;
+			//
 			audioSource.buffer = audioContextHandle.createBuffer(1, 1, audioContextHandle.sampleRate);	//Create a zero'd input buffer for the input to be valid.
 			resampleAmount = settings[14] / audioContextHandle.sampleRate;
 			resampleAmountFloor = resampleAmount | 0;
