@@ -4988,7 +4988,7 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel1adjustedDuty = 0.5;
 	this.channel1totalLength = 0;
 	this.channel1envelopeVolume = 0;
-	this.channel1currentVolume = -1;
+	this.channel1currentVolume = 0;
 	this.channel1envelopeType = false;
 	this.channel1envelopeSweeps = 0;
 	this.channel1consecutive = true;
@@ -5045,7 +5045,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 					this.channel2Compute();
 					this.channel3Compute();
 					this.channel4Compute();
-					this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume;
+					this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
 						if (this.usingBackupAsMain) {
@@ -5067,8 +5067,8 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 					this.channel2Compute();
 					this.channel3Compute();
 					this.channel4Compute();
-					this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume;
-					this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume;
+					this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1;
+					this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
 						if (this.usingBackupAsMain) {
@@ -5140,11 +5140,11 @@ GameBoyCore.prototype.audioJIT = function () {
 GameBoyCore.prototype.channel1Compute = function () {
 	if ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1frequency <= 0x7FF) {
 		if (this.channel1lastSampleLookup <= this.channel1adjustedDuty) {
-			this.currentSampleLeft = (this.leftChannel[0]) ? this.channel1currentVolume : -1;
-			this.currentSampleRight = (this.rightChannel[0]) ? this.channel1currentVolume : -1;
+			this.currentSampleLeft = (this.leftChannel[0]) ? this.channel1currentVolume : 0;
+			this.currentSampleRight = (this.rightChannel[0]) ? this.channel1currentVolume : 0;
 		}
 		else {
-			this.currentSampleLeft = this.currentSampleRight = -1;
+			this.currentSampleLeft = this.currentSampleRight = 0;
 		}
 		if (this.channel1numSweep > 0) {
 			if (--this.channel1timeSweep == 0) {
@@ -5170,12 +5170,12 @@ GameBoyCore.prototype.channel1Compute = function () {
 			else {
 				if (!this.channel1envelopeType) {
 					if (this.channel1envelopeVolume > 0) {
-						this.channel1currentVolume = (--this.channel1envelopeVolume / 0x1E) - 1;
+						this.channel1currentVolume = --this.channel1envelopeVolume / 0x1E;
 						this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
 					}
 				}
 				else if (this.channel1envelopeVolume < 0xF) {
-					this.channel1currentVolume = (++this.channel1envelopeVolume / 0x1E) - 1;
+					this.channel1currentVolume = ++this.channel1envelopeVolume / 0x1E;
 					this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
 				}
 			}
@@ -5192,7 +5192,7 @@ GameBoyCore.prototype.channel1Compute = function () {
 		}
 	}
 	else {
-		this.currentSampleLeft = this.currentSampleRight = -1;
+		this.currentSampleLeft = this.currentSampleRight = 0;
 	}
 }
 GameBoyCore.prototype.channel2Compute = function () {
@@ -6686,7 +6686,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryWriter[0xFF12] = function (parentObj, address, data) {
 		parentObj.audioJIT();
 		parentObj.channel1envelopeVolume = data >> 4;
-		parentObj.channel1currentVolume = (parentObj.channel1envelopeVolume / 0x1E) - 1;
+		parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
 		parentObj.channel1envelopeType = ((data & 0x08) == 0x08);
 		parentObj.channel1envelopeSweeps = data & 0x7;
 		parentObj.channel1volumeEnvTime = parentObj.channel1volumeEnvTimeLast = parentObj.channel1envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
@@ -6703,7 +6703,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		parentObj.audioJIT();
 		if ((data & 0x80) == 0x80) {
 			parentObj.channel1envelopeVolume = parentObj.memory[0xFF12] >> 4;
-			parentObj.channel1currentVolume = (parentObj.channel1envelopeVolume / 0x1E) - 1;
+			parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
 			parentObj.channel1volumeEnvTime = parentObj.channel1volumeEnvTimeLast;
 			parentObj.channel1totalLength = parentObj.channel1lastTotalLength;
 			parentObj.channel1timeSweep = parentObj.channel1lastTimeSweep;
