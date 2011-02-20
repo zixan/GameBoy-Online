@@ -6211,7 +6211,7 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 				case 0xFF3E:
 				case 0xFF3F:
 					this.memoryReader[index] = function (parentObj, address) {
-						return (parentObj.channel3canPlay) ? 0xFF : parentObj.memory[address];
+						return (parentObj.channel3canPlay) ? parentObj.memory[0xFF00 | (parentObj.channel3Tracker / 2)] : parentObj.memory[address];
 					}
 					break;
 				case 0xFF41:
