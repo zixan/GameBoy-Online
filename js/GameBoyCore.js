@@ -148,13 +148,8 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.currentSampleRight = -1;
 	this.channel3Tracker = 0;
 	//Pre-multipliers to cache some calculations:
-	this.preChewedAudioComputationMultiplier = 0x20000 / settings[14];
-	this.preChewedWAVEAudioComputationMultiplier = 0x200000 / settings[14];
-	this.whiteNoiseFrequencyPreMultiplier = 4194300 / settings[14] / 8;
-	this.samplesOut = 0;				//Premultiplier for audio samples per instructions.
-	this.volumeEnvelopePreMultiplier = settings[14] / 0x40;
-	this.channel1TimeSweepPreMultiplier = settings[14] / 0x80;
-	this.audioTotalLengthMultiplier = settings[14] / 0x100;
+	this.initializeTiming();
+	this.samplesOut = 0;				//Premultiplier for audio samples per instruction.
 	//Audio generation counters:
 	this.audioOverflow = false;			//Safety boolean to check for whether we're about to overwrite our buffers.
 	this.audioTicks = 0;				//Used to sample the audio system every x CPU instructions.
@@ -4634,6 +4629,17 @@ GameBoyCore.prototype.disableBootROM = function () {
 	this.memoryReadJumpCompile();
 	this.memoryWriteJumpCompile();
 }
+GameBoyCore.prototype.initializeTiming = function () {
+	//Emulator Timing:
+	this.CPUCyclesPerIteration = (41943 / 40) * settings[20];
+	//Audio Timing:
+	this.preChewedAudioComputationMultiplier = 0x20000 / settings[14];
+	this.preChewedWAVEAudioComputationMultiplier = 0x200000 / settings[14];
+	this.whiteNoiseFrequencyPreMultiplier = 4194300 / settings[14] / 8;
+	this.volumeEnvelopePreMultiplier = settings[14] / 0x40;
+	this.channel1TimeSweepPreMultiplier = settings[14] / 0x80;
+	this.audioTotalLengthMultiplier = settings[14] / 0x100;
+}
 GameBoyCore.prototype.setupRAM = function () {
 	//Setup the auxilliary/switchable RAM to their maximum possible size (Bad headers can lie).
 	if (this.cMBC2) {
@@ -4811,7 +4817,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioIndex = 0;
 	this.sampleSize = Math.floor(settings[14] / 1000 * settings[20]);
 	cout("...Samples Per VBlank (Per Channel): " + this.sampleSize, 0);
-	this.samplesOut = this.sampleSize / settings[13];
+	this.samplesOut = this.sampleSize / this.CPUCyclesPerIteration;
 	cout("...Samples Per machine cycle (Per Channel): " + this.samplesOut, 0);
 	this.numSamplesTotal = this.sampleSize * this.soundChannelsAllocated;
 	this.audioSamples = this.getTypedArray(this.numSamplesTotal, 0, "float32");
@@ -5447,7 +5453,7 @@ GameBoyCore.prototype.updateCore = function () {
 	this.audioTicks += timedTicks;				//Not the same as the LCD timing (Cannot be altered by display on/off changes!!!).
 	//Emulator Timing:
 	this.emulatorTicks += timedTicks;
-	if (this.emulatorTicks >= settings[13]) {
+	if (this.emulatorTicks >= this.CPUCyclesPerIteration) {
 		this.audioJIT();
 		this.playAudio();				//Output all the samples built up.
 		if (this.asyncDrawSupportDetected == 1) {
@@ -5466,7 +5472,7 @@ GameBoyCore.prototype.updateCore = function () {
 		this.DIVTicks &= 0x3F;
 		//Update emulator flags:
 		this.stopEmulator |= 1;			//End current loop.
-		this.emulatorTicks -= settings[13];
+		this.emulatorTicks -= this.CPUCyclesPerIteration;
 	}
 }
 GameBoyCore.prototype.initializeLCDController = function () {

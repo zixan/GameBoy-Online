@@ -14,7 +14,7 @@ var settings = [						//Some settings.
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
 	null,								//TODO: Update the indices to remove this.
 	10,									//Frameskip base factor
-	17826,								//Target number of machine cycles per loop. (4,194,300 / 1000 * 17)
+	null,								//TODO: Update the indices to remove this.
 	70000,								//Sample Rate
 	0x10,								//How many bits per WAV PCM sample (For browsers that fall back to WAV PCM generation)
 	true,								//Use the GBC BIOS?
