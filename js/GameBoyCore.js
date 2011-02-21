@@ -5982,7 +5982,8 @@ GameBoyCore.prototype.drawBackgroundForLine = function (line, windowLeft, priori
 	for (; screenX < windowLeft; tileX++, screenX += 8) {
 		tileXCoord = (tileX & 0x1F);
 		var baseaddr = this.memory[0x8000 + memStart + tileXCoord];
-		tileNum = (this.gfxBackgroundX) ? baseaddr : ((baseaddr > 0x7F) ? ((baseaddr & 0x7F) + 0x80) : (baseaddr + 0x100));
+		tileNum = (this.gfxBackgroundX || baseaddr > 0x7F) ? baseaddr : (baseaddr + 0x100);
+		tileAttrib = 0;
 		if (this.cGBC) {
 			var mapAttrib = this.VRAM[memStart + tileXCoord];
 			if ((mapAttrib & 0x80) != priority) {
@@ -6001,7 +6002,8 @@ GameBoyCore.prototype.drawBackgroundForLine = function (line, windowLeft, priori
 		var windowSourceTileLine = this.windowSourceLine & 0x7;
 		for (screenX = windowLeft; screenX < 160; tileAddress++, screenX += 8) {
 			var baseaddr = this.memory[0x8000 + tileAddress];
-			tileNum = (this.gfxBackgroundX) ? baseaddr : ((baseaddr > 0x7F) ? ((baseaddr & 0x7F) + 0x80) : (baseaddr + 0x100));
+			tileNum = (this.gfxBackgroundX || baseaddr > 0x7F) ? baseaddr : (baseaddr + 0x100);
+			tileAttrib = 0;
 			if (this.cGBC) {
 				var mapAttrib = this.VRAM[tileAddress];
 				if ((mapAttrib & 0x80) != priority) {
