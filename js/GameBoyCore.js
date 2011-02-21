@@ -5734,9 +5734,9 @@ GameBoyCore.prototype.initializeLCDController = function () {
 		else {
 			//VBlank Ending (We're on the last actual scan line)
 			this.LINECONTROL[153] = function (parentObj) {
-				if (parentObj.memory[0xFF44] == 153) {
+				if (parentObj.memory[0xFF44] == 153 && parentObj.LCDTicks >= 2) {	//TODO: Double-check to see if 2 is right.
 					parentObj.memory[0xFF44] = 0;	//LY register resets to 0 early.
-					parentObj.matchLYC();			//LYC register test is early here (Fixes specific one-line glitches (example: Kirby2 intro)).
+					parentObj.matchLYC();
 				}
 				if (parentObj.LCDTicks >= 114) {
 					//We reset back to the beginning:
