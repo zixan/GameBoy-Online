@@ -5997,7 +5997,7 @@ GameBoyCore.prototype.drawBackgroundForLine = function (line, windowLeft, priori
 	if (windowLeft < 160) {
 		// window!
 		var windowStartAddress = (this.gfxWindowY) ? 0x1C00 : 0x1800;
-		var tileAddress = windowStartAddress + ((this.windowSourceLine >> 3) << 2);
+		var tileAddress = windowStartAddress + ((this.windowSourceLine >> 3) << 5);
 		var windowSourceTileLine = this.windowSourceLine & 0x7;
 		for (screenX = windowLeft; screenX < 160; tileAddress++, screenX += 8) {
 			var baseaddr = this.memory[0x8000 + tileAddress];
