@@ -7239,16 +7239,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.matchLYC();	//Get the compare of the first scan line.
 		}
 	}
-	this.memoryWriter[0xFF46] = function (parentObj, address, data) {
-		parentObj.memory[0xFF46] = data;
-		if (parentObj.cGBC || data > 0x7F) {	//DMG cannot DMA from the ROM banks.
-			data <<= 8;
-			address = 0xFE00;
-			while (address < 0xFEA0) {
-				parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
-			}
-		}
-	}
 	if (this.cGBC) {
 		//GameBoy Color Specific I/O:
 		this.memoryWriter[0xFF40] = function (parentObj, address, data) {
@@ -7287,6 +7277,14 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.mode1TriggerSTAT = ((data & 0x10) == 0x10);
 			parentObj.mode0TriggerSTAT = ((data & 0x08) == 0x08);
 			parentObj.memory[0xFF41] = (data & 0xF8);
+		}
+		this.memoryWriter[0xFF46] = function (parentObj, address, data) {
+			parentObj.memory[0xFF46] = data;
+			data <<= 8;
+			address = 0xFE00;
+			while (address < 0xFEA0) {
+				parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+			}
 		}
 		this.memoryWriter[0xFF4D] = function (parentObj, address, data) {
 			parentObj.memory[0xFF4D] = (data & 0x7F) + (parentObj.memory[0xFF4D] & 0x80);
@@ -7437,6 +7435,16 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.memory[0xFF41] = (data & 0xF8);
 			if (parentObj.LCDisOn && parentObj.modeSTAT < 2) {
 				parentObj.memory[0xFF0F] |= 0x2;
+			}
+		}
+		this.memoryWriter[0xFF46] = function (parentObj, address, data) {
+			parentObj.memory[0xFF46] = data;
+			if (data > 0x7F) {	//DMG cannot DMA from the ROM banks.
+				data <<= 8;
+				address = 0xFE00;
+				while (address < 0xFEA0) {
+					parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+				}
 			}
 		}
 		this.memoryWriter[0xFF47] = function (parentObj, address, data) {
