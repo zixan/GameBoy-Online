@@ -5537,7 +5537,7 @@ GameBoyCore.prototype.runInterrupt = function () {
 			this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
 			this.memoryWrite(this.stackPointer, this.programCounter & 0xFF);
 			//Set the program counter to the interrupt's address:
-			this.programCounter = 0x0040 + (bitShift * 0x08);
+			this.programCounter = 0x0040 + (bitShift << 3);
 			//Interrupts have a certain clock cycle length:
 			this.CPUTicks += 5;	//People say it's around 5.
 			break;	//We only want the highest priority interrupt.
@@ -5997,8 +5997,7 @@ GameBoyCore.prototype.drawBackgroundForLine = function (line, windowLeft, priori
 	if (windowLeft < 160) {
 		// window!
 		var windowStartAddress = (this.gfxWindowY) ? 0x1C00 : 0x1800;
-		var windowSourceTileY = this.windowSourceLine >> 3;
-		var tileAddress = windowStartAddress + (windowSourceTileY * 0x20);
+		var tileAddress = windowStartAddress + ((this.windowSourceLine >> 3) << 2);
 		var windowSourceTileLine = this.windowSourceLine & 0x7;
 		for (screenX = windowLeft; screenX < 160; tileAddress++, screenX += 8) {
 			var baseaddr = this.memory[0x8000 + tileAddress];
@@ -6474,10 +6473,10 @@ GameBoyCore.prototype.setCurrentMBC1ROMBank = function () {
 		case 0x40:
 		case 0x60:
 			//Bank calls for 0x00, 0x20, 0x40, and 0x60 are really for 0x01, 0x21, 0x41, and 0x61.
-			this.currentROMBank = this.ROMBank1offs * 0x4000;
+			this.currentROMBank = this.ROMBank1offs << 14;
 			break;
 		default:
-			this.currentROMBank = (this.ROMBank1offs - 1) * 0x4000;
+			this.currentROMBank = (this.ROMBank1offs - 1) << 14;
 	}
 	while (this.currentROMBank + 0x4000 >= this.ROM.length) {
 		this.currentROMBank -= this.ROM.length;
@@ -6486,14 +6485,14 @@ GameBoyCore.prototype.setCurrentMBC1ROMBank = function () {
 GameBoyCore.prototype.setCurrentMBC2AND3ROMBank = function () {
 	//Read the cartridge ROM data from RAM memory:
 	//Only map bank 0 to bank 1 here (MBC2 is like MBC1, but can only do 16 banks, so only the bank 0 quirk appears for MBC2):
-	this.currentROMBank = Math.max(this.ROMBank1offs - 1, 0) * 0x4000;
+	this.currentROMBank = Math.max(this.ROMBank1offs - 1, 0) << 14;
 	while (this.currentROMBank + 0x4000 >= this.ROM.length) {
 		this.currentROMBank -= this.ROM.length;
 	}
 }
 GameBoyCore.prototype.setCurrentMBC5ROMBank = function () {
 	//Read the cartridge ROM data from RAM memory:
-	this.currentROMBank = (this.ROMBank1offs - 1) * 0x4000;
+	this.currentROMBank = (this.ROMBank1offs - 1) << 14;
 	while (this.currentROMBank + 0x4000 >= this.ROM.length) {
 		this.currentROMBank -= this.ROM.length;
 	}
@@ -7258,12 +7257,16 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				//When the display mode changes...
 				parentObj.LCDisOn = temp_var;
 				parentObj.memory[0xFF41] &= 0xF8;
-				parentObj.STATTracker = parentObj.modeSTAT = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+				parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 				if (parentObj.LCDisOn) {
 					parentObj.matchLYC();	//Get the compare of the first scan line.
 					parentObj.LCDCONTROL = parentObj.LINECONTROL;
 				}
 				else {
+					if (parentObj.modeSTAT != 1) {
+						parentObj.modeSTAT = 1;
+						parentObj.memory[0xFF0F] |= 0x1;
+					}
 					parentObj.LCDCONTROL = parentObj.DISPLAYOFFCONTROL;
 					parentObj.DisplayShowOff();
 				}
@@ -7319,7 +7322,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 					parentObj.CPUTicks += 1 + ((8 * ((data & 0x7F) + 1)) * parentObj.multiplier);
 					var dmaSrc = (parentObj.memory[0xFF51] << 8) | parentObj.memory[0xFF52];
 					var dmaDst = 0x8000 + (parentObj.memory[0xFF53] << 8) | parentObj.memory[0xFF54];
-					var endAmount = (((data & 0x7F) * 0x10) + 0x10);
+					var endAmount = (((data & 0x7F) << 4) + 0x10);
 					for (var loopAmount = 0; loopAmount < endAmount; loopAmount++) {
 						parentObj.memoryWrite(dmaDst++, parentObj.memoryRead(dmaSrc++));
 					}
@@ -7380,8 +7383,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			var addressCheck = (parentObj.memory[0xFF51] << 8) | parentObj.memory[0xFF52];	//Cannot change the RAM bank while WRAM is the source of a running HDMA.
 			if (!parentObj.hdmaRunning || addressCheck < 0xD000 || addressCheck >= 0xE000) {
 				parentObj.gbcRamBank = Math.max(data & 0x07, 1);	//Bank range is from 1-7
-				parentObj.gbcRamBankPosition = ((parentObj.gbcRamBank - 1) * 0x1000) - 0xD000;
-				parentObj.gbcRamBankPositionECHO = ((parentObj.gbcRamBank - 1) * 0x1000) - 0xF000;
+				var addressStart = (parentObj.gbcRamBank - 1) << 12;
+				parentObj.gbcRamBankPosition = addressStart - 0xD000;
+				parentObj.gbcRamBankPositionECHO = addressStart - 0xF000;
 			}
 			parentObj.memory[0xFF70] = (data | 0x40);	//Bit 6 cannot be written to.
 		}
@@ -7394,12 +7398,16 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				//When the display mode changes...
 				parentObj.LCDisOn = temp_var;
 				parentObj.memory[0xFF41] &= 0xF8;
-				parentObj.STATTracker = parentObj.modeSTAT = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+				parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 				if (parentObj.LCDisOn) {
 					parentObj.matchLYC();	//Get the compare of the first scan line.
 					parentObj.LCDCONTROL = parentObj.LINECONTROL;
 				}
 				else {
+					if (parentObj.modeSTAT != 1) {
+						parentObj.modeSTAT = 1;
+						parentObj.memory[0xFF0F] |= 0x1;
+					}
 					parentObj.LCDCONTROL = parentObj.DISPLAYOFFCONTROL;
 					parentObj.DisplayShowOff();
 				}
