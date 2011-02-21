@@ -5654,7 +5654,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					parentObj.LCDTicks -= 114;
 					if (parentObj.STATTracker != 2) {
 						parentObj.notifyScanline();
-						if (parentObj.hdmaRunning && !parentObj.halt && parentObj.LCDisOn) {
+						if (parentObj.hdmaRunning && !parentObj.halt) {
 							parentObj.performHdma();
 						}
 						if (parentObj.mode0TriggerSTAT) {
@@ -5694,7 +5694,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					}
 					if (parentObj.STATTracker != 2) {
 						parentObj.notifyScanline();
-						if (parentObj.hdmaRunning && !parentObj.halt && parentObj.LCDisOn) {
+						if (parentObj.hdmaRunning && !parentObj.halt) {
 							parentObj.performHdma();
 						}
 						if (parentObj.mode0TriggerSTAT) {
