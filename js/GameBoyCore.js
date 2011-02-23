@@ -6092,7 +6092,7 @@ GameBoyCore.prototype.drawSpritesForLine = function (line) {
 				if (this.gfxSpriteDouble) {
 					tileNum = tileNum & 0xFE;
 				}
-				var spriteAttrib = attributes >> 5; // flipx: from bit 0x20 to 0x01, flipy: from bit 0x40 to 0x02
+				var spriteAttrib = (attributes & 0x7F) >> 5; // flipx: from bit 0x20 to 0x01, flipy: from bit 0x40 to 0x02
 				if (this.cGBC) {
 					spriteAttrib += 0x20 + ((attributes & 0x07) << 2); // palette
 					tileNum += (384 >> 3) * (attributes & 0x08); // tile vram bank
