@@ -129,7 +129,6 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.dutyLookup = [0.125, 0.25, 0.5, 0.75];	//Map the duty values given to ones we can work with.
 	this.audioSamples = [];						//The audio buffer we're working on (When not overflowing).
 	this.audioBackup = [];						//Audio overflow buffer.
-	this.webkitAudioBuffer = [];				//Used for the webkit audio api, because we must wait for an event handler to output the audio with.
 	this.usingBackupAsMain = 0;					//Don't copy over the backup buffer to the main buffer on the next iteration, instead make the backup the main buffer (vice versa).
 	this.currentBuffer = this.audioSamples;		//Pointer to the sample workbench.
 	this.initializeAudioStartState();
@@ -4781,7 +4780,7 @@ GameBoyCore.prototype.initSound = function () {
 			//mozAudio - Synchronous Audio API
 			this.audioHandle = new Audio();
 			this.audioHandle.mozSetup(this.soundChannelsAllocated, settings[14]);
-			this.samplesAlreadyWritten = 0;
+			this.samplesAlreadyWritten = this.audioHandle.mozWriteAudio(this.getTypedArray(settings[23], -1, "float32"));
 			cout("Mozilla Audio API Initialized:", 0);
 			this.audioType = 0;
 		}
@@ -4822,7 +4821,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.numSamplesTotal = this.sampleSize * this.soundChannelsAllocated;
 	this.audioSamples = this.getTypedArray(this.numSamplesTotal, 0, "float32");
 	this.audioBackup = this.getTypedArray(this.numSamplesTotal, 0, "float32");
-	this.webkitAudioBuffer = [];
+	//Noise Sample Table:
 	this.noiseSampleTable = this.getTypedArray(0x80000, 0, "float32");
 	var randomFactor = 0;
 	for (var index = 0; index < 0x8000; index++) {
