@@ -6388,6 +6388,27 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 						return parentObj.currVRAMBank;
 					}
 					break;
+				case 0xFF6C:
+					if (this.cGBC) {
+						this.memoryReader[0xFF6C] = function (parentObj, address) {
+							return 0xFE | parentObj.memory[0xFF6C];
+						}
+					}
+					else {
+						this.memoryReader[index] = this.memoryReadBAD;
+					}
+					break;
+				case 0xFF75:
+					this.memoryReader[0xFF75] = function (parentObj, address) {
+						return 0x8F | parentObj.memory[0xFF75];
+					}
+					break;
+				case 0xFF76:
+				case 0xFF77:
+					this.memoryReader[index] = function (parentObj, address) {
+						return 0;
+					}
+					break;
 				default:
 					this.memoryReader[index] = this.memoryReadNormal;
 			}
@@ -7249,16 +7270,12 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				//When the display mode changes...
 				parentObj.LCDisOn = temp_var;
 				parentObj.memory[0xFF41] &= 0xF8;
-				parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+				parentObj.modeSTAT = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 				if (parentObj.LCDisOn) {
 					parentObj.matchLYC();	//Get the compare of the first scan line.
 					parentObj.LCDCONTROL = parentObj.LINECONTROL;
 				}
 				else {
-					if (parentObj.modeSTAT != 1) {
-						parentObj.modeSTAT = 1;
-						parentObj.memory[0xFF0F] |= 0x1;
-					}
 					parentObj.LCDCONTROL = parentObj.DISPLAYOFFCONTROL;
 					parentObj.DisplayShowOff();
 				}
@@ -7397,16 +7414,12 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				//When the display mode changes...
 				parentObj.LCDisOn = temp_var;
 				parentObj.memory[0xFF41] &= 0xF8;
-				parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+				parentObj.modeSTAT = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 				if (parentObj.LCDisOn) {
 					parentObj.matchLYC();	//Get the compare of the first scan line.
 					parentObj.LCDCONTROL = parentObj.LINECONTROL;
 				}
 				else {
-					if (parentObj.modeSTAT != 1) {
-						parentObj.modeSTAT = 1;
-						parentObj.memory[0xFF0F] |= 0x1;
-					}
 					parentObj.LCDCONTROL = parentObj.DISPLAYOFFCONTROL;
 					parentObj.DisplayShowOff();
 				}
@@ -7490,6 +7503,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		this.memoryWriter[0xFF6B] = function (parentObj, address, data) {
 			parentObj.memory[0xFF6B] = data;
 		}
+		this.memoryWriter[0xFF6C] = function (parentObj, address, data) {
+			//CGB boot only
+		};
 		this.memoryWriter[0xFF70] = function (parentObj, address, data) {
 			parentObj.memory[0xFF70] = data;
 		}
@@ -7502,17 +7518,19 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.disableBootROM();			//Fill in the boot ROM ranges with ROM  bank 0 ROM ranges
 			parentObj.memory[0xFF50] = data;	//Bits are sustained in memory?
 		}
-		this.memoryWriter[0xFF6C] = function (parentObj, address, data) {
-			if (parentObj.inBootstrap) {
-				parentObj.cGBC = (data == 0x80);
-				cout("Booted to GBC Mode: " + parentObj.cGBC, 0);
+		if (this.cGBC) {
+			this.memoryWriter[0xFF6C] = function (parentObj, address, data) {
+				if (parentObj.inBootstrap) {
+					parentObj.cGBC = ((data & 0x1) == 0);
+					cout("Booted to GBC Mode: " + parentObj.cGBC, 0);
+				}
+				parentObj.memory[0xFF6C] = data;
 			}
-			parentObj.memory[0xFF6C] = data;
 		}
 	}
 	else {
 		//Lockout the ROMs from accessing the BOOT ROM control register:
-		this.memoryWriter[0xFF6C] = this.memoryWriter[0xFF50] = function (parentObj, address, data) { };
+		this.memoryWriter[0xFF50] = function (parentObj, address, data) { };
 	}
 }
 //Helper Functions
