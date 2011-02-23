@@ -91,7 +91,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.savedStateFileName = "";				//When loaded in as a save state, this will not be empty.
 	this.STATTracker = 0;						//Tracker for STAT triggering.
 	this.modeSTAT = 0;							//The scan line mode (for lines 1-144 it's 2-3-0, for 145-154 it's 1)
-	this.spriteCount = 0;
+	this.spriteCount = 0;						//Mode 3 extra clocking counter (Depends on how many sprites are on the current line.).
 	this.LYCMatchTriggerSTAT = false;			//Should we trigger an interrupt if LY==LYC?
 	this.mode2TriggerSTAT = false;				//Should we trigger an interrupt if in mode 2?
 	this.mode1TriggerSTAT = false;				//Should we trigger an interrupt if in mode 1?
