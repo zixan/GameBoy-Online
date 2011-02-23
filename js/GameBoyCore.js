@@ -6076,15 +6076,14 @@ GameBoyCore.prototype.drawSpritesForLine = function (line) {
 	var minSpriteY = line - ((this.gfxSpriteDouble) ? 15 : 7);
 	// either only do priorityFlag == 0 (all foreground),
 	// or first 0x80 (background) and then 0 (foreground)
-	var priorityFlag = this.spritePriorityEnabled ? 0x80 : 0;
-	for (; priorityFlag >= 0; priorityFlag -= 0x80) {
+	for (var priorityFlag = (this.spritePriorityEnabled ? 0x80 : 0); priorityFlag >= 0; priorityFlag -= 0x80) {
 		var oamIx = 159;
 		while (oamIx >= 0) {
-			var attributes = this.memory[0xFE00 + oamIx--];
+			var attributes = this.memory[0xFE00 | oamIx--];
 			if ((attributes & 0x80) == priorityFlag || !this.spritePriorityEnabled) {
-				var tileNum = this.memory[0xFE00 + oamIx--];
-				var spriteX = this.memory[0xFE00 + oamIx--] - 8;
-				var spriteY = this.memory[0xFE00 + oamIx--] - 16;
+				var tileNum = this.memory[0xFE00 | oamIx--];
+				var spriteX = this.memory[0xFE00 | oamIx--] - 8;
+				var spriteY = this.memory[0xFE00 | oamIx--] - 16;
 				var offset = line - spriteY;
 				if (spriteX >= 160 || spriteY < minSpriteY || offset < 0) {
 					continue;
@@ -6093,7 +6092,7 @@ GameBoyCore.prototype.drawSpritesForLine = function (line) {
 				if (this.gfxSpriteDouble) {
 					tileNum = tileNum & 0xFE;
 				}
-				var spriteAttrib = (attributes >> 5) & 0x03; // flipx: from bit 0x20 to 0x01, flipy: from bit 0x40 to 0x02
+				var spriteAttrib = attributes >> 5; // flipx: from bit 0x20 to 0x01, flipy: from bit 0x40 to 0x02
 				if (this.cGBC) {
 					spriteAttrib += 0x20 + ((attributes & 0x07) << 2); // palette
 					tileNum += (384 >> 3) * (attributes & 0x08); // tile vram bank
