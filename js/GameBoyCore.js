@@ -5569,7 +5569,7 @@ GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 				this.memory[0xFF0F] |= 0x2;
 			}
 			this.STATTracker = 2;
-			this.spriteCount = this.modeSTAT = 0;
+			this.modeSTAT = 0;
 		}
 	}
 }
@@ -6076,6 +6076,7 @@ GameBoyCore.prototype.drawSpritesForLine = function (line) {
 	var minSpriteY = line - ((this.gfxSpriteDouble) ? 15 : 7);
 	// either only do priorityFlag == 0 (all foreground),
 	// or first 0x80 (background) and then 0 (foreground)
+	this.spriteCount = 63;
 	for (var priorityFlag = (this.spritePriorityEnabled ? 0x80 : 0); priorityFlag >= 0; priorityFlag -= 0x80) {
 		var oamIx = 159;
 		while (oamIx >= 0) {
@@ -6136,7 +6137,6 @@ GameBoyCore.prototype.drawSpritesForLine = function (line) {
 			}
 		}
 	}
-	this.spriteCount += 63;
 }
 GameBoyCore.prototype.drawPartFgSprite = function (tileIndex, x, y, sourceLine, attribs) {
 	var im = this.tileData[tileIndex + this.tileCount * attribs] || this.updateImage(tileIndex, attribs);
