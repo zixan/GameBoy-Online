@@ -6388,6 +6388,12 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 						return parentObj.currVRAMBank;
 					}
 					break;
+				case 0xFF56:
+					this.memoryReader[0xFF56] = function (parentObj, address) {
+						//Return IR "not connected" status:
+						return 0x3C | ((parentObj.memory[0xFF56] >= 0xC0) ? (0x2 | (parentObj.memory[0xFF56] & 0xC1)) : (parentObj.memory[0xFF56] & 0xC3));
+					}
+					break;
 				case 0xFF6C:
 					if (this.cGBC) {
 						this.memoryReader[0xFF6C] = function (parentObj, address) {
@@ -6486,7 +6492,7 @@ GameBoyCore.prototype.VRAMReadDMGCPU = function (parentObj, address) {
 }
 GameBoyCore.prototype.VRAMReadGFX = function (address, gbcBank) {
 	//Graphics Side Reading The VRAM
-	return ((!gbcBank) ? this.memory[0x8000 + address] : this.VRAM[address]);
+	return ((!gbcBank) ? this.memory[0x8000 | address] : this.VRAM[address]);
 }
 GameBoyCore.prototype.setCurrentMBC1ROMBank = function () {
 	//Read the cartridge ROM data from RAM memory:
