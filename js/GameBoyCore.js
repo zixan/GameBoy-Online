@@ -7260,7 +7260,11 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 	}
 	this.memoryWriter[0xFF44] = function (parentObj, address, data) {
-		//Read only
+		//Read Only:
+		if (parentObj.LCDisOn) {
+			//Gambatte says to do this:
+			parentObj.memory[0xFF44] = 0;
+		}
 	}
 	this.memoryWriter[0xFF45] = function (parentObj, address, data) {
 		parentObj.memory[0xFF45] = data;
@@ -7491,9 +7495,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		this.memoryWriter[0xFF4D] = function (parentObj, address, data) {
 			parentObj.memory[0xFF4D] = data;
 		}
-		this.memoryWriter[0xFF4F] = function (parentObj, address, data) {
-			//Not writable in DMG mode.
-		}
+		this.memoryWriter[0xFF4F] = this.cartIgnoreWrite;	//Not writable in DMG mode.
 		this.memoryWriter[0xFF55] = function (parentObj, address, data) {
 			parentObj.memory[0xFF55] = data;
 		}
@@ -7536,7 +7538,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	else {
 		//Lockout the ROMs from accessing the BOOT ROM control register:
-		this.memoryWriter[0xFF50] = function (parentObj, address, data) { };
+		this.memoryWriter[0xFF50] = this.cartIgnoreWrite;
 	}
 }
 //Helper Functions
