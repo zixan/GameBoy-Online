@@ -5529,7 +5529,7 @@ GameBoyCore.prototype.runInterrupt = function () {
 			this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
 			this.memoryWrite(this.stackPointer, this.programCounter & 0xFF);
 			//Set the program counter to the interrupt's address:
-			this.programCounter = 0x0040 + (bitShift << 3);
+			this.programCounter = 0x40 | (bitShift << 3);
 			//Interrupts have a certain clock cycle length:
 			this.CPUTicks += 5;	//People say it's around 5.
 			break;	//We only want the highest priority interrupt.
