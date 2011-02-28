@@ -3368,175 +3368,175 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	,function (parentObj) {
 		parentObj.registerB &= 0xFD;
 	}
-	//#0x:
+	//#0x89:
 	,function (parentObj) {
 		parentObj.registerC &= 0xFD;
 	}
-	//#0x:
+	//#0x8A:
 	,function (parentObj) {
 		parentObj.registerD &= 0xFD;
 	}
-	//#0x:
+	//#0x8B:
 	,function (parentObj) {
 		parentObj.registerE &= 0xFD;
 	}
-	//#0x:
+	//#0x8C:
 	,function (parentObj) {
 		parentObj.registersHL &= 0xFDFF;
 	}
-	//#0x:
+	//#0x8D:
 	,function (parentObj) {
 		parentObj.registersHL &= 0xFFFD;
 	}
-	//#0x:
+	//#0x8E:
 	,function (parentObj) {
 		parentObj.memoryWrite(parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) & 0xFD);
 	}
-	//#0x:
+	//#0x8F:
 	,function (parentObj) {
 		parentObj.registerA &= 0xFD;
 	}
-	//#0x:
+	//#0xA0:
 	,function (parentObj) {
 		parentObj.registerB &= 0xFB;
 	}
-	//#0x:
+	//#0xA1:
 	,function (parentObj) {
 		parentObj.registerC &= 0xFB;
 	}
-	//#0x:
+	//#0xA2:
 	,function (parentObj) {
 		parentObj.registerD &= 0xFB;
 	}
-	//#0x:
+	//#0xA3:
 	,function (parentObj) {
 		parentObj.registerE &= 0xFB;
 	}
-	//#0x:
+	//#0xA4:
 	,function (parentObj) {
 		parentObj.registersHL &= 0xFBFF;
 	}
-	//#0x:
+	//#0xA5:
 	,function (parentObj) {
 		parentObj.registersHL &= 0xFFFB;
 	}
-	//#0x:
+	//#0xA6:
 	,function (parentObj) {
 		parentObj.memoryWrite(parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) & 0xFB);
 	}
-	//#0x:
+	//#0xA7:
 	,function (parentObj) {
 		parentObj.registerA &= 0xFB;
 	}
-	//#0x:
+	//#0xA8:
 	,function (parentObj) {
 		parentObj.registerB &= 0xF7;
 	}
-	//#0x:
+	//#0xA9:
 	,function (parentObj) {
 		parentObj.registerC &= 0xF7;
 	}
-	//#0x:
+	//#0xAA:
 	,function (parentObj) {
 		parentObj.registerD &= 0xF7;
 	}
-	//#0x:
+	//#0xAB:
 	,function (parentObj) {
 		parentObj.registerE &= 0xF7;
 	}
-	//#0x:
+	//#0xAC:
 	,function (parentObj) {
 		parentObj.registersHL &= 0xF7FF;
 	}
-	//#0x:
+	//#0xAD:
 	,function (parentObj) {
 		parentObj.registersHL &= 0xFFF7;
 	}
-	//#0x:
+	//#0xAE:
 	,function (parentObj) {
 		parentObj.memoryWrite(parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) & 0xF7);
 	}
-	//#0x:
+	//#0xAF:
 	,function (parentObj) {
 		parentObj.registerA &= 0xF7;
 	}
-	//#0x:
+	//#0xB0:
 	,function (parentObj) {
 		parentObj.registerB &= 0xEF;
 	}
-	//#0x:
+	//#0xB1:
 	,function (parentObj) {
 		parentObj.registerC &= 0xEF;
 	}
-	//#0x:
+	//#0xB2:
 	,function (parentObj) {
 		parentObj.registerD &= 0xEF;
 	}
-	//#0x:
+	//#0xB3:
 	,function (parentObj) {
 		parentObj.registerE &= 0xEF;
 	}
-	//#0x:
+	//#0xB4:
 	,function (parentObj) {
 		parentObj.registersHL &= 0xEFFF;
 	}
-	//#0x:
+	//#0xB5:
 	,function (parentObj) {
 		parentObj.registersHL &= 0xFFEF;
 	}
-	//#0x:
+	//#0xB6:
 	,function (parentObj) {
 		parentObj.memoryWrite(parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) & 0xEF);
 	}
-	//#0x:
+	//#0xB7:
 	,function (parentObj) {
 		parentObj.registerA &= 0xEF;
 	}
-	//#0x:
+	//#0xB8:
 	,function (parentObj) {
 		parentObj.registerB &= 0xDF;
 	}
-	//#0x:
+	//#0xB9:
 	,function (parentObj) {
 		parentObj.registerC &= 0xDF;
 	}
-	//#0x:
+	//#0xBA:
 	,function (parentObj) {
 		parentObj.registerD &= 0xDF;
 	}
-	//#0x:
+	//#0xBB:
 	,function (parentObj) {
 		parentObj.registerE &= 0xDF;
 	}
-	//#0x:
+	//#0xBC:
 	,function (parentObj) {
 		parentObj.registersHL &= 0xDFFF;
 	}
-	//#0x:
+	//#0xBD:
 	,function (parentObj) {
 		parentObj.registersHL &= 0xFFDF;
 	}
-	//#0x:
+	//#0xBE:
 	,function (parentObj) {
 		parentObj.memoryWrite(parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) & 0xDF);
 	}
-	//#0x:
+	//#0xBF:
 	,function (parentObj) {
 		parentObj.registerA &= 0xDF;
 	}
-	//#0x:
+	//#0xC0:
 	,function (parentObj) {
 		parentObj.registerB &= 0xBF;
 	}
-	//#0x:
+	//#0xC1:
 	,function (parentObj) {
 		parentObj.registerC &= 0xBF;
 	}
-	//#0x:
+	//#0xC2:
 	,function (parentObj) {
 		parentObj.registerD &= 0xBF;
 	}
-	//#0x:
+	//#0xC3:
 	,function (parentObj) {
 		parentObj.registerE &= 0xBF;
 	}

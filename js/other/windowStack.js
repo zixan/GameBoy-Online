@@ -76,7 +76,6 @@ windowStack.prototype.dragEnable = function (event) {
 		this.movable = true;
 		this.leftLast = event.clientX;
 		this.topLast = event.clientY;
-		//this.lastOpacity = new Opacity(this.domObject, this.interceptOpacity(), 100, 1, 25, 0, true, "progid:DXImageTransform.Microsoft.Shadow(Color='#1E1E1E', strength='7', direction='135')");
 		this.domObject.style.zIndex = 2;
 		if (highX - this.leftLast < 25 && highY - this.topLast < 25) {	/*Inivisible resize corner area for windows.*/
 			this.resize = true;
@@ -135,7 +134,6 @@ windowStack.prototype.dragDisable = function () {
 windowStack.prototype.lostFocus = function () {
 	if (this.hadFocus) {
 		cout("windowStack::lostFocus() called.", -1);
-		//this.lastOpacity = new Opacity(this.domObject, this.interceptOpacity(), 60, -1, 25, 0, true, "progid:DXImageTransform.Microsoft.Shadow(Color='#1E1E1E', strength='7', direction='135')");
 		this.domObject.style.zIndex = 1;
 		this.hadFocus = false;
 	}

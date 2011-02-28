@@ -1,5 +1,7 @@
 var windowingInitialized = false;
 var inFullscreen = false;
+var mainCanvas = null;
+var fullscreenCanvas = null;
 function windowingPreInitUnsafe() {
 	if (!windowingInitialized) {
 		windowingInitialized = true;
@@ -26,6 +28,8 @@ function windowingInitialize() {
 	windowStacks[3] = windowCreate("settings", false);
 	windowStacks[4] = windowCreate("input_select", false);
 	windowStacks[5] = windowCreate("instructions", false);
+	mainCanvas = document.getElementById("mainCanvas");
+	fullscreenCanvas = document.getElementById("fullscreen");
 	try {
 		//Hook the GUI controls.
 		registerGUIEvents();
@@ -95,7 +99,7 @@ function registerGUIEvents() {
 		if (datauri != null && datauri.length > 0) {
 			try {
 				cout(Math.floor(datauri.length * 3 / 4) + " bytes of data submitted by form (text length of " + datauri.length + ").", 0);
-				start(document.getElementsByTagName("canvas")[0],  document.getElementById("canvasAltContainer"), base64_decode(datauri));
+				start(mainCanvas,  document.getElementById("canvasAltContainer"), base64_decode(datauri));
 				initPlayer();
 			}
 			catch (error) {
@@ -119,7 +123,7 @@ function registerGUIEvents() {
 						try {
 							var romStream = base64_decode(arguments[1]);
 							cout(romStream.length + " bytes of base64 decoded data retrieved by XHR (text length of " + arguments[1].length + ").", 0);
-							start(document.getElementsByTagName("canvas")[0],  document.getElementById("canvasAltContainer"), romStream);
+							start(mainCanvas,  document.getElementById("canvasAltContainer"), romStream);
 							initPlayer();
 						}
 						catch (error) {
@@ -154,7 +158,7 @@ function registerGUIEvents() {
 							if (this.readyState == 2) {
 								cout("file loaded.", 0);
 								try {
-									start(document.getElementsByTagName("canvas")[0], document.getElementById("canvasAltContainer"), this.result);
+									start(mainCanvas, document.getElementById("canvasAltContainer"), this.result);
 									initPlayer();
 								}
 								catch (error) {
@@ -172,7 +176,7 @@ function registerGUIEvents() {
 						//Gecko 1.9.0, 1.9.1 (Non-Standard Method)
 						var romImageString = this.files[this.files.length - 1].getAsBinary();
 						try {
-							start(document.getElementsByTagName("canvas")[0], document.getElementById("canvasAltContainer"), romImageString);
+							start(mainCanvas, document.getElementById("canvasAltContainer"), romImageString);
 							initPlayer();
 						}
 						catch (error) {
@@ -197,11 +201,11 @@ function registerGUIEvents() {
 		if (typeof gameboy == "object" && gameboy != null && typeof gameboy.ROMImage == "string") {
 			try {
 				if (!gameboy.fromSaveState) {
-					start(document.getElementsByTagName("canvas")[0], document.getElementById("canvasAltContainer"), gameboy.ROMImage);
+					start(mainCanvas, document.getElementById("canvasAltContainer"), gameboy.ROMImage);
 					initPlayer();
 				}
 				else {
-					openState(gameboy.savedStateFileName, document.getElementsByTagName("canvas")[0],  document.getElementById("canvasAltContainer"));
+					openState(gameboy.savedStateFileName, mainCanvas,  document.getElementById("canvasAltContainer"));
 					initPlayer();
 				}
 			}
@@ -264,7 +268,7 @@ function registerGUIEvents() {
 	});
 	addEvent("click", document.getElementById("do_minimal"), function () {
 		settings[19] = document.getElementById("do_minimal").checked;
-		document.getElementById("fullscreen").className = (settings[19]) ? "minimum" : "maximum";
+		fullscreenCanvas.className = (settings[19]) ? "minimum" : "maximum";
 	});
 	addEvent("click", document.getElementById("software_resizing"), function () {
 		settings[21] = document.getElementById("software_resizing").checked;
@@ -282,6 +286,10 @@ function registerGUIEvents() {
 	addEvent("click", document.getElementById("view_instructions"), function () { windowStacks[5].show() });
 	addEvent("mouseup", document.getElementById("gfx"), onResizeOutput);
 	addEvent("resize", window, onResizeOutput);
+	addEvent("unload", window, function () {
+		saveSRAM();
+		saveRTC();
+	});
 }
 function onResizeOutput() {
 	if (typeof gameboy == "object" && gameboy != null && !gameboy.canvasFallbackHappened && settings[21]) {
@@ -318,13 +326,13 @@ function initPlayer() {
 function fullscreenPlayer() {
 	if (typeof gameboy == "object" && gameboy != null && !gameboy.canvasFallbackHappened) {
 		if (!inFullscreen) {
-			gameboy.canvas = document.getElementById("fullscreen");
-			document.getElementById("fullscreen").className = (settings[19]) ? "minimum" : "maximum";
+			gameboy.canvas = fullscreenCanvas;
+			fullscreenCanvas.className = (settings[19]) ? "minimum" : "maximum";
 			document.getElementById("fullscreenContainer").style.display = "block";
 			windowStacks[0].hide();
 		}
 		else {
-			gameboy.canvas = document.getElementsByTagName("canvas")[0];
+			gameboy.canvas = mainCanvas;
 			document.getElementById("fullscreenContainer").style.display = "none";
 			windowStacks[0].show();
 		}
@@ -364,7 +372,7 @@ function addSaveStateItem(filename) {
 				cout("Attempting to find a save state record with the name: \"" + this.firstChild.data + "\"", 0);
 				for (var romState in states) {
 					if (states[romState] == this.firstChild.data) {
-						openState(states[romState], document.getElementsByTagName("canvas")[0],  document.getElementById("canvasAltContainer"));
+						openState(states[romState], mainCanvas,  document.getElementById("canvasAltContainer"));
 						initPlayer();
 					}
 				}

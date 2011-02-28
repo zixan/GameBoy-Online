@@ -12,7 +12,6 @@ DEBUG_WINDOWING = false;
 		$this->script_alt = array(
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/windowStack.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/terminal.js'),
-			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/opacity.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/gui.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/BMPCanvas.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/base64.js'),
@@ -23,11 +22,37 @@ DEBUG_WINDOWING = false;
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyCore.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyIO.js')
 		);
-		$this->meta = array('viewport'=>'initial-scale=1.0;width=640px;user-scalable=no;');
+		//$this->meta = array('viewport'=>'width=device-width, height=device-height');
 		$this->style = '@import url("'.$this->server->convert_out_of_set_chars($this->server->url['folder'].CSSDIR.'/GameBoy.css.php').(($this->server->get('border-radius') == 'true') ? '?rounded=true' : '').'");';
 		$this->manifest = $this->server->convert_out_of_set_chars($this->server->url['folder'].'gameboy.manifest');
 	}
 	function body_render() {
+		//Generate the "windowing":
+		$this->emulatorMain();
+		$this->displayTerminal();
+		$this->displayAbout();
+		$this->displaySettings();
+		$this->displayInstructions();
+		$this->fileInput();
+		//Generate the Pop-Ups:
+		$this->generatePopUps();
+		//Fullscreen canvas:
+		$this->fullscreenGenerate();
+		//DOM ready state queue:
+		$this->startElement('script');
+		$this->writeAttribute('type', 'text/javascript');
+		$this->text('
+try {
+	addEvent("DOMContentLoaded", document, windowingPreInitUnsafe);
+	addEvent("readystatechange", document, windowingPreInitSafe);
+}
+catch (error) {
+	alert("Could not initialize the emulator properly. Please try using a standards compliant browser.");
+}
+');
+		$this->endElement();
+	}
+	protected function emulatorMain() {
 		$this->startElement('div');
 		$this->writeAttribute('id', 'GameBoy');
 		$this->writeAttribute('class', 'window');
@@ -53,6 +78,7 @@ DEBUG_WINDOWING = false;
 		$this->startElement('div');
 		$this->writeAttribute('id', 'gfx');
 		$this->startElement('canvas');
+		$this->writeAttribute('id', 'mainCanvas');
 		$this->endElement();
 		$this->startElement('div');
 		$this->writeAttribute('id', 'canvasAltContainer');
@@ -67,6 +93,8 @@ DEBUG_WINDOWING = false;
 		$this->endElement();
 		$this->endElement();
 		$this->endElement();
+	}
+	protected function displayTerminal() {
 		$this->startElement('div');
 		$this->writeAttribute('id', 'terminal');
 		$this->writeAttribute('class', 'window');
@@ -87,6 +115,8 @@ DEBUG_WINDOWING = false;
 		$this->endElement();
 		$this->endElement();
 		$this->endElement();
+	}
+	protected function displayAbout() {
 		$this->startElement('div');
 		$this->writeAttribute('id', 'about');
 		$this->writeAttribute('class', 'window');
@@ -131,6 +161,8 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->endElement();
 		$this->endElement();
 		$this->endElement();
+	}
+	protected function displaySettings() {
 		$this->startElement('div');
 		$this->writeAttribute('class', 'window');
 		$this->writeAttribute('id', 'settings');
@@ -273,6 +305,8 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->endElement();
 		$this->endElement();
 		$this->endElement();
+	}
+	protected function generatePopUps() {
 		$this->startElement('ul');
 		$this->writeAttribute('class', 'menu');
 		$this->writeAttribute('id', 'GameBoy_file_popup');
@@ -339,6 +373,8 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->text('Fullscreen Mode');
 		$this->endElement();
 		$this->endElement();
+	}
+	protected function fileInput() {
 		$this->startElement('div');
 		$this->writeAttribute('id', 'input_select');
 		$this->writeAttribute('class', 'window');
@@ -357,6 +393,8 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->endElement();
 		$this->endElement();
 		$this->endElement();
+	}
+	protected function displayInstructions() {
 		$this->startElement('div');
 		$this->writeAttribute('id', 'instructions');
 		$this->writeAttribute('class', 'window');
@@ -395,25 +433,14 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->endElement();
 		$this->endElement();
 		$this->endElement();
+	}
+	protected function fullscreenGenerate() {
 		$this->startElement('div');
 		$this->writeAttribute('id', 'fullscreenContainer');
 		$this->startElement('canvas');
 		$this->writeAttribute('id', 'fullscreen');
 		$this->writeAttribute('class', 'maximum');
 		$this->endElement();
-		$this->endElement();
-		$this->startElement('script');
-		$this->writeAttribute('type', 'text/javascript');
-		$this->text('
-try {
-	addEvent("DOMContentLoaded", document, windowingPreInitUnsafe);
-	addEvent("readystatechange", document, windowingPreInitSafe);
-	addEvent("load", document, windowingPreInitUnsafe);
-}
-catch (error) {
-	alert("Could not initialize the emulator properly. Please try using a standards compliant browser.");
-}
-');
 		$this->endElement();
 	}
 }
