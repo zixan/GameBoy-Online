@@ -199,6 +199,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.gbPalette = [];
 	this.gbColorizedPalette = [];
 	this.gbcPalette = [];
+	this.cachedPaletteConversion = [];
 	this.transparentCutoff = 4;			// min "attrib" value where transparency can occur (Default is 4 (GB mode))
 	this.bgEnabled = true;
 	this.spritePriorityEnabled = true;
@@ -3999,6 +4000,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.gbPalette,
 		this.gbcRawPalette,
 		this.gbcPalette,
+		this.cachedPaletteConversion,
 		this.transparentCutoff,
 		this.bgEnabled,
 		this.spritePriorityEnabled,
@@ -4159,6 +4161,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.gbPalette = state[index++];
 	this.gbcRawPalette = state[index++];
 	this.gbcPalette = state[index++];
+	this.cachedPaletteConversion = state[index++];
 	this.transparentCutoff = state[index++];
 	this.bgEnabled = state[index++];
 	this.spritePriorityEnabled = state[index++];
@@ -4297,6 +4300,7 @@ GameBoyCore.prototype.initMemory = function () {
 	this.gbColorizedPalette = this.ArrayPad(12, 0);		//32-bit signed
 	this.gbcRawPalette = this.ArrayPad(0x80, -1000);	//8-bit unsigned
 	this.gbcPalette = new Array(0x40);					//32-bit signed
+	this.cachedPaletteConversion = this.ArrayPad(12, 0);
 	this.convertAuxilliary();
 	//Initialize the GBC Palette:
 	var index = 0x3F;
@@ -4618,9 +4622,8 @@ GameBoyCore.prototype.disableBootROM = function () {
 		cout("Stepping down from GBC mode.", 0);
 		this.tileCount /= 2;
 		this.tileCountInvalidator = this.tileCount * 4;
-		if (!settings[17]) {
-			this.transparentCutoff = 4;
-		}
+		this.transparentCutoff = 4;
+		this.getGBCColor();
 		this.colorCount = 12;
 		this.tileData.length = this.tileCount * this.colorCount;
 		this.VRAM = this.GBCMemory = null;	//Deleting these causes Google's V8 engine and Safari's JSC to deoptimize heavily.
@@ -5914,10 +5917,15 @@ GameBoyCore.prototype.setGBCPalettePre = function (index_, data) {
 	this.gbcPalette[index_ >> 1] = 0x80000000 | ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
 	this.invalidateAll(index_ >> 3);
 }
-GameBoyCore.prototype.getGBCColor = function (index_) {
-	index_ *= 2;
-	var value = (this.gbcRawPalette[index_ | 1] << 8) | this.gbcRawPalette[index_];
-	return 0x80000000 | ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
+GameBoyCore.prototype.getGBCColor = function () {
+	for (var counter = 0; counter < 12; counter++) {
+		var adjustedIndex = 2 * counter;
+		if (counter > 3) {
+			adjustedIndex += 0x38;
+		}
+		var value = (this.gbcRawPalette[adjustedIndex | 1] << 8) | this.gbcRawPalette[adjustedIndex];
+		this.cachedPaletteConversion[counter] = 0x80000000 | ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
+	}
 }
 GameBoyCore.prototype.setGBCPalette = function (index_, data) {
 	this.setGBCPalettePre(index_, data);
@@ -5926,27 +5934,16 @@ GameBoyCore.prototype.setGBCPalette = function (index_, data) {
 	}
 }
 GameBoyCore.prototype.decodePalette = function (startIndex, data) {
-	if (!this.cGBC) {
-		this.gbPalette[startIndex] = this.colors[data & 0x03] & 0x00FFFFFF; // color 0: transparent
-		this.gbPalette[startIndex | 1] = this.colors[(data >> 2) & 0x03];
-		this.gbPalette[startIndex | 2] = this.colors[(data >> 4) & 0x03];
-		this.gbPalette[startIndex | 3] = this.colors[data >> 6];
-		if (this.usedBootROM) {	//Do palette conversions if we did the GBC bootup:
-			//GB colorization:
-			if (startIndex >= 4) {
-				var startOffset = 0x1C + startIndex;
-				this.gbColorizedPalette[startIndex] = this.getGBCColor(startOffset | (data & 0x03)) & 0x00FFFFFF;
-				this.gbColorizedPalette[startIndex | 1] = this.getGBCColor(startOffset | ((data >> 2) & 0x03));
-				this.gbColorizedPalette[startIndex | 2] = this.getGBCColor(startOffset | ((data >> 4) & 0x03));
-				this.gbColorizedPalette[startIndex | 3] = this.getGBCColor(startOffset | (data >> 6));
-			}
-			else {
-				this.gbColorizedPalette[0] = this.getGBCColor(data & 0x03) & 0x00FFFFFF;
-				this.gbColorizedPalette[1] = this.getGBCColor((data >> 2) & 0x03);
-				this.gbColorizedPalette[2] = this.getGBCColor((data >> 4) & 0x03);
-				this.gbColorizedPalette[3] = this.getGBCColor(data >> 6);
-			}
-		}
+	this.gbPalette[startIndex] = this.colors[data & 0x03] & 0x00FFFFFF; // color 0: transparent
+	this.gbPalette[startIndex | 1] = this.colors[(data >> 2) & 0x03];
+	this.gbPalette[startIndex | 2] = this.colors[(data >> 4) & 0x03];
+	this.gbPalette[startIndex | 3] = this.colors[data >> 6];
+	if (this.usedBootROM) {	//Do palette conversions if we did the GBC bootup:
+		//GB colorization:
+		this.gbColorizedPalette[startIndex] = this.cachedPaletteConversion[startIndex | (data & 0x03)] & 0x00FFFFFF;
+		this.gbColorizedPalette[startIndex | 1] = this.cachedPaletteConversion[startIndex | ((data >> 2) & 0x03)];
+		this.gbColorizedPalette[startIndex | 2] = this.cachedPaletteConversion[startIndex | ((data >> 4) & 0x03)];
+		this.gbColorizedPalette[startIndex | 3] = this.cachedPaletteConversion[startIndex | (data >> 6)];
 	}
 }
 GameBoyCore.prototype.notifyScanline = function () {
