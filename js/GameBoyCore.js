@@ -1725,7 +1725,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//AND L
 	//#0xA5:
 	function (parentObj) {
-		parentObj.registerA &= (parentObj.registersHL & 0xFF);
+		parentObj.registerA &= parentObj.registersHL;
 		parentObj.FZero = (parentObj.registerA == 0);
 		parentObj.FHalfCarry = true;
 		parentObj.FSubtract = parentObj.FCarry = false;
