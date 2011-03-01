@@ -506,7 +506,7 @@ ul.menu:hover {
 ul.menu<?php echo($Adjacent_OP); ?> li {
 	display: block;
 	position: relative;
-	margin: 0px;
+	margin: 0px 0px -1px 0px;	/*Firefox DOM mouseover bug*/
 	padding: 2px 5px 2px 15px;
 	color: rgb(0, 0, 0);
 	background-color: transparent;

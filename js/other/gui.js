@@ -413,6 +413,9 @@ function setValue(key, value) {
 }
 //Some wrappers and extensions for non-DOM3 browsers:
 function isDescendantOf(ParentElement, toCheck) {
+	if (!ParentElement || !toCheck) {
+		return false;
+	}
 	//Verify an object as either a direct or indirect child to another object.
 	function traverseTree(domElement) {
 		while (domElement != null) {
