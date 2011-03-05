@@ -20,11 +20,13 @@
  /**
  *TODO:
 	- Working On Right Now:
-		- Add a way where the sprite count on a line changes the STAT number adjustment for current clock cycle.
 		- Make I/O bit reading and writing more accurate.
+			- Now able to start up the Demotronic Final Demo, but still some issues with that ROM.
 	- Started already, but far from merging into here:
 		- Serial port link for multiplayer type stuff
+			- Returns default and triggers serial interrupts when requested for now.
 		- IR port
+			- Returns default for now.
 		- GBA (ARM7TDMI CPU Core) support will be coming when I feel like working on it more.
 			- Could be split off into a separate project, because the CPU is completely different.
 	- Afterwards....
@@ -2471,9 +2473,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0xFF:
 	function (parentObj) {
 		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
-		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter >> 8);
+		parentObj.memoryWriter[parentObj.stackPointer](parentObj, parentObj.stackPointer, parentObj.programCounter >> 8);
 		parentObj.stackPointer = (parentObj.stackPointer - 1) & 0xFFFF;
-		parentObj.memoryWrite(parentObj.stackPointer, parentObj.programCounter & 0xFF);
+		parentObj.memoryWriter[parentObj.stackPointer](parentObj, parentObj.stackPointer, parentObj.programCounter & 0xFF);
 		parentObj.programCounter = 0x38;
 	}
 );
@@ -5492,7 +5494,7 @@ GameBoyCore.prototype.executeIteration = function () {
 	var op = 0;
 	while (this.stopEmulator == 0) {
 		//Fetch the current opcode.
-		op = this.memoryRead(this.programCounter);
+		op = this.memoryReader[this.programCounter](this, this.programCounter);
 		if (!this.skipPCIncrement) {
 			//Increment the program counter to the next instruction:
 			this.programCounter = (this.programCounter + 1) & 0xFFFF;
@@ -5528,9 +5530,9 @@ GameBoyCore.prototype.runInterrupt = function () {
 			this.memory[0xFF0F] -= testbit;		//Reset the interrupt request.
 			//Set the stack pointer to the current program counter value:
 			this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
-			this.memoryWrite(this.stackPointer, this.programCounter >> 8);
+			this.memoryWriter[this.stackPointer](this, this.stackPointer, this.programCounter >> 8);
 			this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
-			this.memoryWrite(this.stackPointer, this.programCounter & 0xFF);
+			this.memoryWriter[this.stackPointer](this, this.stackPointer, this.programCounter & 0xFF);
 			//Set the program counter to the interrupt's address:
 			this.programCounter = 0x40 | (bitShift << 3);
 			//Interrupts have a certain clock cycle length:
@@ -5788,7 +5790,7 @@ GameBoyCore.prototype.performHdma = function () {
 					this.tileReadState[tileIndex] = 0;
 				}
 			}
-			this.VRAM[dmaDstRelative++] = this.memoryRead(dmaSrc++);
+			this.VRAM[dmaDstRelative++] = this.memoryReader[dmaSrc](this, dmaSrc++);
 		}
 	}
 	else {
@@ -5804,7 +5806,7 @@ GameBoyCore.prototype.performHdma = function () {
 					this.tileReadState[tileIndex] = 0;
 				}
 			}
-			this.memory[0x8000 + dmaDstRelative++] = this.memoryRead(dmaSrc++);
+			this.memory[0x8000 + dmaDstRelative++] = this.memoryReader[dmaSrc](this, dmaSrc++);
 		}
 	}
 	this.memory[0xFF51] = ((dmaSrc & 0xFF00) >> 8);
@@ -7260,7 +7262,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		//Read Only:
 		if (parentObj.LCDisOn) {
 			//Gambatte says to do this:
-			parentObj.memory[0xFF44] = 0;
+			parentObj.LCDTicks = parentObj.STATTracker = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 		}
 	}
 	this.memoryWriter[0xFF45] = function (parentObj, address, data) {
@@ -7348,7 +7350,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 					var dmaDst = 0x8000 + (parentObj.memory[0xFF53] << 8) | parentObj.memory[0xFF54];
 					var endAmount = (((data & 0x7F) << 4) + 0x10);
 					for (var loopAmount = 0; loopAmount < endAmount; loopAmount++) {
-						parentObj.memoryWrite(dmaDst++, parentObj.memoryRead(dmaSrc++));
+						parentObj.memoryWriter[dmaDst](parentObj, dmaDst++, parentObj.memoryReader[dmaSrc](parentObj, dmaSrc++));
 					}
 					parentObj.memory[0xFF51] = ((dmaSrc & 0xFF00) >> 8);
 					parentObj.memory[0xFF52] = (dmaSrc & 0x00F0);
