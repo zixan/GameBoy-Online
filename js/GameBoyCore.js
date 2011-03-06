@@ -7382,7 +7382,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		this.memoryWriter[0xFF69] = function (parentObj, address, data) {
 			parentObj.setGBCPalette(parentObj.memory[0xFF68] & 0x3F, data);
 			if (parentObj.memory[0xFF68] > 0x7F) { // high bit = autoincrement
-				var next = ((parentObj.usbtsb(parentObj.memory[0xFF68]) + 1) & 0x3F);
+				var next = ((parentObj.memory[0xFF68] + 1) & 0x3F);
 				parentObj.memory[0xFF68] = (next | 0x80);
 				parentObj.memory[0xFF69] = parentObj.gbcRawPalette[next];
 			}
