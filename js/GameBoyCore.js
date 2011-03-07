@@ -3617,7 +3617,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x:
 	,function (parentObj) {
-		parentObj.memoryWrite(parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x01);
+		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x01);
 	}
 	//#0x:
 	,function (parentObj) {
@@ -3649,7 +3649,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x:
 	,function (parentObj) {
-		parentObj.memoryWrite(parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x02);
+		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x02);
 	}
 	//#0x:
 	,function (parentObj) {
@@ -3681,7 +3681,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x:
 	,function (parentObj) {
-		parentObj.memoryWrite(parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x04);
+		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x04);
 	}
 	//#0x:
 	,function (parentObj) {
@@ -3713,7 +3713,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x:
 	,function (parentObj) {
-		parentObj.memoryWrite(parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x08);
+		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x08);
 	}
 	//#0x:
 	,function (parentObj) {
@@ -3745,7 +3745,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x:
 	,function (parentObj) {
-		parentObj.memoryWrite(parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x10);
+		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x10);
 	}
 	//#0x:
 	,function (parentObj) {
@@ -3777,7 +3777,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x:
 	,function (parentObj) {
-		parentObj.memoryWrite(parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x20);
+		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x20);
 	}
 	//#0x:
 	,function (parentObj) {
@@ -3809,41 +3809,41 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x:
 	,function (parentObj) {
-		parentObj.memoryWrite(parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x40);
+		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x40);
 	}
 	//#0x:
 	,function (parentObj) {
 		parentObj.registerA |= 0x40;
 	}
-	//#0x:
+	//#0xF8:
 	,function (parentObj) {
 		parentObj.registerB |= 0x80;
 	}
-	//#0x:
+	//#0xF9:
 	,function (parentObj) {
 		parentObj.registerC |= 0x80;
 	}
-	//#0x:
+	//#0xFA:
 	,function (parentObj) {
 		parentObj.registerD |= 0x80;
 	}
-	//#0x:
+	//#0xFB:
 	,function (parentObj) {
 		parentObj.registerE |= 0x80;
 	}
-	//#0x:
+	//#0xFC:
 	,function (parentObj) {
 		parentObj.registersHL |= 0x8000;
 	}
-	//#0x:
+	//#0xFD:
 	,function (parentObj) {
 		parentObj.registersHL |= 0x80;
 	}
-	//#0x:
+	//#0xFE:
 	,function (parentObj) {
-		parentObj.memoryWrite(parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x80);
+		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x80);
 	}
-	//#0x:
+	//#0xFF:
 	,function (parentObj) {
 		parentObj.registerA |= 0x80;
 	}
