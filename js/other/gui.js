@@ -299,7 +299,7 @@ function onResizeOutput() {
 	}
 }
 function initNewCanvasSize() {
-	if (!settings[21]) {
+	if (!settings[21] && !settings[11]) {
 		gameboy.canvas.width = gameboy.width = 160;
 		gameboy.canvas.height = gameboy.height = 144;
 	}
