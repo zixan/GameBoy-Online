@@ -12,7 +12,7 @@ var settings = [						//Some settings.
 	29,									//Maximum Frame Skip
 	false,								//Override to allow for MBC1 instead of ROM only (compatibility for broken 3rd-party cartridges).
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
-	null,								//TODO: Update the indices to remove this.
+	true,								//Try WebGL rendering?
 	10,									//Frameskip base factor
 	null,								//TODO: Update the indices to remove this.
 	70000,								//Sample Rate
@@ -357,7 +357,7 @@ function resetWebAudioBuffer() {
 			audioContextSampleBuffer = new Array(settings[24]);
 			for (var audioSampleIndice = 0; audioSampleIndice < settings[24]; audioSampleIndice++) {
 				//Initialize to zero:
-				audioContextSampleBuffer[audioSampleIndice] = 0;
+				audioContextSampleBuffer[audioSampleIndice] = -1;
 			}
 		}
 		startPosition = 0;

@@ -292,7 +292,7 @@ function registerGUIEvents() {
 	});
 }
 function onResizeOutput() {
-	if (typeof gameboy == "object" && gameboy != null && !gameboy.canvasFallbackHappened && settings[21]) {
+	if (typeof gameboy == "object" && gameboy != null && !gameboy.canvasFallbackHappened && (settings[21] || settings[11])) {
 		cout("Resizing canvas.", 0);
 		initNewCanvasSize();
 		gameboy.initLCD();
@@ -315,7 +315,7 @@ function initNewCanvasSize() {
 function initPlayer() {
 	if (typeof gameboy == "object" && gameboy != null && !gameboy.canvasFallbackHappened) {
 		initNewCanvasSize();
-		if (settings[21]) {
+		if (settings[21] || settings[11]) {
 			gameboy.initLCD();
 		}
 	}

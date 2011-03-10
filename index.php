@@ -19,6 +19,7 @@ DEBUG_WINDOWING = false;
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/waveAudio.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/audioRunner.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/json2.js'),
+			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/webgl-2d.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyCore.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyIO.js')
 		);

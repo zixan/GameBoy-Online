@@ -4743,10 +4743,15 @@ GameBoyCore.prototype.initLCD = function () {
 	try {
 		if (settings[5]) {
 			//Nasty since we are throwing on purpose to force a try/catch fallback
-			throw(new Error(""));
+			throw(new Error("Canvas 2D API path disabled."));
 		}
-		//Create a white screen
-		this.drawContext = this.canvas.getContext("2d");
+		if (settings[11]) {
+			WebGL2D.enable(this.canvas);
+			this.drawContext = this.canvas.getContext("webgl-2d");
+		}
+		else {
+			this.drawContext = this.canvas.getContext("2d");
+		}
 		//Get a CanvasPixelArray buffer:
 		try {
 			this.canvasBuffer = this.drawContext.createImageData(this.width, this.height);
@@ -4771,7 +4776,7 @@ GameBoyCore.prototype.initLCD = function () {
 	}
 	catch (error) {
 		//Falling back to an experimental data URI BMP file canvas alternative:
-		cout("Falling back to BMP imaging as a canvas alternative.", 1);
+		cout("Falling back to BMP imaging as a canvas alternative: " + error.message, 1);
 		this.width = 160;
 		this.height = 144;
 		this.canvasFallbackHappened = true;
@@ -6000,16 +6005,16 @@ GameBoyCore.prototype.drawBackgroundForLine = function (line, windowLeft, priori
 	var screenX = -(this.memory[0xFF43] & 7);
 	for (; screenX < windowLeft; tileX++, screenX += 8) {
 		tileXCoord = (tileX & 0x1F);
-		var baseaddr = this.memory[0x8000 + memStart + tileXCoord];
+		var baseaddr = this.memory[0x8000 | memStart | tileXCoord];
 		tileNum = (this.gfxBackgroundX || baseaddr > 0x7F) ? baseaddr : (baseaddr + 0x100);
 		tileAttrib = 0;
 		if (this.cGBC) {
-			var mapAttrib = this.VRAM[memStart + tileXCoord];
+			var mapAttrib = this.VRAM[memStart | tileXCoord];
 			if ((mapAttrib & 0x80) != priority) {
 				skippedTile = true;
 				continue;
 			}
-			tileAttrib = ((mapAttrib & 0x07) << 2) + ((mapAttrib >> 5) & 0x03);
+			tileAttrib = ((mapAttrib & 0x07) << 2) | ((mapAttrib >> 5) & 0x03);
 			tileNum += 384 * ((mapAttrib >> 3) & 0x01); // tile vram bank
 		}
 		this.drawPartCopy(tileNum, screenX, line, sourceImageLine, tileAttrib);
@@ -6017,10 +6022,10 @@ GameBoyCore.prototype.drawBackgroundForLine = function (line, windowLeft, priori
 	if (windowLeft < 160) {
 		// window!
 		var windowStartAddress = (this.gfxWindowY) ? 0x1C00 : 0x1800;
-		var tileAddress = windowStartAddress + ((this.windowSourceLine >> 3) << 5);
+		var tileAddress = windowStartAddress | ((this.windowSourceLine >> 3) << 5);
 		var windowSourceTileLine = this.windowSourceLine & 0x7;
 		for (screenX = windowLeft; screenX < 160; tileAddress++, screenX += 8) {
-			var baseaddr = this.memory[0x8000 + tileAddress];
+			var baseaddr = this.memory[0x8000 | tileAddress];
 			tileNum = (this.gfxBackgroundX || baseaddr > 0x7F) ? baseaddr : (baseaddr + 0x100);
 			tileAttrib = 0;
 			if (this.cGBC) {
@@ -6029,7 +6034,7 @@ GameBoyCore.prototype.drawBackgroundForLine = function (line, windowLeft, priori
 					skippedTile = true;
 					continue;
 				}
-				tileAttrib = ((mapAttrib & 0x07) << 2) + ((mapAttrib >> 5) & 0x03); // mirroring
+				tileAttrib = ((mapAttrib & 0x07) << 2) | ((mapAttrib >> 5) & 0x03); // mirroring
 				tileNum += 384 * ((mapAttrib >> 3) & 0x01); // tile vram bank
 			}
 			this.drawPartCopy(tileNum, screenX, line, windowSourceTileLine, tileAttrib);
@@ -6109,7 +6114,7 @@ GameBoyCore.prototype.drawSpritesForLine = function (line) {
 				if (spriteX >= 160 || spriteY < minSpriteY || offset < 0) {
 					continue;
 				}
-				this.spriteCount += 2.5;
+				this.spriteCount += 1.5;
 				if (this.gfxSpriteDouble) {
 					tileNum = tileNum & 0xFE;
 				}
