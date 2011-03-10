@@ -12,7 +12,7 @@ var settings = [						//Some settings.
 	29,									//Maximum Frame Skip
 	false,								//Override to allow for MBC1 instead of ROM only (compatibility for broken 3rd-party cartridges).
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
-	true,								//Try WebGL rendering?
+	false,								//Try WebGL rendering?
 	10,									//Frameskip base factor
 	null,								//TODO: Update the indices to remove this.
 	70000,								//Sample Rate
