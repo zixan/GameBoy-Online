@@ -74,6 +74,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.MBCRam = [];							//Switchable RAM (Used by games for more RAM) for the main memory range 0xA000 - 0xC000.
 	this.VRAM = [];								//Extra VRAM bank for GBC.
 	this.currVRAMBank = 0;						//Current VRAM bank for GBC.
+	this.tileBankOffset = 0;
 	this.GBCMemory = [];						//GBC main RAM Banks
 	this.MBC1Mode = false;						//MBC1 Type (4/32, 16/8)
 	this.MBCRAMBanksEnabled = false;			//MBC RAM Access Control.
@@ -3951,6 +3952,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.fromTypedArray(this.MBCRam),
 		this.fromTypedArray(this.VRAM),
 		this.currVRAMBank,
+		this.tileBankOffset,
 		this.fromTypedArray(this.GBCMemory),
 		this.MBC1Mode,
 		this.MBCRAMBanksEnabled,
@@ -4112,6 +4114,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.MBCRam = this.toTypedArray(state[index++], 1);
 	this.VRAM = this.toTypedArray(state[index++], 1);
 	this.currVRAMBank = state[index++];
+	this.tileBankOffset = state[index++];
 	this.GBCMemory = this.toTypedArray(state[index++], 1);
 	this.MBC1Mode = state[index++];
 	this.MBCRAMBanksEnabled = state[index++];
@@ -6863,7 +6866,7 @@ GameBoyCore.prototype.memoryWriteECHONormal = function (parentObj, address, data
 GameBoyCore.prototype.VRAMWrite = function (parentObj, address, data) {
 	if (parentObj.modeSTAT < 3) {	//VRAM cannot be written to during mode 3
 		if (address < 0x9800) {		// Bkg Tile data area
-			var tileIndex = ((address - 0x8000) >> 4) + (384 * parentObj.currVRAMBank);
+			var tileIndex = ((address - 0x8000) >> 4) + parentObj.tileBankOffset;
 			if (parentObj.tileReadState[tileIndex] == 1) {
 				var r = parentObj.tileData.length - parentObj.tileCount + tileIndex;
 				do {
@@ -7410,6 +7413,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 		this.memoryWriter[0xFF4F] = function (parentObj, address, data) {
 			parentObj.currVRAMBank = data & 0x01;
+			parentObj.tileBankOffset = 384 * parentObj.currVRAMBank;
 			//Only writable by GBC.
 		}
 		this.memoryWriter[0xFF51] = function (parentObj, address, data) {
