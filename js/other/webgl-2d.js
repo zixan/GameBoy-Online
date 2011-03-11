@@ -42,17 +42,22 @@
  *
  */
 
-(function(undefined) {
+(function(Math, undefined) {
 
   // Vector & Matrix libraries from CubicVR.js
   var M_PI = 3.1415926535897932384626433832795028841968;
   var M_TWO_PI = 2.0 * M_PI;
   var M_HALF_PI = M_PI / 2.0;
 
+  function isPOT(value) {
+    return value > 0 && ((value - 1) & value) === 0;
+  }
+
   var vec3 = {
     length: function(pt) {
       return Math.sqrt(pt[0] * pt[0] + pt[1] * pt[1] + pt[2] * pt[2]);
     },
+
     normalize: function(pt) {
       var d = Math.sqrt((pt[0] * pt[0]) + (pt[1] * pt[1]) + (pt[2] * pt[2]));
       if (d === 0) {
@@ -60,24 +65,31 @@
       }
       return [pt[0] / d, pt[1] / d, pt[2] / d];
     },
+
     dot: function(v1, v2) {
       return v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2];
     },
+
     angle: function(v1, v2) {
       return Math.acos((v1[0] * v2[0] + v1[1] * v2[1] + v1[2] * v2[2]) / (Math.sqrt(v1[0] * v1[0] + v1[1] * v1[1] + v1[2] * v1[2]) * Math.sqrt(v2[0] * v2[0] + v2[1] * v2[1] + v2[2] * v2[2])));
     },
+
     cross: function(vectA, vectB) {
       return [vectA[1] * vectB[2] - vectB[1] * vectA[2], vectA[2] * vectB[0] - vectB[2] * vectA[0], vectA[0] * vectB[1] - vectB[0] * vectA[1]];
     },
+
     multiply: function(vectA, constB) {
       return [vectA[0] * constB, vectA[1] * constB, vectA[2] * constB];
     },
+
     add: function(vectA, vectB) {
       return [vectA[0] + vectB[0], vectA[1] + vectB[1], vectA[2] + vectB[2]];
     },
+
     subtract: function(vectA, vectB) {
       return [vectA[0] - vectB[0], vectA[1] - vectB[1], vectA[2] - vectB[2]];
     },
+
     equal: function(a, b) {
       var epsilon = 0.0000001;
       if ((a === undefined) && (b === undefined)) {
@@ -89,10 +101,12 @@
       return (Math.abs(a[0] - b[0]) < epsilon && Math.abs(a[1] - b[1]) < epsilon && Math.abs(a[2] - b[2]) < epsilon);
     }
   }; 
-    var mat3 = {
+
+  var mat3 = {
     identity: [1.0, 0.0, 0.0,
                0.0, 1.0, 0.0,
                0.0, 0.0, 1.0],
+
     multiply: function (m1, m2) {
       var mOut = [];
       mOut[0] = m2[0] * m1[0] + m2[3] * m1[1] + m2[6] * m1[2];
@@ -106,12 +120,14 @@
       mOut[8] = m2[2] * m1[6] + m2[5] * m1[7] + m2[8] * m1[8];
       return mOut;
     },
+
     vec2_multiply: function (m1, m2) {
       var mOut = [];
       mOut[0] = m2[0] * m1[0] + m2[3] * m1[1] + m2[6];
       mOut[1] = m2[1] * m1[0] + m2[4] * m1[1] + m2[7];
       return mOut;
     },
+
     transpose: function (m) {
       return [m[0], m[3], m[6], m[1], m[4], m[7], m[2], m[5], m[8]];
     }
@@ -235,7 +251,7 @@
     this.shaderProgram  = undefined;
     this.transform      = new Transform();
     this.shaderPool     = [];
-    this.tex_max_size   = undefined;
+    this.maxTextureSize = undefined;
     
     // Save a reference to the WebGL2D instance on the canvas object
     canvas.gl2d         = this;
@@ -246,7 +262,7 @@
     // Override getContext function with "webgl-2d" enabled version
     canvas.getContext = (function(gl2d) { 
       return function(context) {
-        if (gl2d.options.force || context === "webgl-2d") {
+        if ((gl2d.options.force || context === "webgl-2d") && !(canvas.width === 0 || canvas.height === 0)) {
           if (gl2d.gl) { return gl2d.gl; }
 
           var gl = gl2d.gl = gl2d.canvas.$getContext("experimental-webgl");
@@ -272,7 +288,7 @@
           gl.enable(gl.BLEND);
           gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
 
-          gl2d.tex_max_size = gl.getParameter(gl.MAX_TEXTURE_SIZE);
+          gl2d.maxTextureSize = gl.getParameter(gl.MAX_TEXTURE_SIZE);
 
           return gl;
         } else {
@@ -485,9 +501,10 @@
         vec4 = [((colorInt & 0xFF0000) >> 16) / 255, ((colorInt & 0x00FF00) >> 8) / 255, (colorInt & 0x0000FF) / 255, 1.0];
       } else if ((match = reHex3Color.exec(value))) {
         var hexString = [match[1], match[1], match[2], match[2], match[3], match[3]].join("");
-        var colorInt = parseInt(hexString, 16);
-        vec4 = [((colorInt & 0xFF0000) >> 16) / 255, ((colorInt & 0x00FF00) >> 8) / 255, (colorInt & 0x0000FF) / 255, 1.0];
+        vec4 = colorStringToVec4(hexString);
       } else {
+        // Color keywords not yet implemented, ie "orange", return black
+        vec4 = [0, 0, 0, 1];
       }
 
       return vec4;
@@ -505,7 +522,9 @@
     }
 
     function restoreDrawState() {
-      drawState = drawStateStack.pop();
+      if (drawStateStack.length) {
+        drawState = drawStateStack.pop();
+      }
     }
 
     // WebGL requires colors as a vector while Canvas2D sets colors as an rgba string
@@ -856,25 +875,34 @@
 
       // we may wish to consider tiling large images like this instead of scaling and
       // adjust appropriately (flip to next texture source and tile offset) when drawing
-      if (image.width>gl2d.tex_max_size || image.height>gl2d.tex_max_size) {
+      if (image.width > gl2d.maxTextureSize || image.height > gl2d.maxTextureSize) {
         var canvas = document.createElement("canvas");
-        canvas.width = (image.width>gl2d.tex_max_size)?gl2d.tex_max_size:image.width;
-        canvas.height = (image.height>gl2d.tex_max_size)?gl2d.tex_max_size:image.height;
+
+        canvas.width  = (image.width  > gl2d.maxTextureSize) ? gl2d.maxTextureSize : image.width;
+        canvas.height = (image.height > gl2d.maxTextureSize) ? gl2d.maxTextureSize : image.height;
+
         var ctx = canvas.getContext("2d");
-        ctx.drawImage(image,
-                      0, 0, image.width, image.height,
-                      0, 0, canvas.width, canvas.height);
+
+        ctx.drawImage(image, 0, 0, image.width, image.height, 0, 0, canvas.width, canvas.height);
+
         image = canvas;
       }
 
       gl.bindTexture(gl.TEXTURE_2D, this.obj);
       gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, image);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
-      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
-      //gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); // requires POT texture
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
       gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
-      //gl.generateMipmap(gl.TEXTURE_2D); // requires POT texture
+      gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.LINEAR);
+
+      // Enable Mip mapping on power-of-2 textures 
+      if (isPOT(image.width) && isPOT(image.height)) {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR_MIPMAP_LINEAR); 
+        gl.generateMipmap(gl.TEXTURE_2D);
+      } else {
+        gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.LINEAR);
+      }
+
+      // Unbind texture
       gl.bindTexture(gl.TEXTURE_2D, null);
     }
 
@@ -935,4 +963,4 @@
     };
   };
 
-}());
+}(Math));

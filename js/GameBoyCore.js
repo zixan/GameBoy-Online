@@ -6121,7 +6121,7 @@ GameBoyCore.prototype.drawSpritesForLine = function (line) {
 				var spriteAttrib = (attributes & 0x7F) >> 5; // flipx: from bit 0x20 to 0x01, flipy: from bit 0x40 to 0x02
 				if (this.cGBC) {
 					spriteAttrib += 0x20 + ((attributes & 0x07) << 2); // palette
-					tileNum += (384 >> 3) * (attributes & 0x08); // tile vram bank
+					tileNum += 0x30 * (attributes & 0x08); // tile vram bank
 				}
 				else {
 					// attributes 0x10: 0x00 = OBJ1 palette, 0x10 = OBJ2 palette
@@ -6259,16 +6259,19 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 		else if (index >= 0xFF00) {
 			switch (index) {
 				case 0xFF00:
+					//JOYPAD:
 					this.memoryReader[0xFF00] = function (parentObj, address) {
 						return 0xC0 | parentObj.memory[0xFF00];	//Top nibble returns as set.
 					}
 					break;
 				case 0xFF01:
+					//SC
 					this.memoryReader[0xFF01] = function (parentObj, address) {
 						return ((parentObj.memory[0xFF02] & 0x1) == 0x1) ? 0xFF : parentObj.memory[0xFF01];
 					}
 					break;
 				case 0xFF02:
+					//SB
 					if (this.cGBC) {
 						this.memoryReader[0xFF02] = function (parentObj, address) {
 							return 0x7C | parentObj.memory[0xFF02];
@@ -6281,6 +6284,7 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 					}
 					break;
 				case 0xFF04:
+					//DIV
 					this.memoryReader[0xFF04] = function (parentObj, address) {
 						parentObj.memory[0xFF04] = (parentObj.memory[0xFF04] + (parentObj.DIVTicks >> 6)) & 0xFF;
 						parentObj.DIVTicks &= 0x3F;
@@ -6294,6 +6298,7 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 					}
 					break;
 				case 0xFF0F:
+					//IF
 					this.memoryReader[0xFF0F] = function (parentObj, address) {
 						return 0xE0 | parentObj.memory[0xFF0F];
 					}
@@ -6432,6 +6437,17 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 					}
 					else {
 						this.memoryReader[index] = this.memoryReadBAD;
+					}
+					break;
+				case 0xFF70:
+					if (this.cGBC) {
+						//SVBK
+						this.memoryReader[0xFF70] = function (parentObj, address, data) {
+							return 0x40 | parentObj.memory[0xFF70];
+						}
+					}
+					else {
+						this.memoryReader[0xFF70] = this.memoryReadBAD;
 					}
 					break;
 				case 0xFF75:
@@ -6867,9 +6883,15 @@ GameBoyCore.prototype.VRAMWrite = function (parentObj, address, data) {
 }
 GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	//I/O Registers (GB + GBC):
+	//JoyPad
 	this.memoryWriter[0xFF00] = function (parentObj, address, data) {
 		parentObj.memory[0xFF00] = (data & 0x30) | ((((data & 0x20) == 0) ? (parentObj.JoyPad >> 4) : 0xF) & (((data & 0x10) == 0) ? (parentObj.JoyPad & 0xF) : 0xF));
 	}
+	//SB (Serial Transfer Data)
+	this.memoryWriter[0xFF01] = function (parentObj, address, data) {
+		parentObj.memory[0xFF01] = data;
+	}
+	//SC (Serial Transfer Control Register)
 	this.memoryWriter[0xFF02] = function (parentObj, address, data) {
 		if (((data & 0x1) == 0x1)) {
 			//Internal clock:
@@ -6882,14 +6904,28 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			//No connected serial device, so don't trigger interrupt...
 		}
 	}
+	//DIV
 	this.memoryWriter[0xFF04] = function (parentObj, address, data) {
 		parentObj.DIVTicks &= 0x3F;	//Update DIV for realignment.
 		parentObj.memory[0xFF04] = 0;
 	}
+	//TIMA
+	this.memoryWriter[0xFF05] = function (parentObj, address, data) {
+		parentObj.memory[0xFF05] = data;
+	}
+	//TMA
+	this.memoryWriter[0xFF06] = function (parentObj, address, data) {
+		parentObj.memory[0xFF06] = data;
+	}
+	//TAC
 	this.memoryWriter[0xFF07] = function (parentObj, address, data) {
 		parentObj.memory[0xFF07] = data & 0x07;
 		parentObj.TIMAEnabled = (data & 0x04) == 0x04;
 		parentObj.TACClocker = Math.pow(4, ((data & 0x3) != 0) ? (data & 0x3) : 4);	//TODO: Find a way to not make a conditional in here...
+	}
+	//IF (Interrupt Request)
+	this.memoryWriter[0xFF0F] = function (parentObj, address, data) {
+		parentObj.memory[0xFF0F] = data;
 	}
 	this.memoryWriter[0xFF10] = function (parentObj, address, data) {
 		parentObj.audioJIT();
@@ -6982,6 +7018,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryWriter[0xFF1A] = function (parentObj, address, data) {
 		parentObj.audioJIT();
+		if (!parentObj.channel3canPlay && data >= 0x80) {
+			parentObj.channel3Tracker = 0;
+		}
 		parentObj.channel3canPlay = (data >= 0x80);
 		if (parentObj.channel3canPlay && (parentObj.memory[0xFF1A] & 0x80) == 0x80) {
 			parentObj.channel3totalLength = parentObj.channel3lastTotalLength;
@@ -7011,6 +7050,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		parentObj.audioJIT();
 		if ((data & 0x80) == 0x80) {
 			parentObj.channel3totalLength = parentObj.channel3lastTotalLength;
+			parentObj.channel3Tracker = 0;
 			if ((data & 0x40) == 0x40) {
 				parentObj.memory[0xFF26] |= 0x4;
 			}
@@ -7317,6 +7357,10 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryWriter[0xFF76] = this.cartIgnoreWrite;
 	this.memoryWriter[0xFF77] = this.cartIgnoreWrite;
+	//IE (Interrupt Enable)
+	this.memoryWriter[0xFFFF] = function (parentObj, address, data) {
+		parentObj.memory[0xFFFF] = data;
+	}
 	if (this.cGBC) {
 		//GameBoy Color Specific I/O:
 		this.memoryWriter[0xFF40] = function (parentObj, address, data) {
@@ -7360,8 +7404,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
 			}
 		}
+		//KEY1
 		this.memoryWriter[0xFF4D] = function (parentObj, address, data) {
-			parentObj.memory[0xFF4D] = (data & 0x7F) + (parentObj.memory[0xFF4D] & 0x80);
+			parentObj.memory[0xFF4D] = (data & 0x7F) | (parentObj.memory[0xFF4D] & 0x80);
 		}
 		this.memoryWriter[0xFF4F] = function (parentObj, address, data) {
 			parentObj.currVRAMBank = data & 0x01;
@@ -7451,6 +7496,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				parentObj.memory[0xFF6B] = data;
 			}
 		}
+		//SVBK
 		this.memoryWriter[0xFF70] = function (parentObj, address, data) {
 			var addressCheck = (parentObj.memory[0xFF51] << 8) | parentObj.memory[0xFF52];	//Cannot change the RAM bank while WRAM is the source of a running HDMA.
 			if (!parentObj.hdmaRunning || addressCheck < 0xD000 || addressCheck >= 0xE000) {
@@ -7458,7 +7504,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				parentObj.gbcRamBankPosition = ((parentObj.gbcRamBank - 1) << 12) - 0xD000;
 				parentObj.gbcRamBankPositionECHO = parentObj.gbcRamBankPosition - 0x2000;
 			}
-			parentObj.memory[0xFF70] = (data | 0x40);	//Bit 6 cannot be written to.
+			parentObj.memory[0xFF70] = data;	//Bit 6 cannot be written to.
 		}
 		this.memoryWriter[0xFF74] = function (parentObj, address, data) {
 			parentObj.memory[0xFF74] = data;
