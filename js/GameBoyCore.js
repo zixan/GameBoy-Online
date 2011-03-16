@@ -6058,10 +6058,9 @@ GameBoyCore.prototype.WindowGBLayerRender = function () {
 			var tileYDown = (scrollYAdjusted & 0xF8) << 2;					//The row of cached tiles we're fetching from.
 			var scrollXAdjusted = this.windowX;								//The scroll amount of the BG.
 			var pixelPosition = (this.actualScanLine * 160) + scrollXAdjusted;
-			var pixelPositionEnd = (this.actualScanLine + 1) * 160;
 			var chrCode = 0;
 			var tile = null;
-			for (var tileNumber = tileYDown; pixelPosition < pixelPositionEnd; tileNumber += 0.125) {
+			for (var tileNumber = tileYDown; scrollXAdjusted < 160; tileNumber += 0.125) {
 					chrCode = this.BGCHRBank1Pointer[this.gfxWindowCHRBankPosition | tileNumber];
 					if (chrCode < this.gfxBackgroundBankOffset) {
 						chrCode |= 0x100;
@@ -6080,7 +6079,6 @@ GameBoyCore.prototype.WindowGBCLayerRender = function () {
 			var tileYDown = (scrollYAdjusted & 0xF8) << 2;						//The row of cached tiles we're fetching from.
 			var scrollXAdjusted = this.windowX;									//The scroll amount of the BG.
 			var pixelPosition = (this.actualScanLine * 160) + scrollXAdjusted;	//Current pixel we're working on.
-			var pixelPositionEnd = (this.actualScanLine + 1) * 160;				//Make sure we do at most 160 pixels a scanline.
 			var chrCode = 0;
 			var tile = null;
 			for (var tileNumber = tileYDown; scrollXAdjusted < 160; tileNumber += 0.125) {
