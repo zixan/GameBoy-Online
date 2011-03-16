@@ -6061,13 +6061,13 @@ GameBoyCore.prototype.WindowGBLayerRender = function () {
 			var pixelPositionEnd = (this.actualScanLine + 1) * 160;
 			var chrCode = 0;
 			var tile = null;
-			for (var tileNumber = tileYDown; pixelPosition < pixelPositionEnd && scrollXAdjusted < 160; tileNumber += 0.125) {
+			for (var tileNumber = tileYDown; pixelPosition < pixelPositionEnd; tileNumber += 0.125) {
 					chrCode = this.BGCHRBank1Pointer[this.gfxWindowCHRBankPosition | tileNumber];
 					if (chrCode < this.gfxBackgroundBankOffset) {
 						chrCode |= 0x100;
 					}
 					tile = (this.tileCache[chrCode][8]) ? this.tileCache[chrCode] : this.generateGBTile(chrCode);
-					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[tileYLine][scrollXAdjusted++ & 7]];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[tileYLine][(scrollXAdjusted++ - this.windowX) & 7]];
 			}
 		}
 	}
@@ -6091,7 +6091,7 @@ GameBoyCore.prototype.WindowGBCLayerRender = function () {
 				chr2Code = this.BGCHRBank2Pointer[this.gfxWindowCHRBankPosition | tileNumber];
 				chrCode |= ((chr2Code & 0x08) << 6) | ((chr2Code & 0x60) << 5);
 				tile = (this.tileCache[chrCode][8]) ? this.tileCache[chrCode] : this.generateGBCTile(chr2Code, chrCode);
-				this.frameBuffer[pixelPosition++] = (((chr2Code & 0x80) << 17) & this.BGPriorityEnabled) | this.BGPalette[((chr2Code & 0x7) << 2) | tile[tileYLine][scrollXAdjusted++ & 7]];
+				this.frameBuffer[pixelPosition++] = (((chr2Code & 0x80) << 17) & this.BGPriorityEnabled) | this.BGPalette[((chr2Code & 0x7) << 2) | tile[tileYLine][(scrollXAdjusted++ - this.windowX) & 7]];
 			}
 		}
 	}
@@ -7543,7 +7543,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			data = 0;
 		}
 		else if (data > 159) {
-			data = 159;
+			data = 160;
 		}
 		parentObj.windowX = data;
 	}
