@@ -6120,7 +6120,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 		var length = 0;
 		if (!this.gfxSpriteDouble) {
 			for (var onXCoord = 1; onXCoord < 168; onXCoord++) {
-				length = this.OAMAddresses[onXCoord].length;
+				length = Math.min(this.OAMAddresses[onXCoord].length, 10);
 				this.spriteCount += length * 1.5;
 				for (spriteCount = 0; spriteCount < length; spriteCount++) {
 					OAMAddress = this.OAMAddresses[onXCoord][spriteCount];
@@ -6152,7 +6152,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 		}
 		else {
 			for (var onXCoord = 1; onXCoord < 168; onXCoord++) {
-				length = this.OAMAddresses[onXCoord].length;
+				length = Math.min(this.OAMAddresses[onXCoord].length, 10);
 				this.spriteCount += length * 1.5;
 				for (spriteCount = 0; spriteCount < length; spriteCount++) {
 					OAMAddress = this.OAMAddresses[onXCoord][spriteCount];
