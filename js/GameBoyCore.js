@@ -4670,7 +4670,7 @@ GameBoyCore.prototype.disableBootROM = function () {
 		this.getGBCColor();
 		this.VRAM = this.GBCMemory = null;	//Deleting these causes Google's V8 engine and Safari's JSC to deoptimize heavily.
 		this.tileCache = this.generateCacheArray(0x700);
-		for (index = 0; index < 168; index++) {
+		for (index = 0; index < 0x100; index++) {
 			this.OAMAddresses[index] = [];
 		}
 	}
@@ -4729,7 +4729,7 @@ GameBoyCore.prototype.setupRAM = function () {
 	}
 	else {
 		this.tileCache = this.generateCacheArray(0x700);
-		for (index = 0; index < 168; index++) {
+		for (index = 0; index < 0x100; index++) {
 			this.OAMAddresses[index] = [];
 		}
 	}
