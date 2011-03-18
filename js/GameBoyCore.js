@@ -6125,7 +6125,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					OAMAddress = this.OAMAddresses[onXCoord][spriteCount];
 					yoffset = lineAdjusted - this.memory[OAMAddress];
 					if (yoffset > -1 && yoffset < 8) {
-						if (onXCoord > 0 && onCoord < 168) {
+						if (onXCoord > 0 && onXCoord < 168) {
 							xcoord = xCounter = this.memory[OAMAddress | 1] - 8;
 							xCounter = Math.max(xCounter, 0);
 							attrCode = this.memory[OAMAddress | 3] & 0xF0;
@@ -6159,7 +6159,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					OAMAddress = this.OAMAddresses[onXCoord][spriteCount];
 					yoffset = lineAdjusted - this.memory[OAMAddress];
 					if (yoffset > -1 && yoffset < 0x10) {
-						if (onXCoord > 0 && onCoord < 168) {
+						if (onXCoord > 0 && onXCoord < 168) {
 							xcoord = xCounter = this.memory[OAMAddress | 1] - 8;
 							xCounter = Math.max(xCounter, 0);
 							attrCode = this.memory[OAMAddress | 3] & 0xF0;
