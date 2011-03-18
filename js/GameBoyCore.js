@@ -6145,8 +6145,8 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 								}
 							}
 						}
+						this.spriteCount += 1.5;
 					}
-					this.spriteCount += 1.5;
 				}
 			}
 		}
@@ -6184,8 +6184,8 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 								}
 							}
 						}
+						this.spriteCount += 1.5;
 					}
-					this.spriteCount += 1.5;
 				}
 			}
 		}
