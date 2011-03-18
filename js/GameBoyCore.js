@@ -6120,9 +6120,8 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 		var length = 0;
 		if (!this.gfxSpriteDouble) {
 			for (var onXCoord = 1; onXCoord < 168; onXCoord++) {
-				length = Math.min(this.OAMAddresses[onXCoord].length, 10);
-				this.spriteCount += length * 1.5;
-				for (spriteCount = 0; spriteCount < length; spriteCount++) {
+				length = this.OAMAddresses[onXCoord].length;
+				for (spriteCount = 0; spriteCount < length && this.spriteCount < 78; spriteCount++) {
 					OAMAddress = this.OAMAddresses[onXCoord][spriteCount];
 					yoffset = lineAdjusted - this.memory[OAMAddress];
 					if (yoffset > -1 && yoffset < 8) {
@@ -6147,14 +6146,14 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							}
 						}
 					}
+					this.spriteCount += 1.5;
 				}
 			}
 		}
 		else {
 			for (var onXCoord = 1; onXCoord < 168; onXCoord++) {
-				length = Math.min(this.OAMAddresses[onXCoord].length, 10);
-				this.spriteCount += length * 1.5;
-				for (spriteCount = 0; spriteCount < length; spriteCount++) {
+				length = this.OAMAddresses[onXCoord].length;
+				for (spriteCount = 0; spriteCount < length && this.spriteCount < 78; spriteCount++) {
 					OAMAddress = this.OAMAddresses[onXCoord][spriteCount];
 					yoffset = lineAdjusted - this.memory[OAMAddress];
 					if (yoffset > -1 && yoffset < 0x10) {
@@ -6186,6 +6185,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							}
 						}
 					}
+					this.spriteCount += 1.5;
 				}
 			}
 		}
@@ -6992,9 +6992,9 @@ GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) 
 	if (parentObj.modeSTAT < 2) {		//OAM RAM cannot be written to in mode 2 & 3
 		var oldData = parentObj.memory[address];
 		if (oldData != data) {
+			var currentAddress = address & 0xFEFC;
 			if (oldData > 0 && oldData < 168) {
 				var length = parentObj.OAMAddresses[oldData].length;
-				var currentAddress = address & 0xFEFC;
 				for (var index = 0; index < length; index++) {
 					if (parentObj.OAMAddresses[oldData][index] == currentAddress) {
 						parentObj.OAMAddresses[oldData] = (parentObj.OAMAddresses[oldData].slice(0, index)).concat(parentObj.OAMAddresses[oldData].slice(index + 1, length));
