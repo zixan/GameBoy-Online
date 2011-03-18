@@ -6992,25 +6992,29 @@ GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) 
 	if (parentObj.modeSTAT < 2) {		//OAM RAM cannot be written to in mode 2 & 3
 		var oldData = parentObj.memory[address];
 		if (oldData != data) {
-			var length = parentObj.OAMAddresses[oldData].length;
-			var currentAddress = address & 0xFEFC;
-			for (var index = 0; index < length; index++) {
-				if (parentObj.OAMAddresses[oldData][index] == currentAddress) {
-					parentObj.OAMAddresses[oldData] = (parentObj.OAMAddresses[oldData].slice(0, index)).concat(parentObj.OAMAddresses[oldData].slice(index + 1, length));
-					break;
+			if (oldData > 0 && oldData < 168) {
+				var length = parentObj.OAMAddresses[oldData].length;
+				var currentAddress = address & 0xFEFC;
+				for (var index = 0; index < length; index++) {
+					if (parentObj.OAMAddresses[oldData][index] == currentAddress) {
+						parentObj.OAMAddresses[oldData] = (parentObj.OAMAddresses[oldData].slice(0, index)).concat(parentObj.OAMAddresses[oldData].slice(index + 1, length));
+						break;
+					}
 				}
 			}
 			parentObj.memory[address] = data;
-			var length = parentObj.OAMAddresses[data].length;
-			for (var index = 0; index < length; index++) {
-				if (parentObj.OAMAddresses[data][index] > currentAddress) {
-					var newArray = parentObj.OAMAddresses[data].slice(0, index);
-					newArray.push(currentAddress);
-					parentObj.OAMAddresses[data] = newArray.concat(parentObj.OAMAddresses[data].slice(index, length));
-					return;
+			if (data > 0 && data < 168) {
+				var length = parentObj.OAMAddresses[data].length;
+				for (var index = 0; index < length; index++) {
+					if (parentObj.OAMAddresses[data][index] > currentAddress) {
+						var newArray = parentObj.OAMAddresses[data].slice(0, index);
+						newArray.push(currentAddress);
+						parentObj.OAMAddresses[data] = newArray.concat(parentObj.OAMAddresses[data].slice(index, length));
+						return;
+					}
 				}
+				parentObj.OAMAddresses[data].push(currentAddress);
 			}
-			parentObj.OAMAddresses[data].push(currentAddress);
 		}
 	}
 }
