@@ -190,12 +190,12 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.windowY = 0;
 	this.windowX = 0;
 	this.drewBlank = 0;					//To prevent the repeating of drawing a blank screen.
-	//Sprite Bounds Cache:
-	this.spriteLineStart = this.ArrayPad(144, this.ArrayPad(160, []));
 	//BG Tile Pointer Caches:
 	this.BGCHRBank1Pointer = this.getTypedArray(0x800, 0, "uint8");
 	this.BGCHRBank2Pointer = this.getTypedArray(0x800, 0, "uint8");
 	this.BGCHRCurrentBank = this.BGCHRBank1Pointer;
+	//DMG X-Coord to OAM address lookup cache:
+	this.OAMAddresses = this.ArrayPad(168, null);
 	//Tile Data Cache
 	this.tileCache = this.generateCacheArray(0xF80);
 	this.colors = new Array(0xEFFFDE, 0xADD794, 0x529273, 0x183442);	//"Classic" GameBoy palette colors.
@@ -211,7 +211,6 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.gbOBJColorizedPalette = this.getTypedArray(8, 0, "uint32");
 	this.cachedBGPaletteConversion = this.getTypedArray(4, 0, "uint32");
 	this.cachedOBJPaletteConversion = this.getTypedArray(8, 0, "uint32");
-	this.OAMAddresses = this.ArrayPad(168, null);
 	this.BGLayerRender = null;
 	this.WindowLayerRender = null;
 	this.SpriteLayerRender = null;
@@ -4092,7 +4091,8 @@ GameBoyCore.prototype.saveState = function () {
 		this.gbcRamBankPositionECHO,
 		this.numRAMBanks,
 		this.windowY,
-		this.windowX
+		this.windowX,
+		this.OAMAddresses
 	];
 }
 GameBoyCore.prototype.returnFromState = function (returnedFrom) {
@@ -4252,12 +4252,10 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.gbcRamBankPositionECHO = state[index++];
 	this.numRAMBanks = state[index++];
 	this.windowY = state[index++];
-	this.windowX = state[index];
+	this.windowX = state[index++];
+	this.OAMAddresses = state[index];
 	this.fromSaveState = true;
 	this.checkPaletteType();
-	for (index = 0; index < 168; index++) {
-		this.OAMAddresses[index] = [];
-	}
 	this.convertAuxilliary();
 	this.initializeLCDController();
 	this.memoryReadJumpCompile();
@@ -4318,7 +4316,6 @@ GameBoyCore.prototype.initMemory = function () {
 	this.gbOBJColorizedPalette = this.getTypedArray(8, 0, "uint32");
 	this.cachedBGPaletteConversion = this.getTypedArray(4, 0, "uint32");
 	this.cachedOBJPaletteConversion = this.getTypedArray(8, 0, "uint32");
-	this.spriteLineStart = this.ArrayPad(144, this.ArrayPad(160, []));
 	this.BGCHRBank1Pointer = this.getTypedArray(0x800, 0, "uint8");
 	this.BGCHRBank2Pointer = this.getTypedArray(0x800, 0, "uint8");
 	this.BGCHRCurrentBank = this.BGCHRBank1Pointer;
