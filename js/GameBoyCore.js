@@ -6193,6 +6193,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 				}
 			}
 		}
+		this.spriteCount = 63;	//DKL 1/2/3 Must have no extra clocking (Hmm?)
 	}
 }
 GameBoyCore.prototype.SpriteGBCLayerRender = function () {
