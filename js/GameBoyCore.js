@@ -6994,7 +6994,6 @@ GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) 
 		if (oldData != data) {
 			var length = parentObj.OAMAddresses[oldData].length;
 			var currentAddress = address & 0xFEFC;
-			parentObj.OAMAddresses[data].push(currentAddress);
 			for (var index = 0; index < length; index++) {
 				if (parentObj.OAMAddresses[oldData][index] == currentAddress) {
 					parentObj.OAMAddresses[oldData] = (parentObj.OAMAddresses[oldData].slice(0, index)).concat(parentObj.OAMAddresses[oldData].slice(index + 1, length));
@@ -7002,6 +7001,16 @@ GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) 
 				}
 			}
 			parentObj.memory[address] = data;
+			var length = parentObj.OAMAddresses[data].length;
+			for (var index = 0; index < length; index++) {
+				if (parentObj.OAMAddresses[data][index] > currentAddress) {
+					var newArray = parentObj.OAMAddresses[data].slice(0, index);
+					newArray.push(currentAddress);
+					parentObj.OAMAddresses[data] = newArray.concat(parentObj.OAMAddresses[data].slice(index, length));
+					return;
+				}
+			}
+			parentObj.OAMAddresses[data].push(currentAddress);
 		}
 	}
 }
