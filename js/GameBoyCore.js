@@ -6091,6 +6091,8 @@ GameBoyCore.prototype.WindowGBCLayerRender = function () {
 			var chrCode = 0;
 			var tile = null;
 			var texel = 0;
+			var pixelFlag = 0;
+			var palette = 0;
 			for (var tileNumber = tileYDown; scrollXAdjusted < 160; tileNumber++) {
 				chrCode = this.BGCHRBank1Pointer[this.gfxWindowCHRBankPosition | tileNumber];
 				if (chrCode < this.gfxBackgroundBankOffset) {
@@ -6099,8 +6101,10 @@ GameBoyCore.prototype.WindowGBCLayerRender = function () {
 				chr2Code = this.BGCHRBank2Pointer[this.gfxWindowCHRBankPosition | tileNumber];
 				chrCode |= ((chr2Code & 0x08) << 6) | ((chr2Code & 0x60) << 5);
 				tile = ((this.tileCache[chrCode][8]) ? this.tileCache[chrCode] : this.generateGBCTile(chr2Code, chrCode))[tileYLine];
+				pixelFlag = ((chr2Code & 0x80) << 17) & this.BGPriorityEnabled;
+				palette = (chr2Code & 0x7) << 2;
 				for (texel = 0; texel < 8 && scrollXAdjusted < 160; texel++, scrollXAdjusted++) {
-					this.frameBuffer[pixelPosition++] = (((chr2Code & 0x80) << 17) & this.BGPriorityEnabled) | this.BGPalette[((chr2Code & 0x7) << 2) | tile[texel]];
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[texel]];
 				}
 			}
 		}
