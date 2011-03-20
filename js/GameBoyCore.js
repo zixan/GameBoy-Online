@@ -7647,13 +7647,17 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	//SCY
 	this.memoryWriter[0xFF42] = function (parentObj, address, data) {
-		parentObj.notifyMidScanline();
-		parentObj.memory[0xFF42] = data;
+		if (parentObj.memory[0xFF42] != data) {
+			parentObj.notifyMidScanline();
+			parentObj.memory[0xFF42] = data;
+		}
 	}
 	//SCX
 	this.memoryWriter[0xFF43] = function (parentObj, address, data) {
-		parentObj.notifyMidScanline();
-		parentObj.memory[0xFF43] = data;
+		if (parentObj.memory[0xFF43] != data) {
+			parentObj.notifyMidScanline();
+			parentObj.memory[0xFF43] = data;
+		}
 	}
 	//LY
 	this.memoryWriter[0xFF44] = function (parentObj, address, data) {
@@ -7672,22 +7676,26 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	//WY
 	this.memoryWriter[0xFF4A] = function (parentObj, address, data) {
-		parentObj.notifyMidScanline();
-		parentObj.memory[0xFF4A] = data;
-		parentObj.windowY = (data > 159) ? 159 : data;
+		if (parentObj.memory[0xFF4A] != data) {
+			parentObj.notifyMidScanline();
+			parentObj.memory[0xFF4A] = data;
+			parentObj.windowY = (data > 159) ? 159 : data;
+		}
 	}
 	//WX
 	this.memoryWriter[0xFF4B] = function (parentObj, address, data) {
-		parentObj.notifyMidScanline();
-		parentObj.memory[0xFF4B] = data;
-		data -= 7;
-		if (data < 0) {
-			data = 0;
+		if (parentObj.memory[0xFF4B] != data) {
+			parentObj.notifyMidScanline();
+			parentObj.memory[0xFF4B] = data;
+			data -= 7;
+			if (data < 0) {
+				data = 0;
+			}
+			else if (data > 159) {
+				data = 160;
+			}
+			parentObj.windowX = data;
 		}
-		else if (data > 159) {
-			data = 160;
-		}
-		parentObj.windowX = data;
 	}
 	this.memoryWriter[0xFF72] = function (parentObj, address, data) {
 		parentObj.memory[0xFF72] = data;
@@ -7919,22 +7927,22 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			}
 		}
 		this.memoryWriter[0xFF47] = function (parentObj, address, data) {
-			parentObj.notifyMidScanline();
 			if (parentObj.memory[0xFF47] != data) {
+				parentObj.notifyMidScanline();
 				parentObj.setGBBGPalette(data);
 				parentObj.memory[0xFF47] = data;
 			}
 		}
 		this.memoryWriter[0xFF48] = function (parentObj, address, data) {
-			parentObj.notifyMidScanline();
 			if (parentObj.memory[0xFF48] != data) {
+				parentObj.notifyMidScanline();
 				parentObj.setGBOBJPalette(0, data);
 				parentObj.memory[0xFF48] = data;
 			}
 		}
 		this.memoryWriter[0xFF49] = function (parentObj, address, data) {
-			parentObj.notifyMidScanline();
 			if (parentObj.memory[0xFF49] != data) {
+				parentObj.notifyMidScanline();
 				parentObj.setGBOBJPalette(4, data);
 				parentObj.memory[0xFF49] = data;
 			}
