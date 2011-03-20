@@ -4775,13 +4775,15 @@ GameBoyCore.prototype.initLCD = function () {
 			cout("Falling back to the getImageData initialization (Error \"" + error.message + "\").", 1);
 			this.canvasBuffer = this.drawContext.getImageData(0, 0, this.width, this.height);
 		}
-		var index = this.pixelCount;
+		var index = 23040;
 		var index2 = this.rgbCount;
 		while (index > 0) {
-			this.frameBuffer[--index] = 0x00F8F8F8;
-			this.canvasBuffer.data[index2 -= 4] = 0xFF;
-			this.canvasBuffer.data[index2 + 1] = 0xFF;
-			this.canvasBuffer.data[index2 + 2] = 0xFF;
+			this.frameBuffer[--index] = 0xF8F8F8;
+		}
+		while (index2 > 0) {
+			this.canvasBuffer.data[index2 -= 4] = 0xF8;
+			this.canvasBuffer.data[index2 + 1] = 0xF8;
+			this.canvasBuffer.data[index2 + 2] = 0xF8;
 			this.canvasBuffer.data[index2 + 3] = 0xFF;
 		}
 		this.drawContext.putImageData(this.canvasBuffer, 0, 0);		//Throws any browser that won't support this later on.
@@ -4799,9 +4801,9 @@ GameBoyCore.prototype.initLCD = function () {
 		this.canvasBuffer = new Object();
 		var index = 23040;
 		while (index > 0) {
-			this.frameBuffer[--index] = 0x00FFFFFF;
+			this.frameBuffer[--index] = 0xF8F8F8;
 		}
-		this.canvasBuffer.data = this.ArrayPad(92160, 0xFF);
+		this.canvasBuffer.data = this.ArrayPad(92160, 0xF8);
 		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 		//Make visible only after the images have been initialized.
 		this.canvasAlt.style.visibility = "visible";
@@ -5803,9 +5805,16 @@ GameBoyCore.prototype.initializeLCDController = function () {
 GameBoyCore.prototype.DisplayShowOff = function () {
 	if (this.drewBlank == 0) {
 		//Draw a blank screen:
-		var index = this.rgbCount;
+		var index = 23040;
+		var index2 = this.rgbCount;
 		while (index > 0) {
-			this.canvasBuffer.data[--index] = 0xFF;
+			this.frameBuffer[--index] = 0xF8F8F8;
+		}
+		while (index2 > 0) {
+			this.canvasBuffer.data[index2 -= 4] = 0xF8;
+			this.canvasBuffer.data[index2 + 1] = 0xF8;
+			this.canvasBuffer.data[index2 + 2] = 0xF8;
+			this.canvasBuffer.data[index2 + 3] = 0xFF;
 		}
 		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 		this.drewBlank = 2;
