@@ -5927,7 +5927,7 @@ GameBoyCore.prototype.notifyScanline = function () {
 }
 GameBoyCore.prototype.notifyMidScanline = function () {
 	if (this.modeSTAT == 3) {
-		var pixelEnd = Math.round(160 * Math.min((this.LCDTicks - 20) / 43, 1));
+		var pixelEnd = (160 * Math.min((this.LCDTicks - 20) / 43, 1)) | 0;
 		if (this.bgEnabled) {
 			this.BGLayerRender(pixelEnd);
 			this.WindowLayerRender(pixelEnd);
