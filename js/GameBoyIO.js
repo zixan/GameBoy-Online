@@ -81,13 +81,14 @@ function save() {
 			}
 			setValue(gameboy.name + "_" + state_suffix, gameboy.saveState());
 			if (findValue("state_names") == null) {
-				setValue("state_names", [gameboy.name + "_"+ state_suffix]);
+				setValue("state_names", [gameboy.name + "_" + state_suffix]);
 			}
 			else {
 				var list_of_states = findValue("state_names");
 				list_of_states[list_of_states.length] = (gameboy.name + "_" + state_suffix);
 				setValue("state_names", list_of_states);
 			}
+			cout("Saved the current state as: " + gameboy.name + "_" + state_suffix, 0);
 			document.getElementById("open_saved_clicker").style.display = "block";
 			addSaveStateItem(gameboy.name + "_" + state_suffix);
 		}

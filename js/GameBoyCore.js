@@ -4006,16 +4006,9 @@ GameBoyCore.prototype.saveState = function () {
 		this.cHuC3,
 		this.cHuC1,
 		this.drewBlank,
-		this.tileData.slice(0),
 		this.fromTypedArray(this.frameBuffer),
-		this.gbPalette,
-		this.gbcRawPalette,
-		this.gbcPalette,
-		this.cachedPaletteConversion,
 		this.bgEnabled,
 		this.BGPriorityEnabled,
-		this.fromTypedArray(this.tileReadState),
-		this.windowSourceLine,
 		this.channel1adjustedFrequencyPrep,
 		this.channel1lastSampleLookup,
 		this.channel1adjustedDuty,
@@ -4053,7 +4046,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.channel3patternType,
 		this.channel3frequency,
 		this.channel3consecutive,
-		this.channel3PCM,
+		this.fromTypedArray(this.channel3PCM),
 		this.channel3adjustedFrequencyPrep,
 		this.channel4adjustedFrequencyPrep,
 		this.channel4lastSampleLookup,
@@ -4086,7 +4079,6 @@ GameBoyCore.prototype.saveState = function () {
 		this.RTCDays,
 		this.RTCDayOverFlow,
 		this.RTCHALT,
-		this.gbColorizedPalette,
 		this.usedBootROM,
 		this.skipPCIncrement,
 		this.STATTracker,
@@ -4094,13 +4086,25 @@ GameBoyCore.prototype.saveState = function () {
 		this.numRAMBanks,
 		this.windowY,
 		this.windowX,
-		this.OAMAddresses
+		this.returnOAMXCacheCopy(this.OAMAddresses),
+		this.fromTypedArray(this.gbcOBJRawPalette),
+		this.fromTypedArray(this.gbcBGRawPalette),
+		this.fromTypedArray(this.gbOBJPalette),
+		this.fromTypedArray(this.gbBGPalette),
+		this.fromTypedArray(this.gbcOBJPalette),
+		this.fromTypedArray(this.gbcBGPalette),
+		this.fromTypedArray(this.gbBGColorizedPalette),
+		this.fromTypedArray(this.gbOBJColorizedPalette),
+		this.fromTypedArray(this.cachedBGPaletteConversion),
+		this.fromTypedArray(this.cachedOBJPaletteConversion),
+		this.fromTypedArray(this.BGCHRBank1Pointer),
+		this.fromTypedArray(this.BGCHRBank2Pointer)
 	];
 }
 GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	var index = 0;
 	var state = returnedFrom.slice(0);
-	this.ROM = this.toTypedArray(state[index++], 1);
+	this.ROM = this.toTypedArray(state[index++], "uint8");
 	this.inBootstrap = state[index++];
 	this.registerA = state[index++];
 	this.FZero = state[index++];
@@ -4119,11 +4123,11 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.hdmaRunning = state[index++];
 	this.CPUTicks = state[index++];
 	this.multiplier = state[index++];
-	this.memory = this.toTypedArray(state[index++], 1);
-	this.MBCRam = this.toTypedArray(state[index++], 1);
-	this.VRAM = this.toTypedArray(state[index++], 1);
+	this.memory = this.toTypedArray(state[index++], "uint8");
+	this.MBCRam = this.toTypedArray(state[index++], "uint8");
+	this.VRAM = this.toTypedArray(state[index++], "uint8");
 	this.currVRAMBank = state[index++];
-	this.GBCMemory = this.toTypedArray(state[index++], 1);
+	this.GBCMemory = this.toTypedArray(state[index++], "uint8");
 	this.MBC1Mode = state[index++];
 	this.MBCRAMBanksEnabled = state[index++];
 	this.currMBCRAMBank = state[index++];
@@ -4167,16 +4171,9 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.cHuC3 = state[index++];
 	this.cHuC1 = state[index++];
 	this.drewBlank = state[index++];
-	this.tileData = state[index++];
-	this.frameBuffer = this.toTypedArray(state[index++], 2);
-	this.gbPalette = state[index++];
-	this.gbcRawPalette = state[index++];
-	this.gbcPalette = state[index++];
-	this.cachedPaletteConversion = state[index++];
+	this.frameBuffer = this.toTypedArray(state[index++], "int32");
 	this.bgEnabled = state[index++];
 	this.BGPriorityEnabled = state[index++];
-	this.tileReadState = this.toTypedArray(state[index++], 1);
-	this.windowSourceLine = state[index++];
 	this.channel1adjustedFrequencyPrep = state[index++];
 	this.channel1lastSampleLookup = state[index++];
 	this.channel1adjustedDuty = state[index++];
@@ -4214,7 +4211,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel3patternType = state[index++];
 	this.channel3frequency = state[index++];
 	this.channel3consecutive = state[index++];
-	this.channel3PCM = state[index++];
+	this.channel3PCM = this.toTypedArray(state[index++], "float32");
 	this.channel3adjustedFrequencyPrep = state[index++];
 	this.channel4adjustedFrequencyPrep = state[index++];
 	this.channel4lastSampleLookup = state[index++];
@@ -4247,7 +4244,6 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.RTCDays = state[index++];
 	this.RTCDayOverFlow = state[index++];
 	this.RTCHALT = state[index++];
-	this.gbColorizedPalette = state[index++];
 	this.usedBootROM = state[index++];
 	this.skipPCIncrement = state[index++];
 	this.STATTracker = state[index++];
@@ -4255,11 +4251,23 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.numRAMBanks = state[index++];
 	this.windowY = state[index++];
 	this.windowX = state[index++];
-	this.OAMAddresses = state[index];
+	this.OAMAddresses = this.returnOAMXCacheCopy(state[index++]);
+	this.gbcOBJRawPalette = this.toTypedArray(state[index++], "uint8");
+	this.gbcBGRawPalette = this.toTypedArray(state[index++], "uint8");
+	this.gbOBJPalette = this.toTypedArray(state[index++], "int32");
+	this.gbBGPalette = this.toTypedArray(state[index++], "int32");
+	this.gbcOBJPalette = this.toTypedArray(state[index++], "int32");
+	this.gbcBGPalette = this.toTypedArray(state[index++], "int32");
+	this.gbBGColorizedPalette = this.toTypedArray(state[index++], "int32");
+	this.gbOBJColorizedPalette = this.toTypedArray(state[index++], "int32");
+	this.cachedBGPaletteConversion = this.toTypedArray(state[index++], "int32");
+	this.cachedOBJPaletteConversion = this.toTypedArray(state[index++], "int32");
+	this.BGCHRBank1Pointer = this.toTypedArray(state[index++], "uint8");
+	this.BGCHRBank2Pointer = this.toTypedArray(state[index++], "uint8");
 	this.fromSaveState = true;
-	this.checkPaletteType();
-	this.convertAuxilliary();
 	this.initializeLCDController();
+	this.convertAuxilliary();
+	this.consoleModeAdjust();
 	this.memoryReadJumpCompile();
 	this.memoryWriteJumpCompile();
 	this.initLCD();
@@ -4644,7 +4652,7 @@ GameBoyCore.prototype.ROMLoad = function () {
 		this.setupRAM();	//CPU/(V)RAM initialization.
 		this.initBootstrap();
 	}
-	this.checkPaletteType();
+	this.consoleModeAdjust();
 	//License Code Lookup:
 	var cOldLicense = this.ROM[0x14B];
 	var cNewLicense = (this.ROM[0x144] & 0xFF00) | (this.ROM[0x145] & 0xFF);
@@ -4664,21 +4672,15 @@ GameBoyCore.prototype.disableBootROM = function () {
 			this.memory[index] = this.ROM[index];	//Replace the GameBoy Color boot ROM with the game ROM.
 		}
 	}
-	this.checkPaletteType();
+	this.consoleModeAdjust();
 	if (!this.cGBC) {
 		//Clean up the post-boot (GB mode only) state:
 		cout("Stepping down from GBC mode.", 0);
 		this.getGBCColor();
-		this.VRAM = this.GBCMemory = null;	//Deleting these causes Google's V8 engine and Safari's JSC to deoptimize heavily.
-		this.tileCache = this.generateCacheArray(0x700);
-		this.tileCacheValid = this.getTypedArray(0x700, 0, "int8");
+		this.BGCHRBank2Pointer = this.VRAM = this.GBCMemory = null;	//Deleting these causes Google's V8 engine and Safari's JSC to deoptimize heavily.
 		for (index = 0; index < 0x100; index++) {
 			this.OAMAddresses[index] = [];
 		}
-	}
-	else {
-		this.tileCache = this.generateCacheArray(0xF80);
-		this.tileCacheValid = this.getTypedArray(0xF80, 0, "int8");
 	}
 	this.memoryReadJumpCompile();
 	this.memoryWriteJumpCompile();
@@ -4717,7 +4719,7 @@ GameBoyCore.prototype.setupRAM = function () {
 		var MBCRam = (typeof this.openMBC == "function") ? this.openMBC(this.name) : [];
 		if (MBCRam.length > 0) {
 			//Flash the SRAM into memory:
-			this.MBCRam = this.toTypedArray(MBCRam, 1);
+			this.MBCRam = this.toTypedArray(MBCRam, "uint8");
 		}
 		else {
 			this.MBCRam = this.getTypedArray(this.numRAMBanks * 0x2000, 0, "uint8");
@@ -5804,7 +5806,6 @@ GameBoyCore.prototype.initializeLCDController = function () {
 		}
 		line++;
 	}
-	this.LCDCONTROL = (this.LCDisOn) ? this.LINECONTROL : this.DISPLAYOFFCONTROL;
 }
 GameBoyCore.prototype.DisplayShowOff = function () {
 	if (this.drewBlank == 0) {
@@ -5958,13 +5959,17 @@ GameBoyCore.prototype.notifyMidScanline = function () {
 		this.currentX = pixelEnd;
 	}
 }
-GameBoyCore.prototype.checkPaletteType = function () {
+GameBoyCore.prototype.consoleModeAdjust = function () {
 	//Reference the correct palette ahead of time...
 	this.BGPalette = (this.cGBC) ? this.gbcBGPalette : ((this.usedBootROM && settings[17]) ? this.gbBGColorizedPalette : this.gbBGPalette);
 	this.OBJPalette = (this.cGBC) ? this.gbcOBJPalette : ((this.usedBootROM && settings[17]) ? this.gbOBJColorizedPalette : this.gbOBJPalette);
 	this.BGLayerRender = (this.cGBC) ? this.BGGBCLayerRender : this.BGGBLayerRender;
 	this.WindowLayerRender = (this.cGBC) ? this.WindowGBCLayerRender : this.WindowGBLayerRender;
 	this.SpriteLayerRender = (this.cGBC) ? this.SpriteGBCLayerRender : this.SpriteGBLayerRender;
+	this.tileCache = this.generateCacheArray((this.cGBC) ? 0xF80 : 0x700);
+	this.tileCacheValid = this.getTypedArray((this.cGBC) ? 0xF80 : 0x700, 0, "int8");
+	this.BGCHRCurrentBank = (this.currVRAMBank > 0 && this.cGBC) ? this.BGCHRBank2Pointer : this.BGCHRBank1Pointer;
+	this.LCDCONTROL = (this.LCDisOn) ? this.LINECONTROL : this.DISPLAYOFFCONTROL;
 }
 GameBoyCore.prototype.getGBCColor = function () {
 	//GBC Colorization of DMG ROMs:
@@ -8025,13 +8030,22 @@ GameBoyCore.prototype.usbtsb = function (ubyte) {
 }
 GameBoyCore.prototype.toTypedArray = function (baseArray, memtype) {
 	try {
+		if (!baseArray || !baseArray.length) {
+			return [];
+		}
 		var length = baseArray.length;
 		switch (memtype) {
-			case 1:
+			case "uint8":
 				var typedArrayTemp = new Uint8Array(length);
 				break;
-			case 2:
+			case "uint16":
+				var typedArrayTemp = new Uint16Array(length);
+				break;
+			case "int32":
 				var typedArrayTemp = new Int32Array(length);
+				break;
+			case "float32":
+				var typedArrayTemp = new Float32Array(length);
 				break;
 			default:
 				cout("Could not convert an array to a typed array: Invalid type parameter.", 1);
@@ -8049,6 +8063,9 @@ GameBoyCore.prototype.toTypedArray = function (baseArray, memtype) {
 }
 GameBoyCore.prototype.fromTypedArray = function (baseArray) {
 	try {
+		if (!baseArray || !baseArray.length) {
+			return [];
+		}
 		var arrayTemp = new Array(baseArray.length);
 		for (var index = 0; index < baseArray.length; index++) {
 			arrayTemp[index] = baseArray[index];
@@ -8056,6 +8073,7 @@ GameBoyCore.prototype.fromTypedArray = function (baseArray) {
 		return arrayTemp;
 	}
 	catch (error) {
+		cout("Conversion from a typed array failed: " + error.message, 2);
 		return baseArray;
 	}
 }
@@ -8116,6 +8134,25 @@ GameBoyCore.prototype.ArrayPad = function (length, defaultValue) {
 	var index = 0;
 	while (index < length) {
 		arrayHandle[index++] = defaultValue;
+	}
+	return arrayHandle;
+}
+GameBoyCore.prototype.returnOAMXCacheCopy = function (array) {
+	var arrayHandle = this.ArrayPad(0x100, null);
+	for (var subindex = 0; subindex < 0x100; subindex++) {
+		arrayHandle[subindex] = [];
+	}
+	if (array.length) {
+		var index = 0;
+		var length = 0;
+		while (index < length) {
+			length = array[index].length;
+			for (subindex = 0; subindex < length; subindex++) {
+				arrayHandle[index][subindex] = array[index][subindex];
+			}
+			index++;
+		}
+		cout("OAM sprite cached preserved.", 0);
 	}
 	return arrayHandle;
 }
