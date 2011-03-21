@@ -6366,27 +6366,33 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 		}
 	}
 }
+//Generate a tile for the tile cache for DMG's BG+WINDOW:
 GameBoyCore.prototype.generateGBTile = function (tile) {
-	var address = tile << 4;
+	//Set lookup address to the beginning of the target tile:
+	var address = 0x8000 | (tile << 4);
+	//Get a reference to the tile:
 	var tileBlock = this.tileCache[tile];
-	//Data only from bank 0:
-	for (var index = 0; index < 8; index++) {
-		this.tileDataCopier[index] = (this.memory[0x8001 | address | (index << 1)] << 8) | this.memory[0x8000 | address | (index << 1)];
+	//Data only from bank 0 with no flipping:
+	for (var lineIndex = 0, lineCopy = 0; lineIndex < 8; lineIndex++, address += 2) {
+		//Copy the two bytes that make up a tile's line:
+		lineCopy = (this.memory[0x1 | address] << 8) | this.memory[address];
+		//Each pixel is composed of two bits: MSB is in the second byte, while the LSB is in the first byte.
+		//Normal copy (no flip) for a line is in the RTL (right-to-left) format:
+		tileBlock[lineIndex][7] = ((lineCopy & 0x100) >> 7) | (lineCopy & 0x1);
+		tileBlock[lineIndex][6] = ((lineCopy & 0x200) >> 8) | ((lineCopy & 0x2) >> 1);
+		tileBlock[lineIndex][5] = ((lineCopy & 0x400) >> 9) | ((lineCopy & 0x4) >> 2);
+		tileBlock[lineIndex][4] = ((lineCopy & 0x800) >> 10) | ((lineCopy & 0x8) >> 3);
+		tileBlock[lineIndex][3] = ((lineCopy & 0x1000) >> 11) | ((lineCopy & 0x10) >> 4);
+		tileBlock[lineIndex][2] = ((lineCopy & 0x2000) >> 12) | ((lineCopy & 0x20) >> 5);
+		tileBlock[lineIndex][1] = ((lineCopy & 0x4000) >> 13) | ((lineCopy & 0x40) >> 6);
+		tileBlock[lineIndex][0] = ((lineCopy & 0x8000) >> 14) | ((lineCopy & 0x80) >> 7);
 	}
-	//No tile flipping:
-	for (var lineIndex = 0; lineIndex < 8; lineIndex++) {
-		tileBlock[lineIndex][7] = ((this.tileDataCopier[lineIndex] & 0x100) >> 7) | (this.tileDataCopier[lineIndex] & 0x1);
-		tileBlock[lineIndex][6] = ((this.tileDataCopier[lineIndex] & 0x200) >> 8) | ((this.tileDataCopier[lineIndex] & 0x2) >> 1);
-		tileBlock[lineIndex][5] = ((this.tileDataCopier[lineIndex] & 0x400) >> 9) | ((this.tileDataCopier[lineIndex] & 0x4) >> 2);
-		tileBlock[lineIndex][4] = ((this.tileDataCopier[lineIndex] & 0x800) >> 10) | ((this.tileDataCopier[lineIndex] & 0x8) >> 3);
-		tileBlock[lineIndex][3] = ((this.tileDataCopier[lineIndex] & 0x1000) >> 11) | ((this.tileDataCopier[lineIndex] & 0x10) >> 4);
-		tileBlock[lineIndex][2] = ((this.tileDataCopier[lineIndex] & 0x2000) >> 12) | ((this.tileDataCopier[lineIndex] & 0x20) >> 5);
-		tileBlock[lineIndex][1] = ((this.tileDataCopier[lineIndex] & 0x4000) >> 13) | ((this.tileDataCopier[lineIndex] & 0x40) >> 6);
-		tileBlock[lineIndex][0] = ((this.tileDataCopier[lineIndex] & 0x8000) >> 14) | ((this.tileDataCopier[lineIndex] & 0x80) >> 7);
-	}
+	//Set flag for the tile in the cache to valid:
 	this.tileCacheValid[tile] = 1;
+	//Return the obtained tile to the rendering path:
 	return tileBlock;
 }
+//Generate a tile for the tile cache for DMG's sprites and all CGB graphics planes:
 GameBoyCore.prototype.generateGBCTile = function (map, tile) {
 	var address = (tile & 0x1FF) << 4;
 	var tileBlock = this.tileCache[tile];
