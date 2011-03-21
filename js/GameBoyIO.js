@@ -29,21 +29,18 @@ var settings = [						//Some settings.
 ];
 function start(canvas, canvasAlt, ROM) {
 	clearLastEmulation();
+	autoSave();	//If we are about to load a new game, then save the last one...
 	gameboy = new GameBoyCore(canvas, canvasAlt, ROM);
 	gameboy.openMBC = openSRAM;
 	gameboy.openRTC = openRTC;
 	gameboy.start();
 	run();
 }
-function continueCPU() {
-	gameboy.run();
-}
 function run() {
 	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 2) {
-		autoSave();	//If we are about to load a new game, then save the last one...
 		gameboy.stopEmulator &= 1;
 		cout("Starting the iterator.", 0);
-		gbRunInterval = setInterval(continueCPU, settings[20]);
+		gbRunInterval = setInterval(function () { gameboy.run(); }, settings[20]);
 	}
 	else if ((gameboy.stopEmulator & 2) == 0) {
 		cout("The GameBoy core is already running.", 1);
