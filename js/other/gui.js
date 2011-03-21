@@ -287,8 +287,7 @@ function registerGUIEvents() {
 	addEvent("mouseup", document.getElementById("gfx"), onResizeOutput);
 	addEvent("resize", window, onResizeOutput);
 	addEvent("unload", window, function () {
-		saveSRAM();
-		saveRTC();
+		autoSave();
 	});
 }
 function onResizeOutput() {

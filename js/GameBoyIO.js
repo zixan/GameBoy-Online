@@ -40,6 +40,7 @@ function continueCPU() {
 }
 function run() {
 	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 2) {
+		autoSave();	//If we are about to load a new game, then save the last one...
 		gameboy.stopEmulator &= 1;
 		cout("Starting the iterator.", 0);
 		gbRunInterval = setInterval(continueCPU, settings[20]);
@@ -140,6 +141,13 @@ function saveRTC() {	//Execute this when SRAM is being saved as well.
 	}
 	else {
 		cout("GameBoy core cannot be saved while it has not been initialized.", 1);
+	}
+}
+function autoSave() {
+	if (typeof gameboy == "object" && gameboy != null) {
+		cout("Automatically saving the SRAM.", 0);
+		saveSRAM();
+		saveRTC();
 	}
 }
 function openSRAM(filename) {
