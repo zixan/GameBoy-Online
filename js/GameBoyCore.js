@@ -6368,66 +6368,79 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 }
 GameBoyCore.prototype.generateGBTile = function (tile) {
 	var address = tile << 4;
+	var tileBlock = this.tileCache[tile];
+	//Data only from bank 0:
 	for (var index = 0; index < 8; index++) {
 		this.tileDataCopier[index] = (this.memory[0x8001 | address | (index << 1)] << 8) | this.memory[0x8000 | address | (index << 1)];
 	}
-	this.tileCacheValid[tile] = 1;
+	//No tile flipping:
 	for (var lineIndex = 0; lineIndex < 8; lineIndex++) {
-		this.tileCache[tile][lineIndex][7] = ((this.tileDataCopier[lineIndex] & 0x100) >> 7) | (this.tileDataCopier[lineIndex] & 0x1);
-		this.tileCache[tile][lineIndex][6] = ((this.tileDataCopier[lineIndex] & 0x200) >> 8) | ((this.tileDataCopier[lineIndex] & 0x2) >> 1);
-		this.tileCache[tile][lineIndex][5] = ((this.tileDataCopier[lineIndex] & 0x400) >> 9) | ((this.tileDataCopier[lineIndex] & 0x4) >> 2);
-		this.tileCache[tile][lineIndex][4] = ((this.tileDataCopier[lineIndex] & 0x800) >> 10) | ((this.tileDataCopier[lineIndex] & 0x8) >> 3);
-		this.tileCache[tile][lineIndex][3] = ((this.tileDataCopier[lineIndex] & 0x1000) >> 11) | ((this.tileDataCopier[lineIndex] & 0x10) >> 4);
-		this.tileCache[tile][lineIndex][2] = ((this.tileDataCopier[lineIndex] & 0x2000) >> 12) | ((this.tileDataCopier[lineIndex] & 0x20) >> 5);
-		this.tileCache[tile][lineIndex][1] = ((this.tileDataCopier[lineIndex] & 0x4000) >> 13) | ((this.tileDataCopier[lineIndex] & 0x40) >> 6);
-		this.tileCache[tile][lineIndex][0] = ((this.tileDataCopier[lineIndex] & 0x8000) >> 14) | ((this.tileDataCopier[lineIndex] & 0x80) >> 7);
+		tileBlock[lineIndex][7] = ((this.tileDataCopier[lineIndex] & 0x100) >> 7) | (this.tileDataCopier[lineIndex] & 0x1);
+		tileBlock[lineIndex][6] = ((this.tileDataCopier[lineIndex] & 0x200) >> 8) | ((this.tileDataCopier[lineIndex] & 0x2) >> 1);
+		tileBlock[lineIndex][5] = ((this.tileDataCopier[lineIndex] & 0x400) >> 9) | ((this.tileDataCopier[lineIndex] & 0x4) >> 2);
+		tileBlock[lineIndex][4] = ((this.tileDataCopier[lineIndex] & 0x800) >> 10) | ((this.tileDataCopier[lineIndex] & 0x8) >> 3);
+		tileBlock[lineIndex][3] = ((this.tileDataCopier[lineIndex] & 0x1000) >> 11) | ((this.tileDataCopier[lineIndex] & 0x10) >> 4);
+		tileBlock[lineIndex][2] = ((this.tileDataCopier[lineIndex] & 0x2000) >> 12) | ((this.tileDataCopier[lineIndex] & 0x20) >> 5);
+		tileBlock[lineIndex][1] = ((this.tileDataCopier[lineIndex] & 0x4000) >> 13) | ((this.tileDataCopier[lineIndex] & 0x40) >> 6);
+		tileBlock[lineIndex][0] = ((this.tileDataCopier[lineIndex] & 0x8000) >> 14) | ((this.tileDataCopier[lineIndex] & 0x80) >> 7);
 	}
-	return this.tileCache[tile];
+	this.tileCacheValid[tile] = 1;
+	return tileBlock;
 }
 GameBoyCore.prototype.generateGBCTile = function (map, tile) {
 	var address = (tile & 0x1FF) << 4;
+	var tileBlock = this.tileCache[tile];
 	if ((map & 8) == 0) {
+		//Copy data from bank 0:
 		address |= 0x8000;
 		for (var index = 0; index < 8; index++) {
 			this.tileDataCopier[index] = (this.memory[address | (index << 1) | 1] << 8) | this.memory[address | (index << 1)];
 		}
 	}
 	else {
+		//Copy Data from bank 1:
 		for (var index = 0; index < 8; index++) {
 			this.tileDataCopier[index] = (this.VRAM[address | (index << 1) | 1] << 8) | this.VRAM[address | (index << 1)];
 		}
 	}
 	if ((map & 0x40) == 0x40) {
+		//Normal Y:
 		var y = 7;
 		var yINC = -1;
 	}
 	else {
+		//Flipped Y:
 		var y = 0;
 		var yINC = 1;
 	}
 	if ((map & 0x20) == 0) {
-		var x = 7;
-		var xINC = -1;
-		var restore = 7;
+		//Normal X:
+		for (var lineIndex = 0; lineIndex < 8; lineIndex++, y += yINC) {
+			tileBlock[y][7] = ((this.tileDataCopier[lineIndex] & 0x100) >> 7) | (this.tileDataCopier[lineIndex] & 0x1);
+			tileBlock[y][6] = ((this.tileDataCopier[lineIndex] & 0x200) >> 8) | ((this.tileDataCopier[lineIndex] & 0x2) >> 1);
+			tileBlock[y][5] = ((this.tileDataCopier[lineIndex] & 0x400) >> 9) | ((this.tileDataCopier[lineIndex] & 0x4) >> 2);
+			tileBlock[y][4] = ((this.tileDataCopier[lineIndex] & 0x800) >> 10) | ((this.tileDataCopier[lineIndex] & 0x8) >> 3);
+			tileBlock[y][3] = ((this.tileDataCopier[lineIndex] & 0x1000) >> 11) | ((this.tileDataCopier[lineIndex] & 0x10) >> 4);
+			tileBlock[y][2] = ((this.tileDataCopier[lineIndex] & 0x2000) >> 12) | ((this.tileDataCopier[lineIndex] & 0x20) >> 5);
+			tileBlock[y][1] = ((this.tileDataCopier[lineIndex] & 0x4000) >> 13) | ((this.tileDataCopier[lineIndex] & 0x40) >> 6);
+			tileBlock[y][0] = ((this.tileDataCopier[lineIndex] & 0x8000) >> 14) | ((this.tileDataCopier[lineIndex] & 0x80) >> 7);
+		}
 	}
 	else {
-		var x = 0;
-		var xINC = 1;
-		var restore = 0;
+		//Flipped X:
+		for (var lineIndex = 0; lineIndex < 8; lineIndex++, y += yINC) {
+			tileBlock[y][0] = ((this.tileDataCopier[lineIndex] & 0x100) >> 7) | (this.tileDataCopier[lineIndex] & 0x1);
+			tileBlock[y][1] = ((this.tileDataCopier[lineIndex] & 0x200) >> 8) | ((this.tileDataCopier[lineIndex] & 0x2) >> 1);
+			tileBlock[y][2] = ((this.tileDataCopier[lineIndex] & 0x400) >> 9) | ((this.tileDataCopier[lineIndex] & 0x4) >> 2);
+			tileBlock[y][3] = ((this.tileDataCopier[lineIndex] & 0x800) >> 10) | ((this.tileDataCopier[lineIndex] & 0x8) >> 3);
+			tileBlock[y][4] = ((this.tileDataCopier[lineIndex] & 0x1000) >> 11) | ((this.tileDataCopier[lineIndex] & 0x10) >> 4);
+			tileBlock[y][5] = ((this.tileDataCopier[lineIndex] & 0x2000) >> 12) | ((this.tileDataCopier[lineIndex] & 0x20) >> 5);
+			tileBlock[y][6] = ((this.tileDataCopier[lineIndex] & 0x4000) >> 13) | ((this.tileDataCopier[lineIndex] & 0x40) >> 6);
+			tileBlock[y][7] = ((this.tileDataCopier[lineIndex] & 0x8000) >> 14) | ((this.tileDataCopier[lineIndex] & 0x80) >> 7);
+		}
 	}
 	this.tileCacheValid[tile] = 1;
-	for (var lineIndex = 0; lineIndex < 8; lineIndex++) {
-		this.tileCache[tile][y][x = restore] = ((this.tileDataCopier[lineIndex] & 0x100) >> 7) | (this.tileDataCopier[lineIndex] & 0x1);
-		this.tileCache[tile][y][x += xINC] = ((this.tileDataCopier[lineIndex] & 0x200) >> 8) | ((this.tileDataCopier[lineIndex] & 0x2) >> 1);
-		this.tileCache[tile][y][x += xINC] = ((this.tileDataCopier[lineIndex] & 0x400) >> 9) | ((this.tileDataCopier[lineIndex] & 0x4) >> 2);
-		this.tileCache[tile][y][x += xINC] = ((this.tileDataCopier[lineIndex] & 0x800) >> 10) | ((this.tileDataCopier[lineIndex] & 0x8) >> 3);
-		this.tileCache[tile][y][x += xINC] = ((this.tileDataCopier[lineIndex] & 0x1000) >> 11) | ((this.tileDataCopier[lineIndex] & 0x10) >> 4);
-		this.tileCache[tile][y][x += xINC] = ((this.tileDataCopier[lineIndex] & 0x2000) >> 12) | ((this.tileDataCopier[lineIndex] & 0x20) >> 5);
-		this.tileCache[tile][y][x += xINC] = ((this.tileDataCopier[lineIndex] & 0x4000) >> 13) | ((this.tileDataCopier[lineIndex] & 0x40) >> 6);
-		this.tileCache[tile][y][x += xINC] = ((this.tileDataCopier[lineIndex] & 0x8000) >> 14) | ((this.tileDataCopier[lineIndex] & 0x80) >> 7);
-		y += yINC;
-	}
-	return this.tileCache[tile];
+	return tileBlock;
 }
 //Memory Reading:
 GameBoyCore.prototype.memoryRead = function (address) {
