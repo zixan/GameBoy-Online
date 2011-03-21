@@ -198,25 +198,27 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.OAMAddresses = this.ArrayPad(0x100, null);
 	//Tile Data Cache
 	this.tileCache = this.generateCacheArray(0xF80);
+	this.tileCacheValid = this.getTypedArray(0xF80, 0, "int8");
 	this.colors = new Array(0xEFFFDE, 0xADD794, 0x529273, 0x183442);	//"Classic" GameBoy palette colors.
 	this.OBJPalette = null;
 	this.BGPalette = null;
-	this.gbcOBJRawPalette = this.getTypedArray(0x40, 0, "uint32");
-	this.gbcBGRawPalette = this.getTypedArray(0x40, 0, "uint32");
-	this.gbOBJPalette = this.getTypedArray(8, 0, "uint32");
-	this.gbBGPalette = this.getTypedArray(4, 0, "uint32");
-	this.gbcOBJPalette = this.getTypedArray(0x20, 0, "uint32");
-	this.gbcBGPalette = this.getTypedArray(0x20, 0, "uint32");
-	this.gbBGColorizedPalette = this.getTypedArray(4, 0, "uint32");
-	this.gbOBJColorizedPalette = this.getTypedArray(8, 0, "uint32");
-	this.cachedBGPaletteConversion = this.getTypedArray(4, 0, "uint32");
-	this.cachedOBJPaletteConversion = this.getTypedArray(8, 0, "uint32");
+	this.gbcOBJRawPalette = this.getTypedArray(0x40, 0, "uint8");
+	this.gbcBGRawPalette = this.getTypedArray(0x40, 0, "uint8");
+	this.gbOBJPalette = this.getTypedArray(8, 0, "int32");
+	this.gbBGPalette = this.getTypedArray(4, 0, "int32");
+	this.gbcOBJPalette = this.getTypedArray(0x20, 0, "int32");
+	this.gbcBGPalette = this.getTypedArray(0x20, 0, "int32");
+	this.gbBGColorizedPalette = this.getTypedArray(4, 0, "int32");
+	this.gbOBJColorizedPalette = this.getTypedArray(8, 0, "int32");
+	this.cachedBGPaletteConversion = this.getTypedArray(4, 0, "int32");
+	this.cachedOBJPaletteConversion = this.getTypedArray(8, 0, "int32");
 	this.BGLayerRender = null;
 	this.WindowLayerRender = null;
 	this.SpriteLayerRender = null;
 	this.frameBuffer = [];
 	this.scaledFrameBuffer = [];
 	this.canvasBuffer = null;
+	this.pixelStart = 0;				//Temp variable for holding the current working framebuffer offset.
 	this.tileDataCopier = this.getTypedArray(8, 0, "uint16");
 	this.tileDoubleDataCopier = this.getTypedArray(0x10, 0, "uint16");
 	this.frameCount = settings[12];		//Frame skip tracker
@@ -4305,17 +4307,17 @@ GameBoyCore.prototype.convertAuxilliary = function () {
 GameBoyCore.prototype.initMemory = function () {
 	//Initialize the RAM:
 	this.memory = this.getTypedArray(0x10000, 0, "uint8");
-	this.frameBuffer = this.getTypedArray(23040, 0xF8F8F8, "uint32");
-	this.gbcOBJRawPalette = this.getTypedArray(0x40, 0, "uint32");
-	this.gbcBGRawPalette = this.getTypedArray(0x40, 0, "uint32");
-	this.gbOBJPalette = this.getTypedArray(8, 0, "uint32");
-	this.gbBGPalette = this.getTypedArray(4, 0, "uint32");
-	this.gbcOBJPalette = this.getTypedArray(0x20, 0, "uint32");
-	this.gbcBGPalette = this.getTypedArray(0x20, 0, "uint32");
-	this.gbBGColorizedPalette = this.getTypedArray(4, 0, "uint32");
-	this.gbOBJColorizedPalette = this.getTypedArray(8, 0, "uint32");
-	this.cachedBGPaletteConversion = this.getTypedArray(4, 0, "uint32");
-	this.cachedOBJPaletteConversion = this.getTypedArray(8, 0, "uint32");
+	this.frameBuffer = this.getTypedArray(23040, 0xF8F8F8, "int32");
+	this.gbcOBJRawPalette = this.getTypedArray(0x40, 0, "uint8");
+	this.gbcBGRawPalette = this.getTypedArray(0x40, 0, "uint8");
+	this.gbOBJPalette = this.getTypedArray(8, 0, "int32");
+	this.gbBGPalette = this.getTypedArray(4, 0, "int32");
+	this.gbcOBJPalette = this.getTypedArray(0x20, 0, "int32");
+	this.gbcBGPalette = this.getTypedArray(0x20, 0, "int32");
+	this.gbBGColorizedPalette = this.getTypedArray(4, 0, "int32");
+	this.gbOBJColorizedPalette = this.getTypedArray(8, 0, "int32");
+	this.cachedBGPaletteConversion = this.getTypedArray(4, 0, "int32");
+	this.cachedOBJPaletteConversion = this.getTypedArray(8, 0, "int32");
 	this.BGCHRBank1Pointer = this.getTypedArray(0x800, 0, "uint8");
 	this.BGCHRBank2Pointer = this.getTypedArray(0x800, 0, "uint8");
 	this.BGCHRCurrentBank = this.BGCHRBank1Pointer;
@@ -4324,14 +4326,13 @@ GameBoyCore.prototype.initMemory = function () {
 GameBoyCore.prototype.generateCacheArray = function (tileAmount) {
 	var tileArray = new Array(tileAmount);
 	for (var tileNumber = 0; tileNumber < tileAmount; tileNumber++) {
-		tileArray[tileNumber] = new Array(9);
+		tileArray[tileNumber] = new Array(8);
 		for (var y = 0; y < 8; y++) {
 			tileArray[tileNumber][y] = this.getTypedArray(8, 0, "uint8");
 			for (var x = 0; x < 8; x++) {
 				tileArray[tileNumber][y][x] = 0;
 			}
 		}
-		tileArray[tileNumber][8] = false;
 	}
 	return tileArray;
 }
@@ -4670,12 +4671,14 @@ GameBoyCore.prototype.disableBootROM = function () {
 		this.getGBCColor();
 		this.VRAM = this.GBCMemory = null;	//Deleting these causes Google's V8 engine and Safari's JSC to deoptimize heavily.
 		this.tileCache = this.generateCacheArray(0x700);
+		this.tileCacheValid = this.getTypedArray(0x700, 0, "int8");
 		for (index = 0; index < 0x100; index++) {
 			this.OAMAddresses[index] = [];
 		}
 	}
 	else {
 		this.tileCache = this.generateCacheArray(0xF80);
+		this.tileCacheValid = this.getTypedArray(0xF80, 0, "int8");
 	}
 	this.memoryReadJumpCompile();
 	this.memoryWriteJumpCompile();
@@ -4729,6 +4732,7 @@ GameBoyCore.prototype.setupRAM = function () {
 	}
 	else {
 		this.tileCache = this.generateCacheArray(0x700);
+		this.tileCacheValid = this.getTypedArray(0x700, 0, "int8");
 		for (index = 0; index < 0x100; index++) {
 			this.OAMAddresses[index] = [];
 		}
@@ -5921,6 +5925,7 @@ GameBoyCore.prototype.resizeFrameBuffer = function () {
 }
 //New GFX Engine:
 GameBoyCore.prototype.notifyScanline = function () {
+	this.pixelStart = this.actualScanLine * 160;
 	if (this.bgEnabled) {
 		this.BGLayerRender(160);
 		this.WindowLayerRender(160);
@@ -5931,6 +5936,7 @@ GameBoyCore.prototype.notifyScanline = function () {
 			this.frameBuffer[pixelPosition] = 0xF8F8F8;
 		}
 	}
+	this.spriteCount = 63;		//Reset the extra clocking for STAT mode 3.
 	this.SpriteLayerRender();
 	this.currentX = 0;
 }
@@ -5938,6 +5944,7 @@ GameBoyCore.prototype.notifyMidScanline = function () {
 	if (this.modeSTAT == 3) {
 		var pixelEnd = (160 * Math.min((this.LCDTicks - 20) / 43, 1)) | 0;
 		if (this.bgEnabled) {
+			this.pixelStart = this.actualScanLine * 160;
 			this.BGLayerRender(pixelEnd);
 			this.WindowLayerRender(pixelEnd);
 			//TODO: Do midscanline JIT for sprites...
@@ -6002,6 +6009,7 @@ GameBoyCore.prototype.setGBOBJPalette = function (index, data) {
 }
 GameBoyCore.prototype.setGBCBGPalette = function (index, data) {
 	if (this.gbcBGRawPalette[index] != data) {
+		this.notifyMidScanline();
 		//Update the color palette for BG tiles since it changed:
 		this.gbcBGRawPalette[index] = data;
 		var value = (this.gbcBGRawPalette[index | 1] << 8) | this.gbcBGRawPalette[index & -2];
@@ -6017,6 +6025,7 @@ GameBoyCore.prototype.setGBCBGPalette = function (index, data) {
 }
 GameBoyCore.prototype.setGBCOBJPalette = function (index, data) {
 	if (this.gbcOBJRawPalette[index] != data) {
+		this.notifyMidScanline();
 		//Update the color palette for OBJ tiles since it changed:
 		this.gbcOBJRawPalette[index] = data;
 		var value = (this.gbcOBJRawPalette[index | 1] << 8) | this.gbcOBJRawPalette[index & -2];
@@ -6031,14 +6040,14 @@ GameBoyCore.prototype.BGGBLayerRender = function (pixelEnd) {
 	var tileYLine = scrollYAdjusted & 7;
 	var tileYDown = (scrollYAdjusted & 0xF8) << 2;							//The row of cached tiles we're fetching from.
 	var scrollXAdjusted = (this.memory[0xFF43] + this.currentX) & 0xFF;		//The scroll amount of the BG.
-	var pixelPosition = (this.actualScanLine * 160) + this.currentX;		//Current pixel we're working on.
-	var pixelPositionEnd = (this.actualScanLine * 160) + pixelEnd;			//Make sure we do at most 160 pixels a scanline.
+	var pixelPosition = this.pixelStart + this.currentX;					//Current pixel we're working on.
+	var pixelPositionEnd = this.pixelStart + pixelEnd;						//Make sure we do at most 160 pixels a scanline.
 	var tileNumber = tileYDown + (scrollXAdjusted / 8);
 	var chrCode = this.BGCHRBank1Pointer[this.gfxBackgroundCHRBankPosition | tileNumber];
 	if (chrCode < this.gfxBackgroundBankOffset) {
 		chrCode |= 0x100;
 	}
-	var tile = ((this.tileCache[chrCode][8]) ? this.tileCache[chrCode] : this.generateGBTile(chrCode))[tileYLine];
+	var tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBTile(chrCode))[tileYLine];
 	for (var texel = (scrollXAdjusted % 8); texel < 8 && pixelPosition < pixelPositionEnd && scrollXAdjusted < 0x100; scrollXAdjusted++, tileNumber += 0.125, texel++) {
 		this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel]];
 	}
@@ -6047,7 +6056,7 @@ GameBoyCore.prototype.BGGBLayerRender = function (pixelEnd) {
 		if (chrCode < this.gfxBackgroundBankOffset) {
 			chrCode |= 0x100;
 		}
-		tile = ((this.tileCache[chrCode][8]) ? this.tileCache[chrCode] : this.generateGBTile(chrCode))[tileYLine];
+		tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBTile(chrCode))[tileYLine];
 		for (texel = 0; texel < 8 && pixelPosition < pixelPositionEnd && scrollXAdjusted < 0x100; scrollXAdjusted++, texel++) {
 			this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel]];
 		}
@@ -6057,7 +6066,7 @@ GameBoyCore.prototype.BGGBLayerRender = function (pixelEnd) {
 		if (chrCode < this.gfxBackgroundBankOffset) {
 			chrCode |= 0x100;
 		}
-		tile = ((this.tileCache[chrCode][8]) ? this.tileCache[chrCode] : this.generateGBTile(chrCode))[tileYLine];
+		tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBTile(chrCode))[tileYLine];
 		for (texel = 0; texel < 8 && pixelPosition < pixelPositionEnd; texel++) {
 			this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel]];
 		}
@@ -6068,8 +6077,8 @@ GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
 	var tileYLine = scrollYAdjusted & 7;
 	var tileYDown = (scrollYAdjusted & 0xF8) << 2;							//The row of cached tiles we're fetching from.
 	var scrollXAdjusted = (this.memory[0xFF43] + this.currentX) & 0xFF;		//The scroll amount of the BG.
-	var pixelPosition = (this.actualScanLine * 160) + this.currentX;		//Current pixel we're working on.
-	var pixelPositionEnd = (this.actualScanLine * 160) + pixelEnd;			//Make sure we do at most 160 pixels a scanline.
+	var pixelPosition = this.pixelStart + this.currentX;					//Current pixel we're working on.
+	var pixelPositionEnd = this.pixelStart + pixelEnd;						//Make sure we do at most 160 pixels a scanline.
 	var tileNumber = tileYDown + (scrollXAdjusted / 8);
 	var chrCode = this.BGCHRBank1Pointer[this.gfxBackgroundCHRBankPosition | tileNumber];
 	if (chrCode < this.gfxBackgroundBankOffset) {
@@ -6077,7 +6086,7 @@ GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
 	}
 	var attrCode = this.BGCHRBank2Pointer[this.gfxBackgroundCHRBankPosition | tileNumber];
 	chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
-	var tile = ((this.tileCache[chrCode][8]) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
+	var tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
 	var pixelFlag = ((attrCode & 0x80) << 17) & this.BGPriorityEnabled;
 	var palette = (attrCode & 0x7) << 2;
 	for (var texel = (scrollXAdjusted % 8); texel < 8 && pixelPosition < pixelPositionEnd && scrollXAdjusted < 0x100; scrollXAdjusted++, tileNumber += 0.125, texel++) {
@@ -6090,7 +6099,7 @@ GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
 		}
 		attrCode = this.BGCHRBank2Pointer[this.gfxBackgroundCHRBankPosition | tileNumber];
 		chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
-		tile = ((this.tileCache[chrCode][8]) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
+		tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
 		pixelFlag = ((attrCode & 0x80) << 17) & this.BGPriorityEnabled;
 		palette = (attrCode & 0x7) << 2;
 		for (texel = 0; texel < 8 && pixelPosition < pixelPositionEnd && scrollXAdjusted < 0x100; scrollXAdjusted++, texel++) {
@@ -6104,7 +6113,7 @@ GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
 		}
 		attrCode = this.BGCHRBank2Pointer[this.gfxBackgroundCHRBankPosition | tileNumber];
 		chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
-		tile = ((this.tileCache[chrCode][8]) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
+		tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
 		pixelFlag = ((attrCode & 0x80) << 17) & this.BGPriorityEnabled;
 		palette = (attrCode & 0x7) << 2;
 		for (texel = 0; texel < 8 && pixelPosition < pixelPositionEnd; texel++) {
@@ -6119,15 +6128,15 @@ GameBoyCore.prototype.WindowGBLayerRender = function (pixelEnd) {
 			var tileYLine = scrollYAdjusted & 7;
 			var tileYDown = (scrollYAdjusted & 0xF8) << 2;					//The row of cached tiles we're fetching from.
 			var scrollXAdjusted = this.windowX + this.currentX;				//The scroll amount of the BG.
-			var pixelPosition = (this.actualScanLine * 160) + scrollXAdjusted;
-			var pixelPositionEnd = (this.actualScanLine * 160) + pixelEnd;
+			var pixelPosition = this.pixelStart + scrollXAdjusted;
+			var pixelPositionEnd = this.pixelStart + pixelEnd;
 			if (pixelPosition < pixelPositionEnd) {
 				var tileNumber = tileYDown + (this.currentX / 8);
 				var chrCode = this.BGCHRBank1Pointer[this.gfxWindowCHRBankPosition | tileNumber];
 				if (chrCode < this.gfxBackgroundBankOffset) {
 					chrCode |= 0x100;
 				}
-				tile = ((this.tileCache[chrCode][8]) ? this.tileCache[chrCode] : this.generateGBTile(chrCode))[tileYLine];
+				tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBTile(chrCode))[tileYLine];
 				for (var texel = (this.currentX % 8); texel < 8 && scrollXAdjusted < 160 && pixelPosition < pixelPositionEnd; texel++, scrollXAdjusted++, tileNumber += 0.125) {
 					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel]];
 				}
@@ -6136,7 +6145,7 @@ GameBoyCore.prototype.WindowGBLayerRender = function (pixelEnd) {
 					if (chrCode < this.gfxBackgroundBankOffset) {
 						chrCode |= 0x100;
 					}
-					tile = ((this.tileCache[chrCode][8]) ? this.tileCache[chrCode] : this.generateGBTile(chrCode))[tileYLine];
+					tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBTile(chrCode))[tileYLine];
 					for (texel = 0; texel < 8 && scrollXAdjusted < 160 && pixelPosition < pixelPositionEnd; texel++, scrollXAdjusted++) {
 						this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel]];
 					}
@@ -6152,8 +6161,8 @@ GameBoyCore.prototype.WindowGBCLayerRender = function (pixelEnd) {
 			var tileYLine = scrollYAdjusted & 7;
 			var tileYDown = (scrollYAdjusted & 0xF8) << 2;						//The row of cached tiles we're fetching from.
 			var scrollXAdjusted = this.windowX + this.currentX;					//The scroll amount of the BG.
-			var pixelPosition = (this.actualScanLine * 160) + scrollXAdjusted;
-			var pixelPositionEnd = (this.actualScanLine * 160) + pixelEnd;
+			var pixelPosition = this.pixelStart + scrollXAdjusted;
+			var pixelPositionEnd = this.pixelStart + pixelEnd;
 			if (pixelPosition < pixelPositionEnd) {
 				var tileNumber = tileYDown + (this.currentX / 8);
 				chrCode = this.BGCHRBank1Pointer[this.gfxWindowCHRBankPosition | tileNumber];
@@ -6162,7 +6171,7 @@ GameBoyCore.prototype.WindowGBCLayerRender = function (pixelEnd) {
 				}
 				attrCode = this.BGCHRBank2Pointer[this.gfxWindowCHRBankPosition | tileNumber];
 				chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
-				tile = ((this.tileCache[chrCode][8]) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
+				tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
 				pixelFlag = ((attrCode & 0x80) << 17) & this.BGPriorityEnabled;
 				palette = (attrCode & 0x7) << 2;
 				for (var texel = (this.currentX % 8); texel < 8 && scrollXAdjusted < 160 && pixelPosition < pixelPositionEnd; texel++, scrollXAdjusted++, tileNumber += 0.125) {
@@ -6175,7 +6184,7 @@ GameBoyCore.prototype.WindowGBCLayerRender = function (pixelEnd) {
 					}
 					attrCode = this.BGCHRBank2Pointer[this.gfxWindowCHRBankPosition | tileNumber];
 					chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
-					tile = ((this.tileCache[chrCode][8]) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
+					tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
 					pixelFlag = ((attrCode & 0x80) << 17) & this.BGPriorityEnabled;
 					palette = (attrCode & 0x7) << 2;
 					for (texel = 0; texel < 8 && scrollXAdjusted < 160 && pixelPosition < pixelPositionEnd; texel++, scrollXAdjusted++) {
@@ -6189,9 +6198,7 @@ GameBoyCore.prototype.WindowGBCLayerRender = function (pixelEnd) {
 GameBoyCore.prototype.SpriteGBLayerRender = function () {
 	if (this.gfxSpriteShow) {										//Is the window enabled?
 		var lineAdjusted = this.actualScanLine + 0x10;
-		var pixelPosition = this.actualScanLine * 160;
 		var OAMAddress = 0xFE00;
-		this.spriteCount = 63;
 		var yoffset = 0;
 		var xcoord = 0;
 		var xCounter = 0;
@@ -6217,18 +6224,18 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							attrCode = this.memory[OAMAddress | 3] & 0xF0;
 							palette = (attrCode & 0x10) >> 2;
 							tileNumber = ((attrCode & 0x60) << 4) | this.memory[OAMAddress | 02];
-							tile = (this.tileCache[tileNumber][8]) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
+							tile = (this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
 							for (endY = Math.min(160, onXCoord); xCounter < endY; xCounter++) {
-								if (this.frameBuffer[pixelPosition + xCounter] >= 0x2000000) {
+								if (this.frameBuffer[this.pixelStart + xCounter] >= 0x2000000) {
 									data = tile[xCounter - xcoord];
 									if (data > 0) {
-										this.frameBuffer[pixelPosition + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
+										this.frameBuffer[this.pixelStart + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
 									}
 								}
-								else if (this.frameBuffer[pixelPosition + xCounter] < 0x1000000) {
+								else if (this.frameBuffer[this.pixelStart + xCounter] < 0x1000000) {
 									data = tile[xCounter - xcoord];
 									if (attrCode < 0x80 && data > 0) {
-										this.frameBuffer[pixelPosition + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
+										this.frameBuffer[this.pixelStart + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
 									}
 								}
 							}
@@ -6258,18 +6265,18 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 								yoffset -= 8;
 								tileNumber |= (((attrCode & 0x40) == 0x40) ? 0 : 1);
 							}
-							tile = (this.tileCache[tileNumber][8]) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
+							tile = (this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
 							for (endY = Math.min(160, onXCoord); xCounter < endY; xCounter++) {
-								if (this.frameBuffer[pixelPosition + xCounter] >= 0x2000000) {
+								if (this.frameBuffer[this.pixelStart + xCounter] >= 0x2000000) {
 									data = tile[xCounter - xcoord];
 									if (data > 0) {
-										this.frameBuffer[pixelPosition + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
+										this.frameBuffer[this.pixelStart + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
 									}
 								}
-								else if (this.frameBuffer[pixelPosition + xCounter] < 0x1000000) {
+								else if (this.frameBuffer[this.pixelStart + xCounter] < 0x1000000) {
 									data = tile[xCounter - xcoord];
 									if (data > 0 && attrCode < 0x80) {
-										this.frameBuffer[pixelPosition + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
+										this.frameBuffer[this.pixelStart + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
 									}
 								}
 							}
@@ -6285,8 +6292,6 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 	if (this.gfxSpriteShow) {										//Is the window enabled?
 		var lineAdjusted = this.actualScanLine + 0x10;
-		var pixelPosition = this.actualScanLine * 160;
-		this.spriteCount = 63;
 		var yoffset = 0;
 		var xcoord = 0;
 		var endX = 0;
@@ -6305,18 +6310,18 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 					attrCode = this.memory[OAMAddress | 3];
 					palette = (attrCode & 7) << 2;
 					tileNumber = ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5) | this.memory[OAMAddress | 2];
-					tile = (this.tileCache[tileNumber][8]) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
+					tile = (this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
 					for (xCounter = Math.max(xcoord, 0); xCounter < endX; xCounter++) {
-						if (this.frameBuffer[pixelPosition + xCounter] >= 0x2000000) {
+						if (this.frameBuffer[this.pixelStart + xCounter] >= 0x2000000) {
 							data = tile[xCounter - xcoord];
 							if (data > 0) {
-								this.frameBuffer[pixelPosition + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
+								this.frameBuffer[this.pixelStart + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
 							}
 						}
-						else if (this.frameBuffer[pixelPosition + xCounter] < 0x1000000) {
+						else if (this.frameBuffer[this.pixelStart + xCounter] < 0x1000000) {
 							data = tile[xCounter - xcoord];
 							if (attrCode < 0x80 && data > 0) {
-								this.frameBuffer[pixelPosition + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
+								this.frameBuffer[this.pixelStart + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
 							}
 						}
 					}
@@ -6340,18 +6345,18 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 						yoffset -= 8;
 						tileNumber |= (((attrCode & 0x40) == 0x40) ? 0 : 1);
 					}
-					tile = (this.tileCache[tileNumber][8]) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
+					tile = (this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
 					for (xCounter = Math.max(xcoord, 0); xCounter < endX; xCounter++) {
-						if (this.frameBuffer[pixelPosition + xCounter] >= 0x2000000) {
+						if (this.frameBuffer[this.pixelStart + xCounter] >= 0x2000000) {
 							data = tile[xCounter - xcoord];
 							if (data > 0) {
-								this.frameBuffer[pixelPosition + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
+								this.frameBuffer[this.pixelStart + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
 							}
 						}
-						else if (this.frameBuffer[pixelPosition + xCounter] < 0x1000000) {
+						else if (this.frameBuffer[this.pixelStart + xCounter] < 0x1000000) {
 							data = tile[xCounter - xcoord];
 							if (attrCode < 0x80 && data > 0) {
-								this.frameBuffer[pixelPosition + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
+								this.frameBuffer[this.pixelStart + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
 							}
 						}
 					}
@@ -6366,7 +6371,7 @@ GameBoyCore.prototype.generateGBTile = function (tile) {
 	for (var index = 0; index < 8; index++) {
 		this.tileDataCopier[index] = (this.memory[0x8001 | address | (index << 1)] << 8) | this.memory[0x8000 | address | (index << 1)];
 	}
-	this.tileCache[tile][8] = true;
+	this.tileCacheValid[tile] = 1;
 	for (var lineIndex = 0; lineIndex < 8; lineIndex++) {
 		this.tileCache[tile][lineIndex][7] = ((this.tileDataCopier[lineIndex] & 0x100) >> 7) | (this.tileDataCopier[lineIndex] & 0x1);
 		this.tileCache[tile][lineIndex][6] = ((this.tileDataCopier[lineIndex] & 0x200) >> 8) | ((this.tileDataCopier[lineIndex] & 0x2) >> 1);
@@ -6410,7 +6415,7 @@ GameBoyCore.prototype.generateGBCTile = function (map, tile) {
 		var xINC = 1;
 		var restore = 0;
 	}
-	this.tileCache[tile][8] = true;
+	this.tileCacheValid[tile] = 1;
 	for (var lineIndex = 0; lineIndex < 8; lineIndex++) {
 		this.tileCache[tile][y][x = restore] = ((this.tileDataCopier[lineIndex] & 0x100) >> 7) | (this.tileDataCopier[lineIndex] & 0x1);
 		this.tileCache[tile][y][x += xINC] = ((this.tileDataCopier[lineIndex] & 0x200) >> 8) | ((this.tileDataCopier[lineIndex] & 0x2) >> 1);
@@ -7125,10 +7130,10 @@ GameBoyCore.prototype.VRAMGBDATAWrite = function (parentObj, address, data) {
 		if (parentObj.memory[address] != data) {
 			parentObj.memory[address] = data;
 			var tile = (address & 0x1FF0) >> 4;
-			parentObj.tileCache[tile][8] = false;
-			parentObj.tileCache[0x200 | tile][8] = false;
-			parentObj.tileCache[0x400 | tile][8] = false;
-			parentObj.tileCache[0x600 | tile][8] = false;
+			parentObj.tileCacheValid[tile] = 0;
+			parentObj.tileCacheValid[0x200 | tile] = 0;
+			parentObj.tileCacheValid[0x400 | tile] = 0;
+			parentObj.tileCacheValid[0x600 | tile] = 0;
 		}
 	}
 }
@@ -7137,7 +7142,7 @@ GameBoyCore.prototype.VRAMGBDATAUpperWrite = function (parentObj, address, data)
 		if (parentObj.memory[address] != data) {
 			parentObj.memory[address] = data;
 			//Invalidate only one tile, since the OAM Attribute table cannot specify > 0xFF:
-			parentObj.tileCache[(address & 0x1FF0) >> 4][8] = false;
+			parentObj.tileCacheValid[(address & 0x1FF0) >> 4] = 0;
 		}
 	}
 }
@@ -7147,20 +7152,20 @@ GameBoyCore.prototype.VRAMGBCDATAWrite = function (parentObj, address, data) {
 			if (parentObj.memory[address] != data) {
 				parentObj.memory[address] = data;
 				var tile = (address & 0x1FF0) >> 4;
-				parentObj.tileCache[tile][8] = false;
-				parentObj.tileCache[0x400 | tile][8] = false;
-				parentObj.tileCache[0x800 | tile][8] = false;
-				parentObj.tileCache[0xC00 | tile][8] = false;
+				parentObj.tileCacheValid[tile] = 0;
+				parentObj.tileCacheValid[0x400 | tile] = 0;
+				parentObj.tileCacheValid[0x800 | tile] = 0;
+				parentObj.tileCacheValid[0xC00 | tile] = 0;
 			}
 		}
 		else {
 			if (parentObj.VRAM[address & 0x1FFF] != data) {
 				parentObj.VRAM[address & 0x1FFF] = data;
 				var tile = (address & 0x1FF0) >> 4;
-				parentObj.tileCache[0x200 | tile][8] = false;
-				parentObj.tileCache[0x600 | tile][8] = false;
-				parentObj.tileCache[0xA00 | tile][8] = false;
-				parentObj.tileCache[0xE00 | tile][8] = false;
+				parentObj.tileCacheValid[0x200 | tile] = 0;
+				parentObj.tileCacheValid[0x600 | tile] = 0;
+				parentObj.tileCacheValid[0xA00 | tile] = 0;
+				parentObj.tileCacheValid[0xE00 | tile] = 0;
 			}
 		}
 	}
@@ -7181,20 +7186,20 @@ GameBoyCore.prototype.DMAWrite = function (address, data) {
 			if (this.memory[address] != data) {
 				this.memory[address] = data;
 				var tile = (address & 0x1FF0) >> 4;
-				this.tileCache[tile][8] = false;
-				this.tileCache[0x400 | tile][8] = false;
-				this.tileCache[0x800 | tile][8] = false;
-				this.tileCache[0xC00 | tile][8] = false;
+				this.tileCacheValid[tile] = 0;
+				this.tileCacheValid[0x400 | tile] = 0;
+				this.tileCacheValid[0x800 | tile] = 0;
+				this.tileCacheValid[0xC00 | tile] = 0;
 			}
 		}
 		else {
 			if (this.VRAM[address & 0x1FFF] != data) {
 				this.VRAM[address & 0x1FFF] = data;
 				var tile = (address & 0x1FF0) >> 4;
-				this.tileCache[0x200 | tile][8] = false;
-				this.tileCache[0x600 | tile][8] = false;
-				this.tileCache[0xA00 | tile][8] = false;
-				this.tileCache[0xE00 | tile][8] = false;
+				this.tileCacheValid[0x200 | tile] = 0;
+				this.tileCacheValid[0x600 | tile] = 0;
+				this.tileCacheValid[0xA00 | tile] = 0;
+				this.tileCacheValid[0xE00 | tile] = 0;
 			}
 		}
 	}
@@ -7724,7 +7729,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	if (this.cGBC) {
 		//GameBoy Color Specific I/O:
 		this.memoryWriter[0xFF40] = function (parentObj, address, data) {
-			parentObj.notifyMidScanline();
+			if (parentObj.memory[0xFF40] != data) {
+				parentObj.notifyMidScanline();
+			}
 			var temp_var = (data & 0x80) == 0x80;
 			if (temp_var != parentObj.LCDisOn) {
 				//When the display mode changes...
@@ -7838,7 +7845,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.memory[0xFF68] = data;
 		}
 		this.memoryWriter[0xFF69] = function (parentObj, address, data) {
-			parentObj.notifyMidScanline();
 			parentObj.setGBCBGPalette(parentObj.memory[0xFF68] & 0x3F, data);
 			if (parentObj.memory[0xFF68] > 0x7F) { // high bit = autoincrement
 				var next = ((parentObj.memory[0xFF68] + 1) & 0x3F);
@@ -7854,7 +7860,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.memory[0xFF6A] = data;
 		}
 		this.memoryWriter[0xFF6B] = function (parentObj, address, data) {
-			parentObj.notifyMidScanline();
 			parentObj.setGBCOBJPalette(parentObj.memory[0xFF6A] & 0x3F, data);
 			if (parentObj.memory[0xFF6A] > 0x7F) { // high bit = autoincrement
 				var next = ((parentObj.memory[0xFF6A] + 1) & 0x3F);
@@ -7882,7 +7887,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	else {
 		//Fill in the GameBoy Color I/O registers as normal RAM for GameBoy compatibility:
 		this.memoryWriter[0xFF40] = function (parentObj, address, data) {
-			parentObj.notifyMidScanline();
+			if (parentObj.memory[0xFF40] != data) {
+				parentObj.notifyMidScanline();
+			}
 			var temp_var = (data & 0x80) == 0x80;
 			if (temp_var != parentObj.LCDisOn) {
 				//When the display mode changes...
