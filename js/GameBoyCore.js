@@ -8003,6 +8003,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 					var dmaDst = 0x8000 | (parentObj.memory[0xFF53] << 8) | parentObj.memory[0xFF54];
 					var endAmount = (((data & 0x7F) << 4) + 0x10);
 					for (var loopAmount = 0; loopAmount < endAmount; loopAmount++) {
+						dmaDst &= 0x9FFF;
 						parentObj.DMAWrite(dmaDst++, parentObj.memoryReader[dmaSrc](parentObj, dmaSrc++));
 					}
 					parentObj.memory[0xFF51] = ((dmaSrc & 0xFF00) >> 8);
@@ -8013,19 +8014,17 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				}
 				else {
 					//H-Blank DMA
-					if (data > 0x80) {
-						parentObj.hdmaRunning = true;
-						parentObj.memory[0xFF55] = data & 0x7F;
-					}
-					else {
-						parentObj.memory[0xFF55] = 0xFF;
-					}
+					parentObj.hdmaRunning = true;
+					parentObj.memory[0xFF55] = data & 0x7F;
 				}
 			}
 			else if ((data & 0x80) == 0) {
 				//Stop H-Blank DMA
 				parentObj.hdmaRunning = false;
 				parentObj.memory[0xFF55] |= 0x80;
+			}
+			else {
+				parentObj.memory[0xFF55] = data & 0x7F;
 			}
 		}
 		this.memoryWriter[0xFF68] = function (parentObj, address, data) {
