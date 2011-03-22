@@ -6453,6 +6453,7 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 		var tileNumber = 0;
 		var tile = null;
 		var data = 0;
+		var currentPixel = 0;
 		if (!this.gfxSpriteDouble) {
 			for (var OAMAddress = 0xFE00; OAMAddress < 0xFEA0 && this.spriteCount < 78; OAMAddress += 4) {
 				yoffset = lineAdjusted - this.memory[OAMAddress];
@@ -6463,17 +6464,17 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 					palette = (attrCode & 7) << 2;
 					tileNumber = ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5) | this.memory[OAMAddress | 2];
 					tile = (this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
-					for (xCounter = Math.max(xcoord, 0); xCounter < endX; xCounter++) {
-						if (this.frameBuffer[this.pixelStart + xCounter] >= 0x2000000) {
+					for (xCounter = Math.max(xcoord, 0), currentPixel = this.pixelStart + xCounter; xCounter < endX; xCounter++, currentPixel++) {
+						if (this.frameBuffer[currentPixel] >= 0x2000000) {
 							data = tile[xCounter - xcoord];
 							if (data > 0) {
-								this.frameBuffer[this.pixelStart + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
+								this.frameBuffer[currentPixel] = 0x1000000 | this.OBJPalette[palette | data];
 							}
 						}
-						else if (this.frameBuffer[this.pixelStart + xCounter] < 0x1000000) {
+						else if (this.frameBuffer[currentPixel] < 0x1000000) {
 							data = tile[xCounter - xcoord];
-							if (attrCode < 0x80 && data > 0) {
-								this.frameBuffer[this.pixelStart + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
+							if (data > 0 && attrCode < 0x80) {
+								this.frameBuffer[currentPixel] = 0x1000000 | this.OBJPalette[palette | data];
 							}
 						}
 					}
@@ -6498,17 +6499,17 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 						tileNumber |= (((attrCode & 0x40) == 0x40) ? 0 : 1);
 					}
 					tile = (this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
-					for (xCounter = Math.max(xcoord, 0); xCounter < endX; xCounter++) {
-						if (this.frameBuffer[this.pixelStart + xCounter] >= 0x2000000) {
+					for (xCounter = Math.max(xcoord, 0), currentPixel = this.pixelStart + xCounter; xCounter < endX; xCounter++, currentPixel++) {
+						if (this.frameBuffer[currentPixel] >= 0x2000000) {
 							data = tile[xCounter - xcoord];
 							if (data > 0) {
-								this.frameBuffer[this.pixelStart + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
+								this.frameBuffer[currentPixel] = 0x1000000 | this.OBJPalette[palette | data];
 							}
 						}
-						else if (this.frameBuffer[this.pixelStart + xCounter] < 0x1000000) {
+						else if (this.frameBuffer[currentPixel] < 0x1000000) {
 							data = tile[xCounter - xcoord];
-							if (attrCode < 0x80 && data > 0) {
-								this.frameBuffer[this.pixelStart + xCounter] = 0x1000000 | this.OBJPalette[palette | data];
+							if (data > 0 && attrCode < 0x80) {
+								this.frameBuffer[currentPixel] = 0x1000000 | this.OBJPalette[palette | data];
 							}
 						}
 					}
