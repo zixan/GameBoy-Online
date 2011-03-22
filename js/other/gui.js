@@ -263,7 +263,7 @@ function registerGUIEvents() {
 	addEvent("click", document.getElementById("enable_colorization"), function () {
 		settings[17] = document.getElementById("enable_colorization").checked;
 		if (typeof gameboy == "object" && gameboy != null) {
-			gameboy.checkPaletteType();
+			gameboy.consoleModeAdjust();
 		}
 	});
 	addEvent("click", document.getElementById("do_minimal"), function () {
