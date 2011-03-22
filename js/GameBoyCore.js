@@ -6525,20 +6525,23 @@ GameBoyCore.prototype.generateGBTile = function (tile) {
 	var address = 0x8000 | (tile << 4);
 	//Get a reference to the tile:
 	var tileBlock = this.tileCache[tile];
+	var tileLine = null;
 	//Data only from bank 0 with no flipping:
 	for (var lineIndex = 0, lineCopy = 0; lineIndex < 8; lineIndex++, address += 2) {
+		//Get a reference to the tile line:
+		tileLine = tileBlock[lineIndex];
 		//Copy the two bytes that make up a tile's line:
 		lineCopy = (this.memory[0x1 | address] << 8) | this.memory[address];
 		//Each pixel is composed of two bits: MSB is in the second byte, while the LSB is in the first byte.
 		//Normal copy (no flip) for a line is in the RTL (right-to-left) format:
-		tileBlock[lineIndex][7] = ((lineCopy & 0x100) >> 7) | (lineCopy & 0x1);
-		tileBlock[lineIndex][6] = ((lineCopy & 0x200) >> 8) | ((lineCopy & 0x2) >> 1);
-		tileBlock[lineIndex][5] = ((lineCopy & 0x400) >> 9) | ((lineCopy & 0x4) >> 2);
-		tileBlock[lineIndex][4] = ((lineCopy & 0x800) >> 10) | ((lineCopy & 0x8) >> 3);
-		tileBlock[lineIndex][3] = ((lineCopy & 0x1000) >> 11) | ((lineCopy & 0x10) >> 4);
-		tileBlock[lineIndex][2] = ((lineCopy & 0x2000) >> 12) | ((lineCopy & 0x20) >> 5);
-		tileBlock[lineIndex][1] = ((lineCopy & 0x4000) >> 13) | ((lineCopy & 0x40) >> 6);
-		tileBlock[lineIndex][0] = ((lineCopy & 0x8000) >> 14) | ((lineCopy & 0x80) >> 7);
+		tileLine[7] = ((lineCopy & 0x100) >> 7) | (lineCopy & 0x1);
+		tileLine[6] = ((lineCopy & 0x200) >> 8) | ((lineCopy & 0x2) >> 1);
+		tileLine[5] = ((lineCopy & 0x400) >> 9) | ((lineCopy & 0x4) >> 2);
+		tileLine[4] = ((lineCopy & 0x800) >> 10) | ((lineCopy & 0x8) >> 3);
+		tileLine[3] = ((lineCopy & 0x1000) >> 11) | ((lineCopy & 0x10) >> 4);
+		tileLine[2] = ((lineCopy & 0x2000) >> 12) | ((lineCopy & 0x20) >> 5);
+		tileLine[1] = ((lineCopy & 0x4000) >> 13) | ((lineCopy & 0x40) >> 6);
+		tileLine[0] = ((lineCopy & 0x8000) >> 14) | ((lineCopy & 0x80) >> 7);
 	}
 	//Set flag for the tile in the cache to valid:
 	this.tileCacheValid[tile] = 1;
@@ -6547,19 +6550,22 @@ GameBoyCore.prototype.generateGBTile = function (tile) {
 }
 //Generate a tile for the tile cache for DMG's sprites and all CGB graphics planes:
 GameBoyCore.prototype.generateGBCTile = function (map, tile) {
-	var address = (tile & 0x1FF) << 4;
-	var tileBlock = this.tileCache[tile];
+	var address = (tile & 0x1FF) << 4;		//Start address of the tile.
+	var tileBlock = this.tileCache[tile];	//Reference to the 8x8 tile.
+	var tileLine = null;					//Reference to a line of the cached tile.
+	var tileLineWord = this.tileDataCopier;	//Unconverted line data array reference.
+	var tileRawLine = 0;					//Unconverted line data.
 	if ((map & 8) == 0) {
 		//Copy data from bank 0:
 		address |= 0x8000;
 		for (var index = 0; index < 8; index++) {
-			this.tileDataCopier[index] = (this.memory[address | (index << 1) | 1] << 8) | this.memory[address | (index << 1)];
+			tileLineWord[index] = (this.memory[address | (index << 1) | 1] << 8) | this.memory[address | (index << 1)];
 		}
 	}
 	else {
 		//Copy Data from bank 1:
 		for (var index = 0; index < 8; index++) {
-			this.tileDataCopier[index] = (this.VRAM[address | (index << 1) | 1] << 8) | this.VRAM[address | (index << 1)];
+			tileLineWord[index] = (this.VRAM[address | (index << 1) | 1] << 8) | this.VRAM[address | (index << 1)];
 		}
 	}
 	if ((map & 0x40) == 0x40) {
@@ -6575,30 +6581,40 @@ GameBoyCore.prototype.generateGBCTile = function (map, tile) {
 	if ((map & 0x20) == 0) {
 		//Normal X:
 		for (var lineIndex = 0; lineIndex < 8; lineIndex++, y += yINC) {
-			tileBlock[y][7] = ((this.tileDataCopier[lineIndex] & 0x100) >> 7) | (this.tileDataCopier[lineIndex] & 0x1);
-			tileBlock[y][6] = ((this.tileDataCopier[lineIndex] & 0x200) >> 8) | ((this.tileDataCopier[lineIndex] & 0x2) >> 1);
-			tileBlock[y][5] = ((this.tileDataCopier[lineIndex] & 0x400) >> 9) | ((this.tileDataCopier[lineIndex] & 0x4) >> 2);
-			tileBlock[y][4] = ((this.tileDataCopier[lineIndex] & 0x800) >> 10) | ((this.tileDataCopier[lineIndex] & 0x8) >> 3);
-			tileBlock[y][3] = ((this.tileDataCopier[lineIndex] & 0x1000) >> 11) | ((this.tileDataCopier[lineIndex] & 0x10) >> 4);
-			tileBlock[y][2] = ((this.tileDataCopier[lineIndex] & 0x2000) >> 12) | ((this.tileDataCopier[lineIndex] & 0x20) >> 5);
-			tileBlock[y][1] = ((this.tileDataCopier[lineIndex] & 0x4000) >> 13) | ((this.tileDataCopier[lineIndex] & 0x40) >> 6);
-			tileBlock[y][0] = ((this.tileDataCopier[lineIndex] & 0x8000) >> 14) | ((this.tileDataCopier[lineIndex] & 0x80) >> 7);
+			//Get a reference to the tile line:
+			tileLine = tileBlock[y];
+			tileRawLine = tileLineWord[lineIndex];
+			//Each pixel is composed of two bits: MSB is in the second byte, while the LSB is in the first byte.
+			tileLine[7] = ((tileRawLine & 0x100) >> 7) | (tileRawLine & 0x1);
+			tileLine[6] = ((tileRawLine & 0x200) >> 8) | ((tileRawLine & 0x2) >> 1);
+			tileLine[5] = ((tileRawLine & 0x400) >> 9) | ((tileRawLine & 0x4) >> 2);
+			tileLine[4] = ((tileRawLine & 0x800) >> 10) | ((tileRawLine & 0x8) >> 3);
+			tileLine[3] = ((tileRawLine & 0x1000) >> 11) | ((tileRawLine & 0x10) >> 4);
+			tileLine[2] = ((tileRawLine & 0x2000) >> 12) | ((tileRawLine & 0x20) >> 5);
+			tileLine[1] = ((tileRawLine & 0x4000) >> 13) | ((tileRawLine & 0x40) >> 6);
+			tileLine[0] = ((tileRawLine & 0x8000) >> 14) | ((tileRawLine & 0x80) >> 7);
 		}
 	}
 	else {
 		//Flipped X:
 		for (var lineIndex = 0; lineIndex < 8; lineIndex++, y += yINC) {
-			tileBlock[y][0] = ((this.tileDataCopier[lineIndex] & 0x100) >> 7) | (this.tileDataCopier[lineIndex] & 0x1);
-			tileBlock[y][1] = ((this.tileDataCopier[lineIndex] & 0x200) >> 8) | ((this.tileDataCopier[lineIndex] & 0x2) >> 1);
-			tileBlock[y][2] = ((this.tileDataCopier[lineIndex] & 0x400) >> 9) | ((this.tileDataCopier[lineIndex] & 0x4) >> 2);
-			tileBlock[y][3] = ((this.tileDataCopier[lineIndex] & 0x800) >> 10) | ((this.tileDataCopier[lineIndex] & 0x8) >> 3);
-			tileBlock[y][4] = ((this.tileDataCopier[lineIndex] & 0x1000) >> 11) | ((this.tileDataCopier[lineIndex] & 0x10) >> 4);
-			tileBlock[y][5] = ((this.tileDataCopier[lineIndex] & 0x2000) >> 12) | ((this.tileDataCopier[lineIndex] & 0x20) >> 5);
-			tileBlock[y][6] = ((this.tileDataCopier[lineIndex] & 0x4000) >> 13) | ((this.tileDataCopier[lineIndex] & 0x40) >> 6);
-			tileBlock[y][7] = ((this.tileDataCopier[lineIndex] & 0x8000) >> 14) | ((this.tileDataCopier[lineIndex] & 0x80) >> 7);
+			//Get a reference to the tile line:
+			tileLine = tileBlock[y];
+			tileRawLine = tileLineWord[lineIndex];
+			//Each pixel is composed of two bits: MSB is in the second byte, while the LSB is in the first byte.
+			tileLine[0] = ((tileRawLine & 0x100) >> 7) | (tileRawLine & 0x1);
+			tileLine[1] = ((tileRawLine & 0x200) >> 8) | ((tileRawLine & 0x2) >> 1);
+			tileLine[2] = ((tileRawLine & 0x400) >> 9) | ((tileRawLine & 0x4) >> 2);
+			tileLine[3] = ((tileRawLine & 0x800) >> 10) | ((tileRawLine & 0x8) >> 3);
+			tileLine[4] = ((tileRawLine & 0x1000) >> 11) | ((tileRawLine & 0x10) >> 4);
+			tileLine[5] = ((tileRawLine & 0x2000) >> 12) | ((tileRawLine & 0x20) >> 5);
+			tileLine[6] = ((tileRawLine & 0x4000) >> 13) | ((tileRawLine & 0x40) >> 6);
+			tileLine[7] = ((tileRawLine & 0x8000) >> 14) | ((tileRawLine & 0x80) >> 7);
 		}
 	}
+	//Set flag for the tile in the cache to valid:
 	this.tileCacheValid[tile] = 1;
+	//Return the obtained tile to the rendering path:
 	return tileBlock;
 }
 //Memory Reading:
