@@ -5826,17 +5826,7 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 	}
 }
 GameBoyCore.prototype.executeHDMA = function () {
-	this.CPUTicks += 1 + (8 * this.multiplier);
-	var dmaSrc = (this.memory[0xFF51] << 8) | this.memory[0xFF52];
-	var dmaDstRelative = 0x8000 | (this.memory[0xFF53] << 8) | this.memory[0xFF54];
-	var dmaDstFinal = dmaDstRelative + 0x10;
-	while (dmaDstRelative < dmaDstFinal) {
-		this.DMAWrite(dmaDstRelative++, this.memoryReader[dmaSrc](this, dmaSrc++));
-	}
-	this.memory[0xFF51] = ((dmaSrc & 0xFF00) >> 8);
-	this.memory[0xFF52] = (dmaSrc & 0x00F0);
-	this.memory[0xFF53] = ((dmaDstFinal & 0x1F00) >> 8);
-	this.memory[0xFF54] = (dmaDstFinal & 0x00F0);
+	this.DMAWrite(1);
 	if (this.memory[0xFF55] == 0) {
 		this.hdmaRunning = false;
 		this.memory[0xFF55] = 0xFF;	//Transfer completed ("Hidden last step," since some ROMs don't imply this, but most do).
@@ -7368,32 +7358,59 @@ GameBoyCore.prototype.VRAMGBCCHRMAPWrite = function (parentObj, address, data) {
 		parentObj.BGCHRCurrentBank[address & 0x7FF] = data;
 	}
 }
-GameBoyCore.prototype.DMAWrite = function (address, data) {
-	if (address < 0x9800) {
-		if (this.currVRAMBank == 0) {
-			if (this.memory[address] != data) {
-				this.memory[address] = data;
-				var tile = (address & 0x1FF0) >> 4;
-				this.tileCacheValid[tile] = 0;
-				this.tileCacheValid[0x400 | tile] = 0;
-				this.tileCacheValid[0x800 | tile] = 0;
-				this.tileCacheValid[0xC00 | tile] = 0;
+GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
+	//Clock the CPU for the DMA transfer (CPU is halted during the transfer):
+	this.CPUTicks += 1 + (tilesToTransfer * this.multiplier);
+	//Source address of the transfer:
+	var source = (this.memory[0xFF51] << 8) | this.memory[0xFF52];
+	//Destination address in the VRAM memory range:
+	var destination = (this.memory[0xFF53] << 8) | this.memory[0xFF54];
+	//Initialization:
+	var data = 0;
+	var tile = 0;
+	//Creating some references:
+	var tileCacheValid = this.tileCacheValid;
+	var memoryReader = this.memoryReader;
+	//Determining which bank we're working on so we can optimize:
+	if (this.currVRAMBank == 0) {
+		//DMA transfer for VRAM bank 0:
+		for (var bytesToTransfer = tilesToTransfer << 4; bytesToTransfer > 0; bytesToTransfer--, source = (source + 1) & 0xFFFF, destination++) {
+			if (destination < 0x1800) {
+				data = memoryReader[source](this, source);
+				if (this.memory[0x8000 | destination] != data) {
+					this.memory[0x8000 | destination] = data;
+					tile = destination >> 4;
+					tileCacheValid[tile] = tileCacheValid[0x400 | tile] = tileCacheValid[0x800 | tile] = tileCacheValid[0xC00 | tile] = 0;
+				}
 			}
-		}
-		else {
-			if (this.VRAM[address & 0x1FFF] != data) {
-				this.VRAM[address & 0x1FFF] = data;
-				var tile = (address & 0x1FF0) >> 4;
-				this.tileCacheValid[0x200 | tile] = 0;
-				this.tileCacheValid[0x600 | tile] = 0;
-				this.tileCacheValid[0xA00 | tile] = 0;
-				this.tileCacheValid[0xE00 | tile] = 0;
+			else {
+				this.BGCHRCurrentBank[destination & 0x7FF] = memoryReader[source](this, source);
+				destination &= 0x1FFF;
 			}
 		}
 	}
 	else {
-		this.BGCHRCurrentBank[address & 0x7FF] = data;
+		//DMA transfer for VRAM bank 1:
+		for (var bytesToTransfer = tilesToTransfer << 4; bytesToTransfer > 0; bytesToTransfer--, source = (source + 1) & 0xFFFF, destination++) {
+			if (destination < 0x1800) {
+				data = memoryReader[source](this, source);
+				if (this.VRAM[destination] != data) {
+					this.VRAM[destination] = data;
+					tile = destination >> 4;
+					tileCacheValid[0x200 | tile] = tileCacheValid[0x600 | tile] = tileCacheValid[0xA00 | tile] = tileCacheValid[0xE00 | tile] = 0;
+				}
+			}
+			else {
+				this.BGCHRCurrentBank[destination & 0x7FF] = memoryReader[source](this, source);
+				destination &= 0x1FFF;
+			}
+		}
 	}
+	//Update the HDMA registers to their next addresses:
+	this.memory[0xFF51] = source >> 8;
+	this.memory[0xFF52] = source & 0xFF;
+	this.memory[0xFF53] = destination >> 8;
+	this.memory[0xFF54] = destination & 0xFF;
 }
 GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	//I/O Registers (GB + GBC):
@@ -7998,18 +8015,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			if (!parentObj.hdmaRunning) {
 				if ((data & 0x80) == 0) {
 					//DMA
-					parentObj.CPUTicks += 1 + ((8 * ((data & 0x7F) + 1)) * parentObj.multiplier);
-					var dmaSrc = (parentObj.memory[0xFF51] << 8) | parentObj.memory[0xFF52];
-					var dmaDst = 0x8000 | (parentObj.memory[0xFF53] << 8) | parentObj.memory[0xFF54];
-					var endAmount = (((data & 0x7F) << 4) + 0x10);
-					for (var loopAmount = 0; loopAmount < endAmount; loopAmount++) {
-						dmaDst &= 0x9FFF;
-						parentObj.DMAWrite(dmaDst++, parentObj.memoryReader[dmaSrc](parentObj, dmaSrc++));
-					}
-					parentObj.memory[0xFF51] = ((dmaSrc & 0xFF00) >> 8);
-					parentObj.memory[0xFF52] = (dmaSrc & 0x00F0);
-					parentObj.memory[0xFF53] = ((dmaDst & 0x1F00) >> 8);
-					parentObj.memory[0xFF54] = (dmaDst & 0x00F0);
+					parentObj.DMAWrite(data + 1);
 					parentObj.memory[0xFF55] = 0xFF;	//Transfer completed.
 				}
 				else {
