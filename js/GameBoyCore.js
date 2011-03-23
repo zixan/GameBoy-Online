@@ -7371,14 +7371,15 @@ GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 	//Creating some references:
 	var tileCacheValid = this.tileCacheValid;
 	var memoryReader = this.memoryReader;
+	var memory = this.memory;
 	//Determining which bank we're working on so we can optimize:
 	if (this.currVRAMBank == 0) {
 		//DMA transfer for VRAM bank 0:
 		for (var bytesToTransfer = tilesToTransfer << 4; bytesToTransfer > 0; bytesToTransfer--, source = (source + 1) & 0xFFFF, destination++) {
 			if (destination < 0x1800) {
 				data = memoryReader[source](this, source);
-				if (this.memory[0x8000 | destination] != data) {
-					this.memory[0x8000 | destination] = data;
+				if (memory[0x8000 | destination] != data) {
+					memory[0x8000 | destination] = data;
 					tile = destination >> 4;
 					tileCacheValid[tile] = tileCacheValid[0x400 | tile] = tileCacheValid[0x800 | tile] = tileCacheValid[0xC00 | tile] = 0;
 				}
@@ -7390,12 +7391,13 @@ GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 		}
 	}
 	else {
+		var VRAM = this.VRAM;
 		//DMA transfer for VRAM bank 1:
 		for (var bytesToTransfer = tilesToTransfer << 4; bytesToTransfer > 0; bytesToTransfer--, source = (source + 1) & 0xFFFF, destination++) {
 			if (destination < 0x1800) {
 				data = memoryReader[source](this, source);
-				if (this.VRAM[destination] != data) {
-					this.VRAM[destination] = data;
+				if (VRAM[destination] != data) {
+					VRAM[destination] = data;
 					tile = destination >> 4;
 					tileCacheValid[0x200 | tile] = tileCacheValid[0x600 | tile] = tileCacheValid[0xA00 | tile] = tileCacheValid[0xE00 | tile] = 0;
 				}
@@ -7407,10 +7409,10 @@ GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 		}
 	}
 	//Update the HDMA registers to their next addresses:
-	this.memory[0xFF51] = source >> 8;
-	this.memory[0xFF52] = source & 0xFF;
-	this.memory[0xFF53] = destination >> 8;
-	this.memory[0xFF54] = destination & 0xFF;
+	memory[0xFF51] = source >> 8;
+	memory[0xFF52] = source & 0xFF;
+	memory[0xFF53] = destination >> 8;
+	memory[0xFF54] = destination & 0xFF;
 }
 GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	//I/O Registers (GB + GBC):
