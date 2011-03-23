@@ -5812,14 +5812,14 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 		//Draw a blank screen:
 		var index = 23040;
 		var index2 = this.rgbCount;
+		var canvasData = this.canvasBuffer.data;
 		while (index > 0) {
 			this.frameBuffer[--index] = 0xF8F8F8;
 		}
 		while (index2 > 0) {
-			this.canvasBuffer.data[index2 -= 4] = 0xF8;
-			this.canvasBuffer.data[index2 + 1] = 0xF8;
-			this.canvasBuffer.data[index2 + 2] = 0xF8;
-			this.canvasBuffer.data[index2 + 3] = 0xFF;
+			canvasData[index2 -= 4] = 0xF8;
+			canvasData[index2 + 1] = 0xF8;
+			canvasData[index2 + 2] = 0xF8;
 		}
 		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 		this.drewBlank = 2;
