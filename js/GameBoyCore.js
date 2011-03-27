@@ -2250,9 +2250,9 @@ GameBoyCore.prototype.executeIteration = function () {
 		//Execute the OP code instruction:
 		switch (op) {
 			//NOP
-			case 0x00:
+			/*case 0x00:
 				//Do Nothing...
-				break;
+				break;*/
 			//LD BC, nn
 			case 0x01:
 				this.registerC = this.memoryRead(this.programCounter);
@@ -2677,9 +2677,9 @@ GameBoyCore.prototype.executeIteration = function () {
 				this.FSubtract = this.FHalfCarry = false;
 				break;
 			//LD B, B
-			case 0x40:
+			/*case 0x40:
 				//Do nothing...
-				break;
+				break;*/
 			//LD B, C
 			case 0x41:
 				this.registerB = this.registerC;
@@ -2713,9 +2713,9 @@ GameBoyCore.prototype.executeIteration = function () {
 				this.registerC = this.registerB;
 				break;
 			//LD C, C
-			case 0x49:
+			/*case 0x49:
 				//Do nothing...
-				break;
+				break;*/
 			//LD C, D
 			case 0x4A:
 				this.registerC = this.registerD;
@@ -2749,9 +2749,9 @@ GameBoyCore.prototype.executeIteration = function () {
 				this.registerD = this.registerC;
 				break;
 			//LD D, D
-			case 0x52:
+			/*case 0x52:
 				//Do nothing...
-				break;
+				break;*/
 			//LD D, E
 			case 0x53:
 				this.registerD = this.registerE;
@@ -2785,9 +2785,9 @@ GameBoyCore.prototype.executeIteration = function () {
 				this.registerE = this.registerD;
 				break;
 			//LD E, E
-			case 0x5B:
+			/*case 0x5B:
 				//Do nothing...
-				break;
+				break;*/
 			//LD E, H
 			case 0x5C:
 				this.registerE = (this.registersHL >> 8);
@@ -2821,9 +2821,9 @@ GameBoyCore.prototype.executeIteration = function () {
 				this.registersHL = (this.registerE << 8) | (this.registersHL & 0xFF);
 				break;
 			//LD H, H
-			case 0x64:
+			/*case 0x64:
 				//Do nothing...
-				break;
+				break;*/
 			//LD H, L
 			case 0x65:
 				this.registersHL = (this.registersHL & 0xFF) * 0x101;
@@ -2857,9 +2857,9 @@ GameBoyCore.prototype.executeIteration = function () {
 				this.registersHL = (this.registersHL & 0xFF00) | (this.registersHL >> 8);
 				break;
 			//LD L, L
-			case 0x6D:
+			/*case 0x6D:
 				//Do nothing...
-				break;
+				break;*/
 			//LD L, (HL)
 			case 0x6E:
 				this.registersHL = (this.registersHL & 0xFF00) | this.memoryRead(this.registersHL);
@@ -2963,9 +2963,9 @@ GameBoyCore.prototype.executeIteration = function () {
 				this.registerA = this.memoryRead(this.registersHL);
 				break;
 			//LD A, A
-			case 0x7F:
+			/*case 0x7F:
 				//Do Nothing...
-				break;
+				break;*/
 			//ADD A, B
 			case 0x80:
 				var dirtySum = this.registerA + this.registerB;
