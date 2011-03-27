@@ -2348,12 +2348,6 @@ GameBoyCore.prototype.executeIteration = function () {
 			//STOP
 			case 0x10:
 				if (this.cGBC) {
-					/*TODO: Emulate the speed switch delay:
-						Delay Amount:
-						16 ms when going to double-speed.
-						32 ms when going to single-speed.
-						Also, bits 4 and 5 of 0xFF00 should read as set (1), while the switch is in process.
-					*/
 					if ((this.memory[0xFF4D] & 0x01) == 0x01) {		//Speed change requested.
 						if ((this.memory[0xFF4D] & 0x80) == 0x80) {	//Go back to single speed mode.
 							cout("Going into single clock speed mode.", 0);
