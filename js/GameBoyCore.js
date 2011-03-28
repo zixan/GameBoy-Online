@@ -534,8 +534,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x01:
 	function (parentObj) {
 		parentObj.registerC = parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
-		parentObj.registerB = parentObj.memoryRead((parentObj.programCounter + 1) & 0xFFFF);
-		parentObj.programCounter = (parentObj.programCounter + 2) & 0xFFFF;
+		parentObj.programCounter = (parentObj.programCounter + 1) & 0xFFFF;
+		parentObj.registerB = parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
+		parentObj.programCounter = (parentObj.programCounter + 1) & 0xFFFF;
 	},
 	//LD (BC), A
 	//#0x02:
@@ -667,8 +668,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x11:
 	function (parentObj) {
 		parentObj.registerE = parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
-		parentObj.registerD = parentObj.memoryRead((parentObj.programCounter + 1) & 0xFFFF);
-		parentObj.programCounter = (parentObj.programCounter + 2) & 0xFFFF;
+		parentObj.programCounter = (parentObj.programCounter + 1) & 0xFFFF;
+		parentObj.registerD = parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
+		parentObj.programCounter = (parentObj.programCounter + 1) & 0xFFFF;
 	},
 	//LD (DE), A
 	//#0x12:
@@ -1955,8 +1957,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0xC1:
 	function (parentObj) {
 		parentObj.registerC = parentObj.memoryReader[parentObj.stackPointer](parentObj, parentObj.stackPointer);
-		parentObj.registerB = parentObj.memoryRead((parentObj.stackPointer + 1) & 0xFFFF);
-		parentObj.stackPointer = (parentObj.stackPointer + 2) & 0xFFFF;
+		parentObj.stackPointer = (parentObj.stackPointer + 1) & 0xFFFF;
+		parentObj.registerB = parentObj.memoryReader[parentObj.stackPointer](parentObj, parentObj.stackPointer);
+		parentObj.stackPointer = (parentObj.stackPointer + 1) & 0xFFFF;
 	},
 	//JP !FZ, nn
 	//#0xC2:
@@ -2118,8 +2121,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0xD1:
 	function (parentObj) {
 		parentObj.registerE = parentObj.memoryReader[parentObj.stackPointer](parentObj, parentObj.stackPointer);
-		parentObj.registerD = parentObj.memoryRead((parentObj.stackPointer + 1) & 0xFFFF);
-		parentObj.stackPointer = (parentObj.stackPointer + 2) & 0xFFFF;
+		parentObj.stackPointer = (parentObj.stackPointer + 1) & 0xFFFF;
+		parentObj.registerD = parentObj.memoryReader[parentObj.stackPointer](parentObj, parentObj.stackPointer);
+		parentObj.stackPointer = (parentObj.stackPointer + 1) & 0xFFFF;
 	},
 	//JP !FC, nn
 	//#0xD2:
@@ -2388,8 +2392,9 @@ GameBoyCore.prototype.OPCODE = new Array(
 		parentObj.FSubtract = ((temp_var & 0x40) == 0x40);
 		parentObj.FHalfCarry = ((temp_var & 0x20) == 0x20);
 		parentObj.FCarry = ((temp_var & 0x10) == 0x10);
-		parentObj.registerA = parentObj.memoryRead((parentObj.stackPointer + 1) & 0xFFFF);
-		parentObj.stackPointer = (parentObj.stackPointer + 2) & 0xFFFF;
+		parentObj.stackPointer = (parentObj.stackPointer + 1) & 0xFFFF;
+		parentObj.registerA = parentObj.memoryReader[parentObj.stackPointer](parentObj, parentObj.stackPointer);
+		parentObj.stackPointer = (parentObj.stackPointer + 1) & 0xFFFF;
 	},
 	//LD A, (0xFF00 + C)
 	//#0xF2:
