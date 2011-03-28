@@ -534,9 +534,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x01:
 	function (parentObj) {
 		parentObj.registerC = parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
-		parentObj.programCounter = (parentObj.programCounter + 1) & 0xFFFF;
-		parentObj.registerB = parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
-		parentObj.programCounter = (parentObj.programCounter + 1) & 0xFFFF;
+		parentObj.registerB = parentObj.memoryRead((parentObj.programCounter + 1) & 0xFFFF);
+		parentObj.programCounter = (parentObj.programCounter + 2) & 0xFFFF;
 	},
 	//LD (BC), A
 	//#0x02:
@@ -583,9 +582,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x08:
 	function (parentObj) {
 		var temp_var = (parentObj.memoryRead((parentObj.programCounter + 1) & 0xFFFF) << 8) | parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
-		parentObj.memoryWriter[temp_var](parentObj, temp_var, parentObj.stackPointer & 0xFF);
-		temp_var = (temp_var + 1) & 0xFFFF;
-		parentObj.memoryWriter[temp_var](parentObj, temp_var, parentObj.stackPointer >> 8);
+		parentObj.memoryWrite(temp_var, parentObj.stackPointer & 0xFF);
+		parentObj.memoryWrite((temp_var + 1) & 0xFFFF, parentObj.stackPointer >> 8);
 		parentObj.programCounter = (parentObj.programCounter + 2) & 0xFFFF;
 	},
 	//ADD HL, BC
@@ -668,9 +666,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x11:
 	function (parentObj) {
 		parentObj.registerE = parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
-		parentObj.programCounter = (parentObj.programCounter + 1) & 0xFFFF;
-		parentObj.registerD = parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
-		parentObj.programCounter = (parentObj.programCounter + 1) & 0xFFFF;
+		parentObj.registerD = parentObj.memoryRead((parentObj.programCounter + 1) & 0xFFFF);
+		parentObj.programCounter = (parentObj.programCounter + 2) & 0xFFFF;
 	},
 	//LD (DE), A
 	//#0x12:
@@ -1957,9 +1954,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0xC1:
 	function (parentObj) {
 		parentObj.registerC = parentObj.memoryReader[parentObj.stackPointer](parentObj, parentObj.stackPointer);
-		parentObj.stackPointer = (parentObj.stackPointer + 1) & 0xFFFF;
-		parentObj.registerB = parentObj.memoryReader[parentObj.stackPointer](parentObj, parentObj.stackPointer);
-		parentObj.stackPointer = (parentObj.stackPointer + 1) & 0xFFFF;
+		parentObj.registerB = parentObj.memoryRead((parentObj.stackPointer + 1) & 0xFFFF);
+		parentObj.stackPointer = (parentObj.stackPointer + 2) & 0xFFFF;
 	},
 	//JP !FZ, nn
 	//#0xC2:
@@ -2121,9 +2117,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0xD1:
 	function (parentObj) {
 		parentObj.registerE = parentObj.memoryReader[parentObj.stackPointer](parentObj, parentObj.stackPointer);
-		parentObj.stackPointer = (parentObj.stackPointer + 1) & 0xFFFF;
-		parentObj.registerD = parentObj.memoryReader[parentObj.stackPointer](parentObj, parentObj.stackPointer);
-		parentObj.stackPointer = (parentObj.stackPointer + 1) & 0xFFFF;
+		parentObj.registerD = parentObj.memoryRead((parentObj.stackPointer + 1) & 0xFFFF);
+		parentObj.stackPointer = (parentObj.stackPointer + 2) & 0xFFFF;
 	},
 	//JP !FC, nn
 	//#0xD2:
@@ -2392,9 +2387,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 		parentObj.FSubtract = ((temp_var & 0x40) == 0x40);
 		parentObj.FHalfCarry = ((temp_var & 0x20) == 0x20);
 		parentObj.FCarry = ((temp_var & 0x10) == 0x10);
-		parentObj.stackPointer = (parentObj.stackPointer + 1) & 0xFFFF;
-		parentObj.registerA = parentObj.memoryReader[parentObj.stackPointer](parentObj, parentObj.stackPointer);
-		parentObj.stackPointer = (parentObj.stackPointer + 1) & 0xFFFF;
+		parentObj.registerA = parentObj.memoryRead((parentObj.stackPointer + 1) & 0xFFFF);
+		parentObj.stackPointer = (parentObj.stackPointer + 2) & 0xFFFF;
 	},
 	//LD A, (0xFF00 + C)
 	//#0xF2:
