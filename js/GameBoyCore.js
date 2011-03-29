@@ -179,26 +179,27 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.numRAMBanks = 0;					//How many RAM banks were actually allocated?
 	////Graphics Variables
 	this.currVRAMBank = 0;					//Current VRAM bank for GBC.
-	this.gfxWindowDisplay = false;
-	this.gfxSpriteShow = false;
-	this.gfxSpriteDouble = false;
-	this.bgEnabled = true;
-	this.BGPriorityEnabled = 0x1000000;
-	this.gfxWindowCHRBankPosition = 0;
-	this.gfxBackgroundCHRBankPosition = 0;
-	this.gfxBackgroundBankOffset = 0x80;
-	this.windowY = 0;
-	this.windowX = 0;
-	this.drewBlank = 0;					//To prevent the repeating of drawing a blank screen.
+	this.gfxWindowDisplay = false;			//Is the windows enabled?
+	this.gfxSpriteShow = false;				//Are sprites enabled?
+	this.gfxSpriteDouble = false;			//Are we doing 8x8 or 8x16 sprites?
+	this.bgEnabled = true;					//Is the BG enabled?
+	this.BGPriorityEnabled = 0x1000000;		//Can we flag the BG for priority over sprites?
+	this.gfxWindowCHRBankPosition = 0;		//The current bank of the character map the window uses.
+	this.gfxBackgroundCHRBankPosition = 0;	//The current bank of the character map the BG uses.
+	this.gfxBackgroundBankOffset = 0x80;	//Fast mapping of the tile numbering/
+	this.windowY = 0;						//Current Y offset of the window.
+	this.windowX = 0;						//Current X offset of the window.
+	this.drewBlank = 0;						//To prevent the repeating of drawing a blank screen.
 	//BG Tile Pointer Caches:
 	this.BGCHRBank1Pointer = this.getTypedArray(0x800, 0, "uint8");
 	this.BGCHRBank2Pointer = this.getTypedArray(0x800, 0, "uint8");
 	this.BGCHRCurrentBank = this.BGCHRBank1Pointer;
 	//DMG X-Coord to OAM address lookup cache:
 	this.OAMAddresses = this.ArrayPad(0x100, null);
-	//Tile Data Cache
+	//Tile Data Cache:
 	this.tileCache = this.generateCacheArray(0xF80);
 	this.tileCacheValid = this.getTypedArray(0xF80, 0, "int8");
+	//Palettes:
 	this.colors = new Array(0xEFFFDE, 0xADD794, 0x529273, 0x183442);	//"Classic" GameBoy palette colors.
 	this.OBJPalette = null;
 	this.BGPalette = null;
@@ -212,16 +213,17 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.gbOBJColorizedPalette = this.getTypedArray(8, 0, "int32");
 	this.cachedBGPaletteConversion = this.getTypedArray(4, 0, "int32");
 	this.cachedOBJPaletteConversion = this.getTypedArray(8, 0, "int32");
-	this.BGLayerRender = null;
-	this.WindowLayerRender = null;
-	this.SpriteLayerRender = null;
-	this.frameBuffer = [];
-	this.scaledFrameBuffer = [];
-	this.canvasBuffer = null;
+	this.BGLayerRender = null;			//Reference to the BG rendering function.
+	this.WindowLayerRender = null;		//Reference to the window rendering function.
+	this.SpriteLayerRender = null;		//Reference to the OAM rendering function.
+	this.frameBuffer = [];				//The internal frame-buffer.
+	this.scaledFrameBuffer = [];		//The post-processed frame-buffer if we do scaling.
+	this.canvasBuffer = null;			//imageData handle
 	this.pixelStart = 0;				//Temp variable for holding the current working framebuffer offset.
 	this.tileDataCopier = this.getTypedArray(8, 0, "uint16");
 	this.tileDoubleDataCopier = this.getTypedArray(0x10, 0, "uint16");
 	this.frameCount = settings[12];		//Frame skip tracker
+	//Variables used for scaling in JS:
 	this.width = 160;
 	this.height = 144;
 	this.pixelCount = this.width * this.height;
