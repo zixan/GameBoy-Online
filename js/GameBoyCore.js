@@ -5919,23 +5919,25 @@ GameBoyCore.prototype.resizeFrameBuffer = function () {
 }
 //New GFX Engine:
 GameBoyCore.prototype.notifyScanline = function () {
-	this.pixelStart = this.actualScanLine * 160;
-	if (this.bgEnabled) {
-		this.BGLayerRender(160);
-		this.WindowLayerRender(160);
-	}
-	else {
-		var pixelLine = (this.actualScanLine + 1) * 160;
-		for (var pixelPosition = (this.actualScanLine * 160) + this.currentX; pixelPosition < pixelLine; pixelPosition++) {
-			this.frameBuffer[pixelPosition] = 0xF8F8F8;
-		}
-	}
 	this.spriteCount = 63;		//Reset the extra clocking for STAT mode 3.
-	this.SpriteLayerRender();
+	if (settings[4] == 0 || this.frameCount > 0) {
+		this.pixelStart = this.actualScanLine * 160;
+		if (this.bgEnabled) {
+			this.BGLayerRender(160);
+			this.WindowLayerRender(160);
+		}
+		else {
+			var pixelLine = (this.actualScanLine + 1) * 160;
+			for (var pixelPosition = (this.actualScanLine * 160) + this.currentX; pixelPosition < pixelLine; pixelPosition++) {
+				this.frameBuffer[pixelPosition] = 0xF8F8F8;
+			}
+		}
+		this.SpriteLayerRender();
+	}
 	this.currentX = 0;
 }
 GameBoyCore.prototype.notifyMidScanline = function () {
-	if (this.modeSTAT == 3) {
+	if (this.modeSTAT == 3 && (settings[4] == 0 || this.frameCount > 0)) {
 		var pixelEnd = (160 * Math.min((this.LCDTicks - 20) / 43, 1)) | 0;
 		if (this.bgEnabled) {
 			this.pixelStart = this.actualScanLine * 160;
