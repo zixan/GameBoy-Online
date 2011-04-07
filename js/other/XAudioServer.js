@@ -38,7 +38,7 @@ XAudioServer.prototype.writeAudio = function (buffer) {
 		var samplesRequested = webAudioMinBufferSize - this.samplesAlreadyWritten + sampleOffset;
 		this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(buffer);
 		if (samplesRequested > 0) {
-			this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.underRunCallback(samplesRequested)[0]);
+			this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.underRunCallback(samplesRequested));
 		}
 	}
 	else if (this.audioType == 1) {
@@ -58,9 +58,8 @@ XAudioServer.prototype.writeAudio = function (buffer) {
 		}
 		var samplesRequested = webAudioMinBufferSize - ((startPosition > bufferEnd) ? (webAudioMaxBufferSize - startPosition + bufferEnd) : (bufferEnd - startPosition));
 		if (samplesRequested > 0) {
-			var returned = this.underRunCallback(samplesRequested);
-			buffer = returned[0];
-			samplesRequested = returned[1];
+			buffer = this.underRunCallback(samplesRequested);
+			samplesRequested = buffer.length;
 			for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
 				audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
 				if (bufferEnd == startPosition) {

@@ -4905,12 +4905,12 @@ GameBoyCore.prototype.audioUnderRun = function (samplesRequested) {
 				tempBuffer2[index] = this.currentBuffer[index2++];
 			}
 			this.audioIndex = 0;
-			return [tempBuffer2, samplesRequested];
+			return tempBuffer2;
 		}
 		else if (neededSamples == 0) {
 			//Use the overflow buffer's existing samples:
 			this.audioIndex = 0;
-			return [this.currentBuffer, samplesRequested];
+			return this.currentBuffer;
 		}
 		else {
 			//Use the overflow buffer's existing samples:
@@ -4921,7 +4921,7 @@ GameBoyCore.prototype.audioUnderRun = function (samplesRequested) {
 				this.currentBuffer[neededSamples] = this.currentBuffer[samplesRequested + neededSamples];
 			}
 			this.audioIndex -= samplesRequested;
-			return [tempBuffer, samplesRequested];
+			return tempBuffer;
 		}
 }
 GameBoyCore.prototype.playAudio = function () {
