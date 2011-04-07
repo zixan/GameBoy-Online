@@ -143,7 +143,6 @@ function audioOutputEvent(event) {
 					startPosition = 0;
 				}
 			}
-			//We can comment out the overflow counter procedure here, since we are using a multiple of the hardware's sample rate:
 			startPositionOverflow += resampleAmountRemainder;
 			if (startPositionOverflow >= 1) {
 				startPositionOverflow--;
@@ -172,7 +171,6 @@ function audioOutputEvent(event) {
 					startPosition = 0;
 				}
 			}
-			//We can comment out the overflow counter procedure here, since we are using a multiple of the hardware's sample rate:
 			startPositionOverflow += resampleAmountRemainder;
 			if (startPositionOverflow >= 1) {
 				startPositionOverflow--;
