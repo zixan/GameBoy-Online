@@ -6103,19 +6103,20 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 		var currentColumn = this.OAMAddresses[0];
 		var length = currentColumn.length;
 		var currentPixel = 0;
+		var spritesOnLine = 0;
 		if (!this.gfxSpriteDouble) {
 			//Clock up the sprite counter for x-coord 0:
-			for (spriteCount = 0; spriteCount < length && this.spriteCount < 78; spriteCount++) {
+			for (spriteCount = 0; spriteCount < length && spritesOnLine < 10; spriteCount++) {
 				yoffset = lineAdjusted - this.memory[currentColumn[spriteCount]];
 				if (yoffset > -1 && yoffset < 8) {
-					this.spriteCount += 1.5;
+					spritesOnLine++;
 				}
 			}
 			//Draw the visible sprites:
 			for (var onXCoord = 1; onXCoord < 8; onXCoord++) {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length && this.spriteCount < 78; spriteCount++) {
+				for (spriteCount = 0; spriteCount < length && spritesOnLine < 10; spriteCount++) {
 					OAMAddress = currentColumn[spriteCount];
 					yoffset = lineAdjusted - this.memory[OAMAddress];
 					if (yoffset > -1 && yoffset < 8) {
@@ -6139,14 +6140,14 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 								}
 							}
 						}
-						this.spriteCount += 1.5;
+						spritesOnLine++;
 					}
 				}
 			}
 			for (var onXCoord = 8; onXCoord < 161; onXCoord++) {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length && this.spriteCount < 78; spriteCount++) {
+				for (spriteCount = 0; spriteCount < length && spritesOnLine < 10; spriteCount++) {
 					OAMAddress = currentColumn[spriteCount];
 					yoffset = lineAdjusted - this.memory[OAMAddress];
 					if (yoffset > -1 && yoffset < 8) {
@@ -6168,14 +6169,14 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 								}
 							}
 						}
-						this.spriteCount += 1.5;
+						spritesOnLine++;
 					}
 				}
 			}
 			for (onXCoord = 161; onXCoord < 168; onXCoord++) {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length && this.spriteCount < 78; spriteCount++) {
+				for (spriteCount = 0; spriteCount < length && spritesOnLine < 10; spriteCount++) {
 					OAMAddress = currentColumn[spriteCount];
 					yoffset = lineAdjusted - this.memory[OAMAddress];
 					if (yoffset > -1 && yoffset < 8) {
@@ -6198,24 +6199,24 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 								}
 							}
 						}
-						this.spriteCount += 1.5;
+						spritesOnLine++;
 					}
 				}
 			}
 		}
 		else {
 			//Clock up the sprite counter for x-coord 0:
-			for (spriteCount = 0; spriteCount < length && this.spriteCount < 78; spriteCount++) {
+			for (spriteCount = 0; spriteCount < length && spritesOnLine < 10; spriteCount++) {
 				yoffset = lineAdjusted - this.memory[currentColumn[spriteCount]];
 				if (yoffset > -1 && yoffset < 0x10) {
-					this.spriteCount += 1.5;
+					spritesOnLine++;
 				}
 			}
 			//Draw the visible sprites:
 			for (var onXCoord = 1; onXCoord < 8; onXCoord++) {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length && this.spriteCount < 78; spriteCount++) {
+				for (spriteCount = 0; spriteCount < length && spritesOnLine < 10; spriteCount++) {
 					OAMAddress = currentColumn[spriteCount];
 					yoffset = lineAdjusted - this.memory[OAMAddress];
 					if (yoffset > -1 && yoffset < 0x10) {
@@ -6246,14 +6247,14 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 								}
 							}
 						}
-						this.spriteCount += 1.5;
+						spritesOnLine++;
 					}
 				}
 			}
 			for (var onXCoord = 8; onXCoord < 161; onXCoord++) {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length && this.spriteCount < 78; spriteCount++) {
+				for (spriteCount = 0; spriteCount < length && spritesOnLine < 10; spriteCount++) {
 					OAMAddress = currentColumn[spriteCount];
 					yoffset = lineAdjusted - this.memory[OAMAddress];
 					if (yoffset > -1 && yoffset < 0x10) {
@@ -6282,14 +6283,14 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 								}
 							}
 						}
-						this.spriteCount += 1.5;
+						spritesOnLine++;
 					}
 				}
 			}
 			for (var onXCoord = 161; onXCoord < 168; onXCoord++) {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length && this.spriteCount < 78; spriteCount++) {
+				for (spriteCount = 0; spriteCount < length && spritesOnLine < 10; spriteCount++) {
 					OAMAddress = currentColumn[spriteCount];
 					yoffset = lineAdjusted - this.memory[OAMAddress];
 					if (yoffset > -1 && yoffset < 0x10) {
@@ -6319,12 +6320,11 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 								}
 							}
 						}
-						this.spriteCount += 1.5;
+						spritesOnLine++;
 					}
 				}
 			}
 		}
-		this.spriteCount = 63;	//DKL 1/2/3 Must have no extra clocking (Hmm?)
 	}
 }
 GameBoyCore.prototype.SpriteGBCLayerRender = function () {
@@ -7163,7 +7163,7 @@ GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) 
 		var oldData = parentObj.memory[address];
 		if (oldData != data) {
 			//Remove the old position:
-			var currentAddress = address & 0xFEFC;
+			var currentAddress = address & 0xFFFC;
 			var length = parentObj.OAMAddresses[oldData].length;
 			for (var index = 0; index < length; index++) {
 				if (parentObj.OAMAddresses[oldData][index] == currentAddress) {
@@ -7871,9 +7871,14 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.memory[0xFF46] = data;
 			data <<= 8;
 			address = 0xFE00;
+			var stat = parentObj.modeSTAT;
+			if (stat != 2) {
+				parentObj.modeSTAT = 0;
+			}
 			while (address < 0xFEA0) {
 				parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
 			}
+			parentObj.modeSTAT = stat;
 		}
 		//KEY1
 		this.memoryWriter[0xFF4D] = function (parentObj, address, data) {
@@ -8028,9 +8033,14 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			if (data > 0x7F) {	//DMG cannot DMA from the ROM banks.
 				data <<= 8;
 				address = 0xFE00;
+				var stat = parentObj.modeSTAT;
+				if (stat != 2) {
+					parentObj.modeSTAT = 0;
+				}
 				while (address < 0xFEA0) {
 					parentObj.memoryWriter[address](parentObj, address++, parentObj.memoryReader[data](parentObj, data++));
 				}
+				parentObj.modeSTAT = stat;
 			}
 		}
 		this.memoryWriter[0xFF47] = function (parentObj, address, data) {
