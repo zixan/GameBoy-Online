@@ -256,9 +256,10 @@ body<?php echo($Adjacent_OP); ?> div#fullscreenContainer<?php echo($Adjacent_OP)
 	padding: 0px;
 }
 div#GameBoy<?php echo($Adjacent_OP); ?> div#gfx<?php echo($Adjacent_OP); ?> canvas, body<?php echo($Adjacent_OP); ?> div#fullscreenContainer<?php echo($Adjacent_OP); ?> canvas#fullscreen, div#GameBoy<?php echo($Adjacent_OP); ?> div#gfx<?php echo($Adjacent_OP); ?> div#canvasAltContainer<?php echo($Adjacent_OP); ?> img {
-	image-rendering: optimizeSpeed;			/*Give priority to the nearest-neighbor algorithm when rendering*/
-	image-rendering: -moz-crisp-edges;		/*Forces firefox to stay in nearest-neighbor mode, which is what we want.*/
-	image-rendering: -webkit-crisp-edges;	/*Here for when WebKit supports this.*/
+	image-rendering: optimizeSpeed;				/*Give priority to the nearest-neighbor algorithm when rendering*/
+	image-rendering: optimize-contrast;			/*Give priority to the nearest-neighbor algorithm when rendering*/
+	image-rendering: -moz-crisp-edges;			/*Forces firefox to stay in nearest-neighbor mode, which is what we want.*/
+	image-rendering: -webkit-optimize-contrast;	/*Here for when WebKit supports this.*/
 	-ms-interpolation-mode: nearest-neighbor;
 	shape-rendering: geometricPrecision;	/*We don't want the background leaking through*/
 }
