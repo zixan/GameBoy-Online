@@ -5861,14 +5861,18 @@ GameBoyCore.prototype.getGBCColor = function () {
 	//GBC Colorization of DMG ROMs:
 	//BG
 	for (var counter = 0; counter < 4; counter++) {
-		var adjustedIndex = 2 * counter;
+		var adjustedIndex = counter << 1;
+		//BG
 		var value = (this.gbcBGRawPalette[adjustedIndex | 1] << 8) | this.gbcBGRawPalette[adjustedIndex];
 		this.cachedBGPaletteConversion[counter] = ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
+		//OBJ 1
+		value = (this.gbcOBJRawPalette[adjustedIndex | 1] << 8) | this.gbcOBJRawPalette[adjustedIndex];
+		this.cachedOBJPaletteConversion[counter] = ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
 	}
-	//OBJ
-	for (var counter = 0; counter < 8; counter++) {
-		var adjustedIndex = 2 * counter;
-		var value = (this.gbcOBJRawPalette[adjustedIndex | 1] << 8) | this.gbcOBJRawPalette[adjustedIndex];
+	//OBJ 2
+	for (counter = 4; counter < 8; counter++) {
+		adjustedIndex = counter << 1;
+		value = (this.gbcOBJRawPalette[adjustedIndex | 1] << 8) | this.gbcOBJRawPalette[adjustedIndex];
 		this.cachedOBJPaletteConversion[counter] = ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
 	}
 }
@@ -6014,7 +6018,7 @@ GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
 	var attrCode = this.BGCHRBank2[tileNumber];
 	chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
 	var tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
-	var pixelFlag = ((attrCode & 0x80) << 17) & this.BGPriorityEnabled;
+	var pixelFlag = (attrCode << 17) & this.BGPriorityEnabled;
 	var palette = (attrCode & 0x7) << 2;
 	for (var texel = (scrollXAdjusted % 8); texel < 8 && pixelPosition < pixelPositionEnd && scrollXAdjusted < 0x100; scrollXAdjusted++) {
 		this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[texel++]];
@@ -6030,7 +6034,7 @@ GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
 		attrCode = this.BGCHRBank2[tileNumber];
 		chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
 		tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
-		pixelFlag = ((attrCode & 0x80) << 17) & this.BGPriorityEnabled;
+		pixelFlag = (attrCode << 17) & this.BGPriorityEnabled;
 		palette = (attrCode & 0x7) << 2;
 		this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[0]];
 		this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[1]];
@@ -6049,7 +6053,7 @@ GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
 		attrCode = this.BGCHRBank2[tileNumber];
 		chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
 		tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
-		pixelFlag = ((attrCode & 0x80) << 17) & this.BGPriorityEnabled;
+		pixelFlag = (attrCode << 17) & this.BGPriorityEnabled;
 		palette = (attrCode & 0x7) << 2;
 		for (texel = 0; texel < 8 && pixelPosition < pixelPositionEnd && scrollXAdjusted < 0x100; scrollXAdjusted++) {
 			this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[texel++]];
@@ -6064,7 +6068,7 @@ GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
 		attrCode = this.BGCHRBank2[tileYDown++];
 		chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
 		tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
-		pixelFlag = ((attrCode & 0x80) << 17) & this.BGPriorityEnabled;
+		pixelFlag = (attrCode << 17) & this.BGPriorityEnabled;
 		palette = (attrCode & 0x7) << 2;
 		this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[0]];
 		this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[1]];
@@ -6083,7 +6087,7 @@ GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
 		attrCode = this.BGCHRBank2[tileYDown++];
 		chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
 		tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
-		pixelFlag = ((attrCode & 0x80) << 17) & this.BGPriorityEnabled;
+		pixelFlag = (attrCode << 17) & this.BGPriorityEnabled;
 		palette = (attrCode & 0x7) << 2;
 		texel = 0;
 		while (texel < 8 && pixelPosition < pixelPositionEnd) {
@@ -6140,7 +6144,7 @@ GameBoyCore.prototype.WindowGBCLayerRender = function (pixelEnd) {
 				attrCode = this.BGCHRBank2[tileNumber];
 				chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
 				tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
-				pixelFlag = ((attrCode & 0x80) << 17) & this.BGPriorityEnabled;
+				pixelFlag = (attrCode << 17) & this.BGPriorityEnabled;
 				palette = (attrCode & 0x7) << 2;
 				for (var texel = (this.currentX % 8); texel < 8 && scrollXAdjusted < 160 && pixelPosition < pixelPositionEnd; scrollXAdjusted++) {
 					this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[texel++]];
@@ -6153,7 +6157,7 @@ GameBoyCore.prototype.WindowGBCLayerRender = function (pixelEnd) {
 					attrCode = this.BGCHRBank2[tileNumber];
 					chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
 					tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
-					pixelFlag = ((attrCode & 0x80) << 17) & this.BGPriorityEnabled;
+					pixelFlag = (attrCode << 17) & this.BGPriorityEnabled;
 					palette = (attrCode & 0x7) << 2;
 					for (texel = 0; texel < 8 && scrollXAdjusted < 160 && pixelPosition < pixelPositionEnd; scrollXAdjusted++) {
 						this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[texel++]];
