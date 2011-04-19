@@ -6145,7 +6145,7 @@ GameBoyCore.prototype.WindowGBCLayerRender = function (pixelEnd) {
 				chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
 				tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
 				pixelFlag = (attrCode << 17) & this.BGPriorityEnabled;
-				palette = (attrCode & 0x7) << 2;
+				var palette = (attrCode & 0x7) << 2;
 				for (var texel = (this.currentX % 8); texel < 8 && scrollXAdjusted < 160 && pixelPosition < pixelPositionEnd; scrollXAdjusted++) {
 					this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[texel++]];
 				}
