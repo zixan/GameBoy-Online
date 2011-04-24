@@ -1,10 +1,11 @@
-function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underRunCallback) {
-	this.audioChannels = (channels >= 1) ? Math.floor(channels) : 1;
+function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underRunCallback, defaultValue) {
+	this.audioChannels = (channels >= 1) ? ((channels > 3) ? 2 : Math.floor(channels)) : 1;
 	webAudioMono = (this.audioChannels == 1) ? true : false;
-	this.sampleRate = (sampleRate >= 100) ? Math.floor(sampleRate) : 22050;
-	webAudioMinBufferSize = (minBufferSize >= 2 * resamplingRate) ? Math.floor(minBufferSize) : (resamplingRate * 2);
-	webAudioMaxBufferSize = (Math.floor(maxBufferSize) > webAudioMinBufferSize + this.audioChannels) ? Math.floor(maxBufferSize) : (this.minBufferSize + this.audioChannels);
-	this.underRunCallback = underRunCallback;
+	XAudioJSSampleRate = (sampleRate >= 100 || sampleRate < 256000) ? Math.floor(sampleRate) : 22050;
+	webAudioMinBufferSize = (minBufferSize >= 2 * resamplingRate && minBufferSize < maxBufferSize) ? Math.floor(minBufferSize) : (resamplingRate * 2);
+	webAudioMaxBufferSize = (Math.floor(maxBufferSize) > webAudioMinBufferSize + this.audioChannels) ? Math.floor(maxBufferSize) : (this.minBufferSize * 2);
+	this.underRunCallback = (typeof underRunCallback == "function") ? underRunCallback : function () {};
+	defaultNeutralValue = (defaultValue >= -1 && defaultValue <= 1) ? defaultValue : 0;
 	this.audioType = -1;
 	this.initializeAudio();
 }
@@ -12,20 +13,20 @@ XAudioServer.prototype.initializeAudio = function () {
 	try {
 		//mozAudio - Synchronous Audio API
 		this.audioHandle = new Audio();
-		this.audioHandle.mozSetup(this.audioChannels, this.sampleRate);
-		this.samplesAlreadyWritten = this.audioHandle.mozWriteAudio(getFloat32(webAudioMinBufferSize, -1));
+		this.audioHandle.mozSetup(this.audioChannels, XAudioJSSampleRate);
+		this.samplesAlreadyWritten = this.audioHandle.mozWriteAudio(getFloat32(webAudioMinBufferSize));
 		this.audioType = 0;
 	}
 	catch (error) {
 		if (launchedContext) {
 			resetWebAudioBuffer();
-			var resampleAmount = this.sampleRate / webAudioActualSampleRate;
+			resampleAmount = XAudioJSSampleRate / webAudioActualSampleRate;
 			resampleAmountFloor = resampleAmount | 0;
 			resampleAmountRemainder = resampleAmount - resampleAmountFloor;
 			this.audioType = 1;
 		}
 		else {
-			this.audioHandle = new AudioThread(this.audioChannels, this.sampleRate, 16, false);
+			this.audioHandle = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
 			this.audioType = 2;
 			this.sampleCount = 0;
 		}
@@ -79,14 +80,14 @@ XAudioServer.prototype.writeAudio = function (buffer) {
 		this.sampleCount += buffer.length;
 		if (this.sampleCount >= webAudioMaxBufferSize) {
 			this.audioHandle.outputAudio();
-			this.audioHandle = new AudioThread(this.audioChannels, this.sampleRate, 16, false);
+			this.audioHandle = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
 			this.sampleCount -= webAudioMaxBufferSize;
 		}
 		this.audioHandle.appendBatch(buffer);
 	}
 }
 //Initialize WebKit Audio Buffer:
-function getFloat32(size, defaultValue) {
+function getFloat32(size) {
 	try {
 		var newBuffer = new Float32Array(size);
 	}
@@ -95,7 +96,7 @@ function getFloat32(size, defaultValue) {
 	}
 	for (var audioSampleIndice = 0; audioSampleIndice < size; audioSampleIndice++) {
 		//Initialize to zero:
-		newBuffer[audioSampleIndice] = defaultValue;
+		newBuffer[audioSampleIndice] = defaultNeutralValue;
 	}
 	return newBuffer;
 }
@@ -111,12 +112,16 @@ var audioContextSampleBuffer = [];
 var webAudioMinBufferSize = 15000;
 var webAudioMaxBufferSize = 25000;
 var webAudioActualSampleRate = 0;
+var XAudioJSSampleRate = 0;
 var webAudioMono = false;
 var sampleBase1 = 0;
 var sampleBase2 = 0;
 var startPositionOverflow = 0;
 var resampleAmountFloor = 0;
 var resampleAmountRemainder = 0;
+var resampleAmount = 0;
+var defaultNeutralValue = 0;
+var resampler = null;
 function audioOutputEvent(event) {
 	var countDown = 0;
 	var buffer1 = event.outputBuffer.getChannelData(0);
@@ -126,10 +131,17 @@ function audioOutputEvent(event) {
 		countDown = resamplingRate - samplesInBuffer;
 		var count = 0;
 		while (countDown > count) {
-			buffer2[count] = buffer1[count] = 0;
+			buffer2[count] = buffer1[count] = defaultNeutralValue;
 			count++;
 		}
 	}
+	if (typeof resampler == "function") {
+		var returned = resampler(buffer1, buffer2, countDown);
+		buffer1 = returned[0];
+		buffer2 = returned[1];
+	}
+}
+function downsampler(buffer1, buffer2, countDown) {
 	if (webAudioMono) {
 		//MONO:
 		while (countDown < resamplingRate) {
@@ -185,31 +197,63 @@ function audioOutputEvent(event) {
 			buffer2[countDown++] = sampleBase2 / sampleIndice;
 		}
 	}
+	return [buffer1, buffer2];
+}
+function upsampler(buffer1, buffer2, countDown) {
+	if (webAudioMono) {
+		//MONO:
+		while (countDown < resamplingRate) {
+			buffer2[countDown | 0] = buffer1[countDown | 0] = audioContextSampleBuffer[startPosition++];
+			countDown += resampleAmount;
+		}
+	}
+	else {
+		//STEREO:
+		while (countDown < resamplingRate) {
+			buffer1[countDown | 0] = audioContextSampleBuffer[startPosition++];
+			buffer2[countDown | 0] = audioContextSampleBuffer[startPosition++];
+			countDown += resampleAmount;
+		}
+	}
+	return [buffer1, buffer2];
+}
+function noresample(buffer1, buffer2, countDown) {
+	if (webAudioMono) {
+		//MONO:
+		while (countDown < resamplingRate) {
+			buffer2[countDown] = buffer1[countDown] = audioContextSampleBuffer[startPosition++];
+			countDown++;
+		}
+	}
+	else {
+		//STEREO:
+		while (countDown < resamplingRate) {
+			buffer1[countDown] = audioContextSampleBuffer[startPosition++];
+			buffer2[countDown++] = audioContextSampleBuffer[startPosition++];
+		}
+	}
+	return [buffer1, buffer2];
 }
 //Initialize WebKit Audio Buffer:
 function resetWebAudioBuffer() {
 	if (launchedContext) {
-		try {
-			audioContextSampleBuffer = new Float32Array(webAudioMaxBufferSize);
-		}
-		catch (error) {
-			audioContextSampleBuffer = new Array(webAudioMaxBufferSize);
-			for (var audioSampleIndice = 0; audioSampleIndice < webAudioMaxBufferSize; audioSampleIndice++) {
-				//Initialize to zero:
-				audioContextSampleBuffer[audioSampleIndice] = 0;
-			}
-		}
-		audioContextSampleBuffer = getFloat32(webAudioMaxBufferSize, -1);
+		audioContextSampleBuffer = getFloat32(webAudioMaxBufferSize);
 		startPosition = 0;
-		bufferEnd = 0;
+		bufferEnd = webAudioMinBufferSize;
+		if (webAudioActualSampleRate < XAudioJSSampleRate) {
+			resampler = downsampler;
+		}
+		else if (webAudioActualSampleRate > XAudioJSSampleRate) {
+			resampler = upsampler;
+		}
+		else {
+			resampler = noresample;
+		}
 	}
 }
 //Initialize WebKit Audio:
 (function () {
 	if (!launchedContext) {
-		/*Get the one continuous audio loop rolling, as the loop will update
-		the audio asynchronously by inspecting the gameboy object periodically.
-		Variables and event handling functions have to be globally declared to prevent a bad bug in an experimental Safari build!*/
 		try {
 			audioContextHandle = new webkitAudioContext();							//Create a system audio context.
 		}
@@ -224,7 +268,7 @@ function resetWebAudioBuffer() {
 		try {
 			audioSource = audioContextHandle.createBufferSource();						//We need to create a false input to get the chain started.
 			audioSource.loop = false;	//Keep this alive forever (Event handler will know when to ouput.)
-			webAudioActualSampleRate = audioContextHandle.sampleRate;
+			XAudioJSSampleRate = webAudioActualSampleRate = audioContextHandle.sampleRate;
 			audioSource.buffer = audioContextHandle.createBuffer(1, 1, webAudioActualSampleRate);	//Create a zero'd input buffer for the input to be valid.
 			audioNode = audioContextHandle.createJavaScriptNode(resamplingRate, 1, 2);	//Create 2 outputs and ignore the input buffer (Just copy buffer 1 over if mono)
 			audioNode.onaudioprocess = audioOutputEvent;								//Connect the audio processing event to a handling function so we can manipulate output
@@ -236,5 +280,6 @@ function resetWebAudioBuffer() {
 			return;
 		}
 		launchedContext = true;
+		resetWebAudioBuffer();
 	}
 })();

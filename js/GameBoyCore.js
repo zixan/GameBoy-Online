@@ -1302,6 +1302,20 @@ GameBoyCore.prototype.OPCODE = new Array(
 				parentObj.skipPCIncrement = true;
 			}
 			parentObj.halt = true;
+			/*var ticksLeft = parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks;
+			if (parentObj.LCDisOn) {
+				if (parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x1) {
+					ticksLeft = Math.min(((Math.max(143 - parentObj.actualScanLine, 0) * 114) - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
+				}
+				if (parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x2) {
+					
+				}
+			}
+			if (parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x4) {
+				if (parentObj.TIMAEnabled) {
+					ticksLeft = Math.min(((0xFF - parentObj.memory[0xFF05]) * TACClocker) + Math.max(parentObj.TACClocker - parentObj.timerTicks, 0), ticksLeft);
+				}
+			}*/
 			while (parentObj.halt && (parentObj.stopEmulator & 1) == 0) {
 				/*We're hijacking the main interpreter loop to do this dirty business
 				in order to not slow down the main interpreter loop code with halt state handling.*/
@@ -4837,7 +4851,7 @@ GameBoyCore.prototype.initSound = function () {
 			var parentObj = this;
 			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], settings[23], settings[24], function (sampleCount) {
 				return parentObj.audioUnderRun(sampleCount);
-			});
+			}, -1);
 		}
 		catch (error) {
 			cout("Audio system cannot run: " + error.message, 2);
@@ -5529,9 +5543,17 @@ GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
 	}
 }
 GameBoyCore.prototype.updateCore = function () {
+	//single-speed relative timing for A/V emulation
+	var timedTicks = this.CPUTicks / this.multiplier;
+	this.LCDTicks += timedTicks;						//LCD Timing
+	this.LCDCONTROL[this.actualScanLine](this);			//Scan Line and STAT Mode Control 
+	var timedTicks2 = this.CPUTicks / this.multiplier;
+	this.LCDTicks += timedTicks2 - timedTicks;			//LCD Timing
+	this.audioTicks += timedTicks2;						//Audio Timing
+	this.emulatorTicks += timedTicks2;					//Emulator Timing
 	//CPU Timers:
-	this.DIVTicks += this.CPUTicks;				//DIV Timing
-	if (this.TIMAEnabled) {						//TIMA Timing
+	this.DIVTicks += this.CPUTicks;						//DIV Timing
+	if (this.TIMAEnabled) {								//TIMA Timing
 		this.timerTicks += this.CPUTicks;
 		while (this.timerTicks >= this.TACClocker) {
 			this.timerTicks -= this.TACClocker;
@@ -5544,12 +5566,6 @@ GameBoyCore.prototype.updateCore = function () {
 			}
 		}
 	}
-	//single-speed relative timing for A/V emulation:
-	var timedTicks = this.CPUTicks / this.multiplier;
-	this.LCDTicks += timedTicks;				//LCD Timing
-	this.audioTicks += timedTicks;				//Audio Timing
-	this.emulatorTicks += timedTicks;			//Emulator Timing
-	this.LCDCONTROL[this.actualScanLine](this);	//Scan Line and STAT Mode Control 
 	//End of iteration routine:
 	if (this.emulatorTicks >= this.CPUCyclesPerIteration) {
 		this.audioJIT();
