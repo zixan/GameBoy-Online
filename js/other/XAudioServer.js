@@ -1,3 +1,11 @@
+/*Initialize here first:
+	Example:
+		Stereo audio with a sample rate of 70 khz, a minimum buffer of 15000 samples total, a maximum buffer of 25000 samples total and a neutral amplitude value of -1.
+			var parentObj = this;
+			this.audioHandle = new XAudioServer(2, 70000, 15000, 25000, function (sampleCount) {
+				return parentObj.audioUnderRun(sampleCount);
+			}, -1);
+*/
 function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underRunCallback, defaultValue) {
 	this.audioChannels = (channels >= 1) ? ((channels > 3) ? 2 : Math.floor(channels)) : 1;
 	webAudioMono = (this.audioChannels == 1) ? true : false;
@@ -9,6 +17,83 @@ function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underR
 	this.audioType = -1;
 	this.initializeAudio();
 }
+/*Pass your samples into here!
+Pack your samples as a one-dimenional array
+With the channel samplea packed uniformly.
+examples:
+    mono - [left, left, left, left]
+    stereo - [left, right, left, right, left, right, left, right]
+*/
+XAudioServer.prototype.writeAudio = function (buffer) {
+	if (this.audioType == 0) {
+		//mozAudio:
+		this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(buffer);
+		var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
+		if (samplesRequested > 0) {
+			this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.underRunCallback(samplesRequested));
+		}
+	}
+	else if (this.audioType == 1) {
+		//WebKit Audio:
+		var length = buffer.length;
+		for (var bufferCounter = 0; bufferCounter < length; bufferCounter++) {
+			audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
+			if (bufferEnd == startPosition) {
+				startPosition += this.audioChannels;
+				if (webAudioMaxBufferSize <= startPosition) {
+					startPosition -= webAudioMaxBufferSize;
+				}
+			}
+			else if (bufferEnd == webAudioMaxBufferSize) {
+				bufferEnd = 0;
+			}
+		}
+		var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
+		if (samplesRequested > 0) {
+			buffer = this.underRunCallback(samplesRequested);
+			samplesRequested = buffer.length;
+			for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
+				audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
+				if (bufferEnd == startPosition) {
+					startPosition += this.audioChannels;
+					if (webAudioMaxBufferSize <= startPosition) {
+						startPosition -= webAudioMaxBufferSize;
+					}
+				}
+				else if (bufferEnd == webAudioMaxBufferSize) {
+					bufferEnd = 0;
+				}
+			}
+		}
+	}
+	else if (this.audioType == 2) {
+		//WAV PCM via Data URI:
+		this.sampleCount += buffer.length;
+		if (this.sampleCount >= webAudioMaxBufferSize) {
+			this.audioHandle.outputAudio();
+			this.audioHandle = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
+			this.sampleCount -= webAudioMaxBufferSize;
+		}
+		this.audioHandle.appendBatch(buffer);
+	}
+}
+//Developer can use this to see how many samples to write (example: minimum buffer allotment minus remaining samples left returned from this function to make sure maximum buffering is done...)
+//If -1 is returned, then that means metric could not be done.
+XAudioServer.prototype.remainingBuffer = function () {
+	if (this.audioType == 0) {
+		//mozAudio:
+		return (this.samplesAlreadyWritten + this.audioHandle.mozCurrentSampleOffset());
+	}
+	else if (this.audioType == 1) {
+		//WebKit Audio:
+		return ((startPosition > bufferEnd) ? (webAudioMaxBufferSize - startPosition + bufferEnd) : (bufferEnd - startPosition));
+	}
+	else {
+		//WAV PCM via Data URI:
+		return -1;	//Impossible to do this metric.
+	}
+}
+//DO NOT CALL THIS, the lib calls this internally!
 XAudioServer.prototype.initializeAudio = function () {
 	try {
 		//mozAudio - Synchronous Audio API
@@ -32,60 +117,7 @@ XAudioServer.prototype.initializeAudio = function () {
 		}
 	}
 }
-XAudioServer.prototype.writeAudio = function (buffer) {
-	if (this.audioType == 0) {
-		//mozAudio
-		var sampleOffset = this.audioHandle.mozCurrentSampleOffset();
-		var samplesRequested = webAudioMinBufferSize - this.samplesAlreadyWritten + sampleOffset;
-		this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(buffer);
-		if (samplesRequested > 0) {
-			this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.underRunCallback(samplesRequested));
-		}
-	}
-	else if (this.audioType == 1) {
-		//WebKit Audio:
-		var length = buffer.length;
-		for (var bufferCounter = 0; bufferCounter < length; bufferCounter++) {
-			audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
-			if (bufferEnd == startPosition) {
-				startPosition += this.audioChannels;
-				if (webAudioMaxBufferSize <= startPosition) {
-					startPosition -= webAudioMaxBufferSize;
-				}
-			}
-			else if (bufferEnd == webAudioMaxBufferSize) {
-				bufferEnd = 0;
-			}
-		}
-		var samplesRequested = webAudioMinBufferSize - ((startPosition > bufferEnd) ? (webAudioMaxBufferSize - startPosition + bufferEnd) : (bufferEnd - startPosition));
-		if (samplesRequested > 0) {
-			buffer = this.underRunCallback(samplesRequested);
-			samplesRequested = buffer.length;
-			for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
-				audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
-				if (bufferEnd == startPosition) {
-					startPosition += this.audioChannels;
-					if (webAudioMaxBufferSize <= startPosition) {
-						startPosition -= webAudioMaxBufferSize;
-					}
-				}
-				else if (bufferEnd == webAudioMaxBufferSize) {
-					bufferEnd = 0;
-				}
-			}
-		}
-	}
-	else if (this.audioType == 2) {
-		//WAV PCM via Data URI
-		this.sampleCount += buffer.length;
-		if (this.sampleCount >= webAudioMaxBufferSize) {
-			this.audioHandle.outputAudio();
-			this.audioHandle = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
-			this.sampleCount -= webAudioMaxBufferSize;
-		}
-		this.audioHandle.appendBatch(buffer);
-	}
-}
+/////////END LIB
 //Initialize WebKit Audio Buffer:
 function getFloat32(size) {
 	try {
