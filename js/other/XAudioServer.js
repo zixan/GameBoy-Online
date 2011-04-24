@@ -82,7 +82,7 @@ XAudioServer.prototype.writeAudio = function (buffer) {
 XAudioServer.prototype.remainingBuffer = function () {
 	if (this.audioType == 0) {
 		//mozAudio:
-		return (this.samplesAlreadyWritten + this.audioHandle.mozCurrentSampleOffset());
+		return (this.samplesAlreadyWritten - this.audioHandle.mozCurrentSampleOffset());
 	}
 	else if (this.audioType == 1) {
 		//WebKit Audio:
