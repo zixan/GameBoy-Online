@@ -145,11 +145,8 @@ XAudioServer.prototype.initializeAudio = function () {
 	}
 	catch (error) {
 		if (launchedContext) {
-			resetWebAudioBuffer();
-			resampleAmount = XAudioJSSampleRate / webAudioActualSampleRate;
-			resampleAmountFloor = resampleAmount | 0;
-			resampleAmountRemainder = resampleAmount - resampleAmountFloor;
 			this.audioType = 1;
+			resetWebAudioBuffer();
 		}
 		else {
 			this.audioHandle = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
@@ -208,11 +205,9 @@ function audioOutputEvent(event) {
 			count++;
 		}
 	}
-	if (typeof resampler == "function") {
-		var returned = resampler(buffer1, buffer2, countDown);
-		buffer1 = returned[0];
-		buffer2 = returned[1];
-	}
+	var returned = resampler(buffer1, buffer2, countDown);
+	buffer1 = returned[0];
+	buffer2 = returned[1];
 }
 function downsampler(buffer1, buffer2, countDown) {
 	if (webAudioMono) {
@@ -276,16 +271,31 @@ function upsampler(buffer1, buffer2, countDown) {
 	if (webAudioMono) {
 		//MONO:
 		while (countDown < resamplingRate) {
-			buffer2[countDown | 0] = buffer1[countDown | 0] = audioContextSampleBuffer[startPosition++];
-			countDown += resampleAmount;
+			buffer2[countDown] = buffer1[countDown] = audioContextSampleBuffer[startPosition];
+			startPositionOverflow += resampleAmount;
+			if (startPositionOverflow >= 1) {
+				--startPositionOverflow;
+				++startPosition;
+				if (startPosition == webAudioMaxBufferSize) {
+					startPosition = 0;
+				}
+			}
+			
 		}
 	}
 	else {
 		//STEREO:
 		while (countDown < resamplingRate) {
-			buffer1[countDown | 0] = audioContextSampleBuffer[startPosition++];
-			buffer2[countDown | 0] = audioContextSampleBuffer[startPosition++];
-			countDown += resampleAmount;
+			buffer1[countDown] = audioContextSampleBuffer[startPosition];
+			buffer2[countDown++] = audioContextSampleBuffer[startPosition + 1];
+			startPositionOverflow += resampleAmount;
+			if (startPositionOverflow >= 1) {
+				--startPositionOverflow;
+				startPosition += 2;
+				if (startPosition == webAudioMaxBufferSize) {
+					startPosition = 0;
+				}
+			}
 		}
 	}
 	return [buffer1, buffer2];
@@ -295,6 +305,9 @@ function noresample(buffer1, buffer2, countDown) {
 		//MONO:
 		while (countDown < resamplingRate) {
 			buffer2[countDown] = buffer1[countDown] = audioContextSampleBuffer[startPosition++];
+			if (startPosition == webAudioMaxBufferSize) {
+				startPosition = 0;
+			}
 			countDown++;
 		}
 	}
@@ -303,6 +316,9 @@ function noresample(buffer1, buffer2, countDown) {
 		while (countDown < resamplingRate) {
 			buffer1[countDown] = audioContextSampleBuffer[startPosition++];
 			buffer2[countDown++] = audioContextSampleBuffer[startPosition++];
+			if (startPosition == webAudioMaxBufferSize) {
+				startPosition = 0;
+			}
 		}
 	}
 	return [buffer1, buffer2];
@@ -310,6 +326,9 @@ function noresample(buffer1, buffer2, countDown) {
 //Initialize WebKit Audio Buffer:
 function resetWebAudioBuffer() {
 	if (launchedContext) {
+		resampleAmount = XAudioJSSampleRate / webAudioActualSampleRate;
+		resampleAmountFloor = resampleAmount | 0;
+		resampleAmountRemainder = resampleAmount - resampleAmountFloor;
 		audioContextSampleBuffer = getFloat32(webAudioMaxBufferSize);
 		startPosition = 0;
 		bufferEnd = webAudioMinBufferSize;
