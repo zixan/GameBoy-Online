@@ -5,6 +5,8 @@
 			this.audioHandle = new XAudioServer(2, 70000, 15000, 25000, function (sampleCount) {
 				return parentObj.audioUnderRun(sampleCount);
 			}, -1);
+	
+	The callback is passed the number of samples requested, while it can return any number of samples it wants back.
 */
 function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underRunCallback, defaultValue) {
 	this.audioChannels = (channels >= 1) ? ((channels > 3) ? 2 : Math.floor(channels)) : 1;
@@ -91,6 +93,45 @@ XAudioServer.prototype.remainingBuffer = function () {
 	else {
 		//WAV PCM via Data URI:
 		return -1;	//Impossible to do this metric.
+	}
+}
+//If you just want your callback called for any possible refill (Execution of callback is still conditional):
+XAudioServer.prototype.executeCallback = function () {
+	if (this.audioType == 0) {
+		//mozAudio:
+		var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
+		if (samplesRequested > 0) {
+			this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.underRunCallback(samplesRequested));
+		}
+	}
+	else if (this.audioType == 1) {
+		//WebKit Audio:
+		var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
+		if (samplesRequested > 0) {
+			var buffer = this.underRunCallback(samplesRequested);
+			samplesRequested = buffer.length;
+			for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
+				audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
+				if (bufferEnd == startPosition) {
+					startPosition += this.audioChannels;
+					if (webAudioMaxBufferSize <= startPosition) {
+						startPosition -= webAudioMaxBufferSize;
+					}
+				}
+				else if (bufferEnd == webAudioMaxBufferSize) {
+					bufferEnd = 0;
+				}
+			}
+		}
+	}
+	else if (this.audioType == 2) {
+		//WAV PCM via Data URI:
+		if (this.sampleCount > 0) {
+			//Output the audio immediately, since we can't utilize the callback...
+			this.audioHandle.outputAudio();
+			this.audioHandle = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
+			this.sampleCount = 0;
+		}
 	}
 }
 //DO NOT CALL THIS, the lib calls this internally!
