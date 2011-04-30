@@ -4459,12 +4459,15 @@ GameBoyCore.prototype.ROMLoad = function () {
 	var maxLength = this.ROMImage.length;
 	var romIndex = 0
 	var intIndex = 0;
+	var dirtyCharacter = 0;
 	while (romIndex < maxLength) {
 		dirtyCharacter = this.ROMImage.charCodeAt(romIndex++);
 		if (dirtyCharacter <= 0xFF) {
+			//We got only 8 bits on converting the current character:
 			this.ROM[intIndex++] = dirtyCharacter;
 		}
 		else {
+			//We got 16 bits, so we must have run into a special unicode combo for the current character:
 			this.ROM[intIndex++] = dirtyCharacter >> 8;
 			this.ROM[intIndex++] = dirtyCharacter;
 		}
