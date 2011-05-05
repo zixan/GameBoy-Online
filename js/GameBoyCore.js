@@ -4526,8 +4526,7 @@ GameBoyCore.prototype.ROMLoad = function () {
 	//Load the first two ROM banks (0x0000 - 0x7FFF) into regular gameboy memory:
 	this.ROM = [];
 	this.usedBootROM = settings[16];
-	var romIndex = 0
-	while (var romIndex = 0, maxLength = this.ROMImage.length; romIndex < maxLength; romIndex++) {
+	for (var romIndex = 0, maxLength = this.ROMImage.length; romIndex < maxLength; romIndex++) {
 		this.ROM[romIndex++] = this.ROMImage.charCodeAt(romIndex++) & 0xFF;
 	}
 	maxLength = Math.min(romIndex, 0x8000);
