@@ -4940,6 +4940,15 @@ GameBoyCore.prototype.initSound = function () {
 			this.initAudioBuffer();
 		}
 	}
+	else {
+		//Dummy reset the audio (Just in case we turned it off while running and web audio is enabled):
+		try {
+			this.audioHandle = new XAudioServer(1, 1000, 5000, 20000, function (sampleCount) {
+				return [];
+			}, -1);
+		}
+		catch (error) { }
+	}
 }
 GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioIndex = 0;
