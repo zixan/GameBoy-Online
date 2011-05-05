@@ -4948,8 +4948,8 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.samplesOut = this.sampleSize / this.CPUCyclesPerIteration;
 	cout("...Samples Per machine cycle (Per Channel): " + this.samplesOut, 0);
 	this.numSamplesTotal = this.sampleSize * this.soundChannelsAllocated;
-	this.audioSamples = this.getTypedArray(this.numSamplesTotal, 0, "float32");
-	this.audioBackup = this.getTypedArray(this.numSamplesTotal, 0, "float32");
+	this.audioSamples = this.getTypedArray(this.numSamplesTotal, -1, "float32");
+	this.audioBackup = this.getTypedArray(this.numSamplesTotal, -1, "float32");
 	//Noise Sample Table:
 	var noiseSampleTable = this.getTypedArray(0x80000, 0, "float32");
 	this.noiseSampleTable = noiseSampleTable;
