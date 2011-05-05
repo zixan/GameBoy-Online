@@ -1291,34 +1291,95 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//HALT
 	//#0x76:
 	function (parentObj) {
-		if (parentObj.untilEnable == 1) {
-			/*VBA-M says this fixes Torpedo Range (Seems to work):
-			Involves an edge case where an EI is placed right before a HALT.
-			EI in this case actually is immediate, so we adjust (Hacky?).*/
-			parentObj.programCounter = (parentObj.programCounter - 1) & 0xFFFF;
-		}
-		else {
-			if (!parentObj.halt && !parentObj.IME && !parentObj.cGBC && !parentObj.usedBootROM && (parentObj.memory[0xFF0F] & parentObj.memory[0xFFFF] & 0x1F) > 0) {
-				parentObj.skipPCIncrement = true;
+			if (parentObj.memory[0xFFFF] == 0) {
+				throw(new Error("HALT opcode used with IRQs disabled (Would never get out of HALT)."));
+			}
+			if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x1F) > 0) {
+				//If an IRQ is already going to launch:
+				if (!parentObj.halt && !parentObj.IME && !parentObj.cGBC && !parentObj.usedBootROM) {
+					//HALT bug in the DMG CPU model (Program Counter fails to increment for one instruction after HALT):
+					parentObj.skipPCIncrement = true;
+				}
+				return;
 			}
 			parentObj.halt = true;
-			/*var ticksLeft = parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks;
+			/*var maximumTicksLeft = parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks;
+			var ticksLeft = maximumTicksLeft;
 			if (parentObj.LCDisOn) {
-				if (parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x1) {
-					ticksLeft = Math.min(((Math.max(143 - parentObj.actualScanLine, 0) * 114) - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
+				var VblankTicksLeft = Math.min(((Math.max(143 - parentObj.actualScanLine, 0) * 114) - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
+				if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x1) == 0x1) {
+					ticksLeft = Math.min(VblankTicksLeft, ticksLeft);
 				}
-				if (parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x2) {
-					
+				if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x2) == 0x2) {
+					if (parentObj.mode1TriggerSTAT) {
+						ticksLeft = Math.min(VblankTicksLeft, ticksLeft);
+					}
+					if (parentObj.actualScanLine <= 143) {
+						if (parentObj.mode2TriggerSTAT) {
+							if (parentObj.LCDTicks >= 20) {
+								ticksLeft = Math.min((114 - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
+							}
+							else {
+								ticksLeft = 0;
+							}
+						}
+						if (parentObj.mode0TriggerSTAT) {
+							if (parentObj.LCDTicks < 63) {
+								ticksLeft = Math.min((63 - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
+							}
+							else {
+								ticksLeft = 0;
+							}
+						}
+					}
+					else {
+						var ticksVBlankLeft = Math.min((((154 - parentObj.actualScanLine) * 114) - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
+						if (parentObj.mode2TriggerSTAT) {
+							ticksLeft = Math.min(ticksVBlankLeft, ticksLeft);
+						}
+						if (parentObj.mode0TriggerSTAT) {
+							ticksLeft = Math.min(ticksVBlankLeft + (63 * parentObj.multiplier), ticksLeft);
+						}
+					}
+					if (parentObj.LYCMatchTriggerSTAT) {
+						var LineTicksRemaining = (114 - parentObj.LCDTicks) * parentObj.multiplier;
+						var lines = 154 - parentObj.memory[0xFF45];
+						if (parentObj.memory[0xFF45] == 0) {
+							if (parentObj.memory[0xFF44] == 153) {
+								ticksLeft = Math.min((2 - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
+							}
+							else {
+								ticksLeft = Math.min((lines * 114) * parentObj.multiplier, ticksLeft);
+							}
+						}
+						else {
+							if (parentObj.memory[0xFF44] > parentObj.memory[0xFF45]) {
+								ticksLeft = Math.min(((((154 - parentObj.memory[0xFF44]) + parentObj.memory[0xFF45]) * 114) - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
+							}
+							else {
+								ticksLeft = Math.min((((parentObj.memory[0xFF45] - parentObj.memory[0xFF44]) * 114) - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
+							}
+						}
+					}
 				}
 			}
-			if (parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x4) {
+			if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x4) == 0x4) {
 				if (parentObj.TIMAEnabled) {
-					ticksLeft = Math.min(((0xFF - parentObj.memory[0xFF05]) * TACClocker) + Math.max(parentObj.TACClocker - parentObj.timerTicks, 0), ticksLeft);
+					ticksLeft = Math.min(((0xFF - parentObj.memory[0xFF05]) * parentObj.TACClocker) + Math.max(parentObj.TACClocker - parentObj.timerTicks, 0), ticksLeft);
 				}
+			}
+			parentObj.CPUTicks += ticksLeft;
+			if (maximumTicksLeft == ticksLeft) {
+				parentObj.halt = true;
+				parentObj.updateCore();
+				throw(new Error("HALT_OVERRUN"));		//Throw an error on purpose to exit out of the loop.
+			}
+			else {
+				parentObj.halt = false;
 			}*/
 			while (parentObj.halt && (parentObj.stopEmulator & 1) == 0) {
-				/*We're hijacking the main interpreter loop to do this dirty business
-				in order to not slow down the main interpreter loop code with halt state handling.*/
+				//We're hijacking the main interpreter loop to do this dirty business
+				//in order to not slow down the main interpreter loop code with halt state handling.
 				var bitShift = 0;
 				var testbit = 1;
 				var interrupts = parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F];
@@ -1334,8 +1395,6 @@ GameBoyCore.prototype.OPCODE = new Array(
 				//Timing:
 				parentObj.updateCore();
 			}
-			throw(new Error("HALT_OVERRUN"));		//Throw an error on purpose to exit out of the loop.
-		}
 	},
 	//LD (HL), A
 	//#0x77:
@@ -2213,8 +2272,13 @@ GameBoyCore.prototype.OPCODE = new Array(
 	function (parentObj) {
 		parentObj.programCounter = (parentObj.memoryRead((parentObj.stackPointer + 1) & 0xFFFF) << 8) | parentObj.memoryReader[parentObj.stackPointer](parentObj, parentObj.stackPointer);
 		parentObj.stackPointer = (parentObj.stackPointer + 2) & 0xFFFF;
-		//parentObj.IME = true;
-		parentObj.untilEnable = 2;
+		if (parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) == 0x76) {
+			//Immediate for HALT:
+			parentObj.IME = true;
+		}
+		else {
+			parentObj.untilEnable = 2;
+		}
 	},
 	//JP FC, nn
 	//#0xDA:
@@ -2472,7 +2536,13 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//EI
 	//#0xFB:
 	function (parentObj) {
-		parentObj.untilEnable = 2;
+		if (parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) == 0x76) {
+			//Immediate for HALT:
+			parentObj.IME = true;
+		}
+		else {
+			parentObj.untilEnable = 2;
+		}
 	},
 	//0xFC - Illegal
 	//#0xFC:
@@ -4456,29 +4526,17 @@ GameBoyCore.prototype.ROMLoad = function () {
 	//Load the first two ROM banks (0x0000 - 0x7FFF) into regular gameboy memory:
 	this.ROM = [];
 	this.usedBootROM = settings[16];
-	var maxLength = this.ROMImage.length;
 	var romIndex = 0
-	var intIndex = 0;
-	var dirtyCharacter = 0;
-	while (romIndex < maxLength) {
-		dirtyCharacter = this.ROMImage.charCodeAt(romIndex++);
-		if (dirtyCharacter <= 0xFF) {
-			//We got only 8 bits on converting the current character:
-			this.ROM[intIndex++] = dirtyCharacter;
-		}
-		else {
-			//We got 16 bits, so we must have run into a special unicode combo for the current character:
-			this.ROM[intIndex++] = dirtyCharacter >> 8;
-			this.ROM[intIndex++] = dirtyCharacter;
-		}
+	while (var romIndex = 0, maxLength = this.ROMImage.length; romIndex < maxLength; romIndex++) {
+		this.ROM[romIndex++] = this.ROMImage.charCodeAt(romIndex++) & 0xFF;
 	}
-	maxLength = Math.min(intIndex, 0x8000);
-	for (intIndex = 0; intIndex < maxLength; intIndex++) {
-		if (!this.usedBootROM || intIndex >= 0x900 || (intIndex >= 0x100 && intIndex < 0x200)) {
-			this.memory[intIndex] = this.ROM[intIndex];		//Load in the game ROM.
+	maxLength = Math.min(romIndex, 0x8000);
+	for (romIndex = 0; romIndex < maxLength; romIndex++) {
+		if (!this.usedBootROM || romIndex >= 0x900 || (romIndex >= 0x100 && romIndex < 0x200)) {
+			this.memory[romIndex] = this.ROM[romIndex];		//Load in the game ROM.
 		}
 		else {
-			this.memory[intIndex] = this.GBCBOOTROM[intIndex];	//Load in the GameBoy Color BOOT ROM.
+			this.memory[romIndex] = this.GBCBOOTROM[romIndex];	//Load in the GameBoy Color BOOT ROM.
 		}
 	}
 	if (!settings[22]) {
@@ -5864,7 +5922,7 @@ GameBoyCore.prototype.renderScanLine = function () {
 	this.currentX = 0;
 }
 GameBoyCore.prototype.renderMidScanLine = function () {
-	if (this.modeSTAT == 3 && (settings[4] == 0 || this.frameCount > 0)) {
+	if (this.actualScanLine < 144 && this.modeSTAT == 3 && (settings[4] == 0 || this.frameCount > 0)) {
 		var pixelEnd = (160 * Math.min((this.LCDTicks - 20) / 43, 1)) | 0;
 		if (this.bgEnabled) {
 			this.pixelStart = this.actualScanLine * 160;
