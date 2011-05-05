@@ -4527,7 +4527,7 @@ GameBoyCore.prototype.ROMLoad = function () {
 	this.ROM = [];
 	this.usedBootROM = settings[16];
 	for (var romIndex = 0, maxLength = this.ROMImage.length; romIndex < maxLength; romIndex++) {
-		this.ROM[romIndex++] = this.ROMImage.charCodeAt(romIndex++) & 0xFF;
+		this.ROM[romIndex] = (this.ROMImage.charCodeAt(romIndex) & 0xFF);
 	}
 	maxLength = Math.min(romIndex, 0x8000);
 	for (romIndex = 0; romIndex < maxLength; romIndex++) {
