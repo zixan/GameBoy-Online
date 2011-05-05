@@ -165,7 +165,7 @@ function getFloat32(size) {
 		var newBuffer = new Array(size);
 	}
 	for (var audioSampleIndice = 0; audioSampleIndice < size; audioSampleIndice++) {
-		//Initialize to zero:
+		//Initialize to the developer set normal:
 		newBuffer[audioSampleIndice] = defaultNeutralValue;
 	}
 	return newBuffer;
