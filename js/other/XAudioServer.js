@@ -272,6 +272,7 @@ function upsampler(buffer1, buffer2, countDown) {
 		//MONO:
 		while (countDown < resamplingRate) {
 			buffer2[countDown] = buffer1[countDown] = audioContextSampleBuffer[startPosition];
+			countDown++;
 			startPositionOverflow += resampleAmount;
 			if (startPositionOverflow >= 1) {
 				--startPositionOverflow;
