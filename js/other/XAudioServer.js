@@ -146,12 +146,21 @@ XAudioServer.prototype.initializeAudio = function () {
 		//mozAudio - Synchronous Audio API
 		this.audioHandle = new Audio();
 		this.audioHandle.mozSetup(this.audioChannels, XAudioJSSampleRate);
-		this.samplesAlreadyWritten = this.audioHandle.mozWriteAudio(getFloat32(webAudioMinBufferSize));
+		this.samplesAlreadyWritten = 0;
 		var emptySampleFrame = (this.audioChannels == 2) ? [defaultNeutralValue, defaultNeutralValue] : [defaultNeutralValue];
+		var prebufferAmount = 0;
 		while (this.audioHandle.mozCurrentSampleOffset() == 0) {
 			//Mozilla Audio Bugginess Workaround (Firefox freaks out if we don't give it a prebuffer under certain OSes):
+			prebufferAmount += this.audioHandle.mozWriteAudio(emptySampleFrame);
+		}
+		var samplesToDoubleBuffer = prebufferAmount / this.audioChannels;
+		//Double the prebuffering for windows:
+		for (var index = 0; index < samplesToDoubleBuffer; index++) {
 			this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(emptySampleFrame);
 		}
+		this.samplesAlreadyWritten += prebufferAmount + this.audioHandle.mozWriteAudio(getFloat32(webAudioMinBufferSize));
+		//alert("Samples buffered on initialization: " + this.samplesAlreadyWritten + "\r\nPrebuffer: " + prebufferAmount);
+		webAudioMinBufferSize += prebufferAmount << 1;
 		this.audioType = 0;
 	}
 	catch (error) {
