@@ -14,7 +14,7 @@ var settings = [						//Some settings.
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
 	false,								//Try WebGL rendering?
 	10,									//Frameskip base factor
-	null,								//TODO: Update the indices to remove this.
+	false,								//Enable the software scaling algorithm to be compiled through JIT.
 	70000,								//Sample Rate
 	0x10,								//How many bits per WAV PCM sample (For browsers that fall back to WAV PCM generation)
 	true,								//Use the GBC BIOS?

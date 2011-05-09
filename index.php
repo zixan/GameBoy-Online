@@ -284,6 +284,16 @@ catch (error) {
 		$this->startElement('div');
 		$this->writeAttribute('class', 'setting');
 		$this->startElement('span');
+		$this->text('JIT the rescaling algorithm:');
+		$this->endElement();
+		$this->startElement('input');
+		$this->writeAttribute('type', 'checkbox');
+		$this->writeAttribute('id', 'resizing_jit');
+		$this->endElement();
+		$this->endElement();
+		$this->startElement('div');
+		$this->writeAttribute('class', 'setting');
+		$this->startElement('span');
 		$this->text('Disallow typed arrays to be used:');
 		$this->endElement();
 		$this->startElement('input');

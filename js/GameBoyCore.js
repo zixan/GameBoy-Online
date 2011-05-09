@@ -4840,7 +4840,7 @@ GameBoyCore.prototype.MBCRAMUtilized = function () {
 }
 GameBoyCore.prototype.initLCD = function () {
 	this.scaledFrameBuffer = this.getTypedArray(this.pixelCount, 0, "int32");	//Used for software side scaling...
-	//this.compileResizeFrameBufferFunction();
+	this.compileResizeFrameBufferFunction();
 	try {
 		window.mozRequestAnimationFrame();
 		this.asyncDrawSupportDetected = 1;
@@ -5894,39 +5894,44 @@ GameBoyCore.prototype.drawToCanvas = function () {
 		this.frameCount += settings[12];
 	}
 }
-/*GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
+GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 	//Attempt to resize the canvas in software instead of in CSS:
-	var column = 0;
-	var columnOffset = 0;
-	var heightRatio = this.heightRatio;
-	var widthRatio = this.widthRatio;
-	var height = this.height;
-	var width = this.width;
-	var ResizeFunction = "var t = this.scaledFrameBuffer;var o = this.frameBuffer;";
-	for (var row = 0, rowOffset = 0, pixelOffset = 0; row < height; row++, rowOffset = ((row * heightRatio) | 0) * 160) {
-		for (column = 0, columnOffset = 0; column < width; column++, columnOffset += widthRatio) {
-			ResizeFunction += "t[" + (pixelOffset++) + "] = o[" + (rowOffset + (columnOffset | 0)) + "];";
+	if (settings[13]) {
+		//JIT version:
+		var column = 0;
+		var columnOffset = 0;
+		var heightRatio = this.heightRatio;
+		var widthRatio = this.widthRatio;
+		var height = this.height;
+		var width = this.width;
+		var ResizeFunction = "var t = this.scaledFrameBuffer;var o = this.frameBuffer;";
+		for (var row = 0, rowOffset = 0, pixelOffset = 0; row < height; row++, rowOffset = ((row * heightRatio) | 0) * 160) {
+			for (column = 0, columnOffset = 0; column < width; column++, columnOffset += widthRatio) {
+				ResizeFunction += "t[" + (pixelOffset++) + "] = o[" + (rowOffset + (columnOffset | 0)) + "];";
+			}
+		}
+		ResizeFunction += "return t;";
+		this.resizeFrameBuffer = new Function(ResizeFunction);
+	}
+	else {
+		//Runtime sesolving version:
+		this.resizeFrameBuffer = function () {
+			var column = 0;
+			var columnOffset = 0;
+			var targetFB = this.scaledFrameBuffer;
+			var originalFB = this.frameBuffer;
+			var heightRatio = this.heightRatio;
+			var widthRatio = this.widthRatio;
+			var height = this.height;
+			var width = this.width;
+			for (var row = 0, rowOffset = 0, pixelOffset = 0; row < height; row++, rowOffset = ((row * heightRatio) | 0) * 160) {
+				for (column = 0, columnOffset = 0; column < width; column++, columnOffset += widthRatio) {
+					targetFB[pixelOffset++] = originalFB[rowOffset + (columnOffset | 0)];
+				}
+			}
+			return targetFB;
 		}
 	}
-	ResizeFunction += "return t;";
-	this.resizeFrameBuffer = new Function(ResizeFunction);
-}*/
-GameBoyCore.prototype.resizeFrameBuffer = function () {
-	//Attempt to resize the canvas in software instead of in CSS:
-	var column = 0;
-	var columnOffset = 0;
-	var targetFB = this.scaledFrameBuffer;
-	var originalFB = this.frameBuffer;
-	var heightRatio = this.heightRatio;
-	var widthRatio = this.widthRatio;
-	var height = this.height;
-	var width = this.width;
-	for (var row = 0, rowOffset = 0, pixelOffset = 0; row < height; row++, rowOffset = ((row * heightRatio) | 0) * 160) {
-		for (column = 0, columnOffset = 0; column < width; column++, columnOffset += widthRatio) {
-			targetFB[pixelOffset++] = originalFB[rowOffset + (columnOffset | 0)];
-		}
-	}
-	return targetFB;
 }
 GameBoyCore.prototype.renderScanLine = function () {
 	this.spriteCount = 63;		//Reset the extra clocking for STAT mode 3.

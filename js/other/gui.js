@@ -277,6 +277,13 @@ function registerGUIEvents() {
 			gameboy.initLCD();
 		}
 	});
+	addEvent("click", document.getElementById("resizing_jit"), function () {
+		settings[13] = document.getElementById("resizing_jit").checked;
+		if (typeof gameboy == "object" && gameboy != null && !gameboy.canvasFallbackHappened) {
+			initNewCanvasSize();
+			gameboy.initLCD();
+		}
+	});
 	addEvent("click", document.getElementById("typed_arrays_disallow"), function () {
 		settings[22] = document.getElementById("typed_arrays_disallow").checked;
 	});
