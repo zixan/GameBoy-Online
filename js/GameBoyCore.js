@@ -135,8 +135,8 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.leftChannel = this.ArrayPad(4, false);	//Which channels are enabled for left side stereo / mono?
 	this.rightChannel = this.ArrayPad(4, false);//Which channels are enabled for right side stereo?
 	//Current Samples Being Computed:
-	this.currentSampleLeft = -1;
-	this.currentSampleRight = -1;
+	this.currentSampleLeft = 0;
+	this.currentSampleRight = 0;
 	this.channel3Tracker = 0;
 	//Pre-multipliers to cache some calculations:
 	this.initializeTiming();

@@ -72,6 +72,12 @@ XAudioServer.prototype.writeAudio = function (buffer) {
 		//WAV PCM via Data URI:
 		this.sampleCount += buffer.length;
 		if (this.sampleCount >= webAudioMaxBufferSize) {
+			var silenceLength = Math.round(this.audioChannels * XAudioJSSampleRate / 2);
+			var silenceBuffer = new Array(silenceLength);
+			for (var index = 0; index < silenceLength; index++) {
+				silenceBuffer[index] = defaultNeutralValue;
+			}
+			this.audioHandle.appendBatch(silenceBuffer);	//Try to dampen the unavoidable clicking by padding with the set neutral.
 			this.audioHandle.outputAudio();
 			this.audioHandle = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
 			this.sampleCount -= webAudioMaxBufferSize;
@@ -141,6 +147,11 @@ XAudioServer.prototype.initializeAudio = function () {
 		this.audioHandle = new Audio();
 		this.audioHandle.mozSetup(this.audioChannels, XAudioJSSampleRate);
 		this.samplesAlreadyWritten = this.audioHandle.mozWriteAudio(getFloat32(webAudioMinBufferSize));
+		var emptySampleFrame = (this.audioChannels == 2) ? [defaultNeutralValue, defaultNeutralValue] : [defaultNeutralValue];
+		while (this.audioHandle.mozCurrentSampleOffset() == 0) {
+			//Mozilla Audio Bugginess Workaround (Firefox freaks out if we don't give it a prebuffer under certain OSes):
+			this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(emptySampleFrame);
+		}
 		this.audioType = 0;
 	}
 	catch (error) {
@@ -165,8 +176,9 @@ function getFloat32(size) {
 		var newBuffer = new Array(size);
 	}
 	for (var audioSampleIndice = 0; audioSampleIndice < size; audioSampleIndice++) {
-		//Initialize to the developer set normal:
-		newBuffer[audioSampleIndice] = defaultNeutralValue;
+		//Create a gradual neutral position shift here to make sure we don't cause annoying clicking noises
+		//when the developer set neutral position is not 0.
+		newBuffer[audioSampleIndice] = defaultNeutralValue * (audioSampleIndice / size);
 	}
 	return newBuffer;
 }
