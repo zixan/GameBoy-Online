@@ -5914,7 +5914,7 @@ GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 		this.resizeFrameBuffer = new Function(ResizeFunction);
 	}
 	else {
-		//Runtime sesolving version:
+		//Runtime resolving version:
 		this.resizeFrameBuffer = function () {
 			var column = 0;
 			var columnOffset = 0;
