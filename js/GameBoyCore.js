@@ -7468,8 +7468,9 @@ GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 	//Destination address in the VRAM memory range:
 	var destination = (this.memory[0xFF53] << 8) | this.memory[0xFF54];
 	//Initialization:
-	var data = 0;
-	var tile = 0;
+	var dataRead = 0;
+	var tileTarget = 0;
+	var bytesToTransfer = tilesToTransfer << 4;
 	//Creating some references:
 	var tileCacheValid = this.tileCacheValid;
 	var memoryReader = this.memoryReader;
@@ -7477,37 +7478,43 @@ GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 	//Determining which bank we're working on so we can optimize:
 	if (this.currVRAMBank == 0) {
 		//DMA transfer for VRAM bank 0:
-		for (var bytesToTransfer = tilesToTransfer << 4; bytesToTransfer > 0; bytesToTransfer--, source = (source + 1) & 0xFFFF, destination++) {
+		while (bytesToTransfer > 0) {
 			if (destination < 0x1800) {
-				data = memoryReader[source](this, source);
-				if (memory[0x8000 | destination] != data) {
-					memory[0x8000 | destination] = data;
-					tile = destination >> 4;
-					tileCacheValid[tile] = tileCacheValid[0x400 | tile] = tileCacheValid[0x800 | tile] = tileCacheValid[0xC00 | tile] = 0;
+				dataRead = memoryReader[source](this, source);
+				if (memory[0x8000 | destination] != dataRead) {
+					memory[0x8000 | destination] = dataRead;
+					tileTarget = destination >> 4;
+					tileCacheValid[tileTarget] = tileCacheValid[0x400 | tileTarget] = tileCacheValid[0x800 | tileTarget] = tileCacheValid[0xC00 | tileTarget] = 0;
 				}
+				destination++;
 			}
 			else {
 				this.BGCHRBank1[destination & 0x7FF] = memoryReader[source](this, source);
-				destination &= 0x1FFF;
+				destination = ((destination + 1) & 0x1FFF);
 			}
+			source = (source + 1) & 0xFFFF;
+			bytesToTransfer--;
 		}
 	}
 	else {
 		var VRAM = this.VRAM;
 		//DMA transfer for VRAM bank 1:
-		for (var bytesToTransfer = tilesToTransfer << 4; bytesToTransfer > 0; bytesToTransfer--, source = (source + 1) & 0xFFFF, destination++) {
+		while (bytesToTransfer > 0) {
 			if (destination < 0x1800) {
-				data = memoryReader[source](this, source);
-				if (VRAM[destination] != data) {
-					VRAM[destination] = data;
-					tile = destination >> 4;
-					tileCacheValid[0x200 | tile] = tileCacheValid[0x600 | tile] = tileCacheValid[0xA00 | tile] = tileCacheValid[0xE00 | tile] = 0;
+				dataRead = memoryReader[source](this, source);
+				if (VRAM[destination] != dataRead) {
+					VRAM[destination] = dataRead;
+					tileTarget = destination >> 4;
+					tileCacheValid[0x200 | tileTarget] = tileCacheValid[0x600 | tileTarget] = tileCacheValid[0xA00 | tileTarget] = tileCacheValid[0xE00 | tileTarget] = 0;
 				}
+				destination++;
 			}
 			else {
 				this.BGCHRBank2[destination & 0x7FF] = memoryReader[source](this, source);
-				destination &= 0x1FFF;
+				destination = ((destination + 1) & 0x1FFF);
 			}
+			source = (source + 1) & 0xFFFF;
+			bytesToTransfer--;
 		}
 	}
 	//Update the HDMA registers to their next addresses:
