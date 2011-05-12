@@ -1395,6 +1395,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 				//Timing:
 				parentObj.updateCore();
 			}
+			throw(new Error("HALT_OVERRUN"));		//Throw an error on purpose to exit out of the loop.
 	},
 	//LD (HL), A
 	//#0x77:
