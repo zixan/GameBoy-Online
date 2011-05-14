@@ -831,14 +831,13 @@ GameBoyCore.prototype.OPCODE = new Array(
 		}
 		if (parentObj.FHalfCarry) {
 			temp_var |= 0x200;
+			parentObj.FHalfCarry = false;
 		}
 		if (parentObj.FSubtract) {
 			temp_var |= 0x400;
 		}
 		parentObj.registerA = (temp_var = parentObj.DAATable[temp_var]) >> 8;
 		parentObj.FZero = ((temp_var & 0x80) == 0x80);
-		parentObj.FSubtract = ((temp_var & 0x40) == 0x40);
-		parentObj.FHalfCarry = ((temp_var & 0x20) == 0x20);
 		parentObj.FCarry = ((temp_var & 0x10) == 0x10);
 	},
 	//JR Z, n
@@ -4388,6 +4387,9 @@ GameBoyCore.prototype.start = function () {
 	this.initLCD();		//Initialize the graphics.
 	this.initSound();	//Sound object initialization.
 	this.run();			//Start the emulation.
+}
+GameBoyCore.prototype.generateDAA = function () {
+	
 }
 GameBoyCore.prototype.convertAuxilliary = function () {
 	try {
