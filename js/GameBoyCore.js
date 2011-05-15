@@ -856,7 +856,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	function (parentObj) {;
 		parentObj.FHalfCarry = ((parentObj.registersHL & 0xFFF) > 0x7FF);
 		parentObj.FCarry = (parentObj.registersHL > 0x7FFF);
-		parentObj.registersHL = ((2 * parentObj.registersHL) & 0xFFFF);
+		parentObj.registersHL = ((parentObj.registersHL << 1) & 0xFFFF);
 		parentObj.FSubtract = false;
 	},
 	//LDI A, (HL)
@@ -1516,7 +1516,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	function (parentObj) {
 		parentObj.FHalfCarry = ((parentObj.registerA & 0x8) == 0x8);
 		parentObj.FCarry = (parentObj.registerA > 0x7F);
-		parentObj.registerA = (parentObj.registerA * 2) & 0xFF;
+		parentObj.registerA = (parentObj.registerA << 1) & 0xFF;
 		parentObj.FZero = (parentObj.registerA == 0);
 		parentObj.FSubtract = false;
 	},
@@ -4389,7 +4389,7 @@ GameBoyCore.prototype.start = function () {
 	this.run();			//Start the emulation.
 }
 GameBoyCore.prototype.generateDAA = function () {
-	
+	this.DAATable = new Uint16Array(0x4000);
 }
 GameBoyCore.prototype.convertAuxilliary = function () {
 	try {
