@@ -705,18 +705,16 @@ GameBoyCore.prototype.OPCODE = new Array(
 				parentObj.FHalfCarry = false;
 			}
 		}
-		else {
-			if (parentObj.FCarry && parentObj.FHalfCarry) {
-				parentObj.registerA = ((parentObj.registerA + 0x9A) & 0xFF);
-				parentObj.FHalfCarry = false;
-			}
-			else if (parentObj.FCarry) {
-				parentObj.registerA = ((parentObj.registerA + 0xA0) & 0xFF);
-			}
-			else if (parentObj.FHalfCarry) {
-				parentObj.registerA = ((parentObj.registerA + 0xFA) & 0xFF);
-				parentObj.FHalfCarry = false;
-			}
+		else if (parentObj.FCarry && parentObj.FHalfCarry) {
+			parentObj.registerA = ((parentObj.registerA + 0x9A) & 0xFF);
+			parentObj.FHalfCarry = false;
+		}
+		else if (parentObj.FCarry) {
+			parentObj.registerA = ((parentObj.registerA + 0xA0) & 0xFF);
+		}
+		else if (parentObj.FHalfCarry) {
+			parentObj.registerA = ((parentObj.registerA + 0xFA) & 0xFF);
+			parentObj.FHalfCarry = false;
 		}
 		parentObj.FZero = (parentObj.registerA == 0);
 	},
