@@ -8114,9 +8114,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.mode1TriggerSTAT = ((data & 0x10) == 0x10);
 			parentObj.mode0TriggerSTAT = ((data & 0x08) == 0x08);
 			parentObj.memory[0xFF41] = (data & 0xF8);
-			/*if (!parentObj.usedBootROM && parentObj.LCDisOn && parentObj.modeSTAT < 2) {
+			if (!parentObj.usedBootROM && parentObj.LCDisOn && parentObj.modeSTAT < 2) {
 				parentObj.memory[0xFF0F] |= 0x2;
-			}*/
+			}
 		}
 		this.memoryWriter[0xFF46] = function (parentObj, address, data) {
 			parentObj.memory[0xFF46] = data;
