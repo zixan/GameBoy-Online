@@ -5614,6 +5614,7 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 		var index2 = this.rgbCount;
 		var canvasData = this.canvasBuffer.data;
 		if (this.cGBC || (this.usedBootROM && settings[17])) {
+			//CGB or DMG-in-CGB colorization:
 			while (index > 0) {
 				this.frameBuffer[--index] = 0xF8F8F8;
 			}
@@ -5624,12 +5625,13 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 			}
 		}
 		else {
+			//Classic DMG colorization:
 			while (index > 0) {
 				this.frameBuffer[--index] = 0xEFFFDE;
 			}
 			while (index2 > 0) {
 				canvasData[index2 -= 4] = 0xEF;
-				canvasData[index2 + 1] = 0xFFF;
+				canvasData[index2 + 1] = 0xFF;
 				canvasData[index2 + 2] = 0xDE;
 			}
 		}
