@@ -1168,9 +1168,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//HALT
 	//#0x76:
 	function (parentObj) {
-			if (parentObj.memory[0xFFFF] == 0) {
-				throw(new Error("HALT opcode used with IRQs disabled (Would never get out of HALT)."));
-			}
+			//See if we're taking an interrupt already:
 			if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x1F) > 0) {
 				//If an IRQ is already going to launch:
 				if (!parentObj.halt && !parentObj.IME && !parentObj.cGBC && !parentObj.usedBootROM) {
@@ -1179,87 +1177,15 @@ GameBoyCore.prototype.OPCODE = new Array(
 				}
 				return;
 			}
+			//Prepare the HALT run loop:
 			parentObj.halt = true;
-			/*var maximumTicksLeft = parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks;
-			var ticksLeft = maximumTicksLeft;
-			if (parentObj.LCDisOn) {
-				var VblankTicksLeft = Math.min(((Math.max(143 - parentObj.actualScanLine, 0) * 114) - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
-				if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x1) == 0x1) {
-					ticksLeft = Math.min(VblankTicksLeft, ticksLeft);
-				}
-				if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x2) == 0x2) {
-					if (parentObj.mode1TriggerSTAT) {
-						ticksLeft = Math.min(VblankTicksLeft, ticksLeft);
-					}
-					if (parentObj.actualScanLine <= 143) {
-						if (parentObj.mode2TriggerSTAT) {
-							if (parentObj.LCDTicks >= 20) {
-								ticksLeft = Math.min((114 - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
-							}
-							else {
-								ticksLeft = 0;
-							}
-						}
-						if (parentObj.mode0TriggerSTAT) {
-							if (parentObj.LCDTicks < 63) {
-								ticksLeft = Math.min((63 - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
-							}
-							else {
-								ticksLeft = 0;
-							}
-						}
-					}
-					else {
-						var ticksVBlankLeft = Math.min((((154 - parentObj.actualScanLine) * 114) - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
-						if (parentObj.mode2TriggerSTAT) {
-							ticksLeft = Math.min(ticksVBlankLeft, ticksLeft);
-						}
-						if (parentObj.mode0TriggerSTAT) {
-							ticksLeft = Math.min(ticksVBlankLeft + (63 * parentObj.multiplier), ticksLeft);
-						}
-					}
-					if (parentObj.LYCMatchTriggerSTAT) {
-						var LineTicksRemaining = (114 - parentObj.LCDTicks) * parentObj.multiplier;
-						var lines = 154 - parentObj.memory[0xFF45];
-						if (parentObj.memory[0xFF45] == 0) {
-							if (parentObj.memory[0xFF44] == 153) {
-								ticksLeft = Math.min((2 - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
-							}
-							else {
-								ticksLeft = Math.min((lines * 114) * parentObj.multiplier, ticksLeft);
-							}
-						}
-						else {
-							if (parentObj.memory[0xFF44] > parentObj.memory[0xFF45]) {
-								ticksLeft = Math.min(((((154 - parentObj.memory[0xFF44]) + parentObj.memory[0xFF45]) * 114) - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
-							}
-							else {
-								ticksLeft = Math.min((((parentObj.memory[0xFF45] - parentObj.memory[0xFF44]) * 114) - parentObj.LCDTicks) * parentObj.multiplier, ticksLeft);
-							}
-						}
-					}
-				}
-			}
-			if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x4) == 0x4) {
-				if (parentObj.TIMAEnabled) {
-					ticksLeft = Math.min(((0xFF - parentObj.memory[0xFF05]) * parentObj.TACClocker) + Math.max(parentObj.TACClocker - parentObj.timerTicks, 0), ticksLeft);
-				}
-			}
-			parentObj.CPUTicks += ticksLeft;
-			if (maximumTicksLeft == ticksLeft) {
-				parentObj.halt = true;
-				parentObj.updateCore();
-				throw(new Error("HALT_OVERRUN"));		//Throw an error on purpose to exit out of the loop.
-			}
-			else {
-				parentObj.halt = false;
-			}*/
+			var bitShift = 0;
+			var testbit = 1;
+			var interrupts = parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F];
+			//Loop until we throw an interrupt (Masking irrelevant) or we've clocked out for this iteration:
 			while (parentObj.halt && (parentObj.stopEmulator & 1) == 0) {
 				//We're hijacking the main interpreter loop to do this dirty business
 				//in order to not slow down the main interpreter loop code with halt state handling.
-				var bitShift = 0;
-				var testbit = 1;
-				var interrupts = parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F];
 				while (bitShift < 5) {
 					//Check to see if an interrupt is enabled AND requested.
 					if ((testbit & interrupts) == testbit) {
@@ -1271,6 +1197,10 @@ GameBoyCore.prototype.OPCODE = new Array(
 				parentObj.CPUTicks = 1;				//1 machine cycle under HALT...
 				//Timing:
 				parentObj.updateCore();
+				//Set up for the next iteration:
+				bitShift = 0;
+				testbit = 1;
+				interrupts = parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F];
 			}
 			throw(new Error("HALT_OVERRUN"));		//Throw an error on purpose to exit out of the loop.
 	},
