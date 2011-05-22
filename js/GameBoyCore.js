@@ -5613,13 +5613,25 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 		var index = 23040;
 		var index2 = this.rgbCount;
 		var canvasData = this.canvasBuffer.data;
-		while (index > 0) {
-			this.frameBuffer[--index] = 0xF8F8F8;
+		if (this.cGBC || (this.usedBootROM && settings[17])) {
+			while (index > 0) {
+				this.frameBuffer[--index] = 0xF8F8F8;
+			}
+			while (index2 > 0) {
+				canvasData[index2 -= 4] = 0xF8;
+				canvasData[index2 + 1] = 0xF8;
+				canvasData[index2 + 2] = 0xF8;
+			}
 		}
-		while (index2 > 0) {
-			canvasData[index2 -= 4] = 0xF8;
-			canvasData[index2 + 1] = 0xF8;
-			canvasData[index2 + 2] = 0xF8;
+		else {
+			while (index > 0) {
+				this.frameBuffer[--index] = 0xEFFFDE;
+			}
+			while (index2 > 0) {
+				canvasData[index2 -= 4] = 0xEF;
+				canvasData[index2 + 1] = 0xFFF;
+				canvasData[index2 + 2] = 0xDE;
+			}
 		}
 		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 		this.drewBlank = 2;
