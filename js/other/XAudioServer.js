@@ -107,7 +107,13 @@ XAudioServer.prototype.executeCallback = function () {
 		//mozAudio:
 		var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
 		if (samplesRequested > 0) {
-			this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.underRunCallback(samplesRequested));
+			var samplesOutputted = this.underRunCallback(samplesRequested);
+			var samplesAccepted = this.audioHandle.mozWriteAudio(samplesOutputted);
+			this.samplesAlreadyWritten += samplesAccepted;
+			if (samplesOutputted.length > samplesAccepted) {
+				//Make the buffering lower if we outputted too many samples:
+				webAudioMinBufferSize -= samplesOutputted.length - samplesAccepted;
+			}
 		}
 	}
 	else if (this.audioType == 1) {
