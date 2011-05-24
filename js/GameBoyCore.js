@@ -5882,7 +5882,7 @@ GameBoyCore.prototype.BGGBLayerRender = function (pixelEnd) {
 	var tileYDown = this.gfxBackgroundCHRBankPosition | ((scrollYAdjusted & 0xF8) << 2);	//The row of cached tiles we're fetching from.
 	var scrollXAdjusted = (this.memory[0xFF43] + this.currentX) & 0xFF;						//The scroll amount of the BG.
 	var pixelPosition = this.pixelStart + this.currentX;									//Current pixel we're working on.
-	var pixelPositionEnd = (this.gfxWindowDisplay && (this.actualScanLine - this.windowY) >= 0) ? Math.min(this.windowX + this.currentX, this.pixelStart + pixelEnd) : (this.pixelStart + pixelEnd);	//Make sure we do at most 160 pixels a scanline.
+	var pixelPositionEnd = this.pixelStart + (this.gfxWindowDisplay && (this.actualScanLine - this.windowY) >= 0) ? Math.min(this.windowX + this.currentX, pixelEnd) : pixelEnd;	//Make sure we do at most 160 pixels a scanline.
 	var tileNumber = (tileYDown + (scrollXAdjusted / 8)) | 0;
 	var chrCode = this.BGCHRBank1[tileNumber];
 	if (chrCode < this.gfxBackgroundBankOffset) {
@@ -5955,7 +5955,7 @@ GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
 	var tileYDown = this.gfxBackgroundCHRBankPosition | ((scrollYAdjusted & 0xF8) << 2);	//The row of cached tiles we're fetching from.
 	var scrollXAdjusted = (this.memory[0xFF43] + this.currentX) & 0xFF;						//The scroll amount of the BG.
 	var pixelPosition = this.pixelStart + this.currentX;									//Current pixel we're working on.
-	var pixelPositionEnd = (this.gfxWindowDisplay && (this.actualScanLine - this.windowY) >= 0) ? Math.min(this.windowX + this.currentX, this.pixelStart + pixelEnd) : (this.pixelStart + pixelEnd);	//Make sure we do at most 160 pixels a scanline.
+	var pixelPositionEnd = this.pixelStart + (this.gfxWindowDisplay && (this.actualScanLine - this.windowY) >= 0) ? Math.min(this.windowX + this.currentX, pixelEnd) : pixelEnd;	//Make sure we do at most 160 pixels a scanline.
 	var tileNumber = (tileYDown + (scrollXAdjusted / 8)) | 0;
 	var chrCode = this.BGCHRBank1[tileNumber];
 	if (chrCode < this.gfxBackgroundBankOffset) {
