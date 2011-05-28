@@ -1196,13 +1196,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 					currentClocks = Math.min(parentObj.clocksUntilMode2(), currentClocks);
 				}
 				if (parentObj.LYCMatchTriggerSTAT && parentObj.memory[0xFF45] <= 153) {
-					var LYCClock = parentObj.clocksUntilLYCMatch();
-					if (currentClocks >= LYCClock) {
-						currentClocks = LYCClock;
-						if (parentObj.memory[0xFF45] == 0) {
-							parentObj.LYIntSkip = 2;	//Weird-ass thing to get Demotronic to work. :/
-						}
-					}
+					currentClocks = Math.min(parentObj.clocksUntilLYCMatch(), currentClocks);
 				}
 			}
 		}
@@ -5500,21 +5494,35 @@ GameBoyCore.prototype.updateSpriteCount = function (line) {
 GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
 	if (this.memory[0xFF44] == this.memory[0xFF45]) {
 		this.memory[0xFF41] |= 0x04;
-		if (this.LYCMatchTriggerSTAT && this.LYIntSkip <= 1) {
-			this.memory[0xFF0F] |= 0x2;
-		}
-		else {
-			--this.LYIntSkip;
+		if (this.LYCMatchTriggerSTAT) {
+			if (this.cGBC && this.halt) {
+				this.LYIntSkip |= 0x2;	//Demotronic Final Demo requires this.
+			}
+			else {
+				this.memory[0xFF0F] |= 0x2;
+			}
 		}
 	} 
 	else {
 		this.memory[0xFF41] &= 0xFB;
 	}
 }
+GameBoyCore.prototype.doLYCIRQDelay = function () {
+	switch (this.LYIntSkip) {
+		case 1:
+		case 3:
+			this.LYIntSkip >>= 1;
+			this.memory[0xFF0F] |= 0x2;
+			return;
+		case 2:
+			--this.LYIntSkip;
+	}
+}
 GameBoyCore.prototype.updateCore = function () {
 	//Update the clocking for the LCD emulation:
 	this.LCDTicks += this.CPUTicks / this.multiplier;	//LCD Timing
 	this.LCDCONTROL[this.actualScanLine](this);			//Scan Line and STAT Mode Control 
+	this.doLYCIRQDelay();
 	//Single-speed relative timing for A/V emulation:
 	var timedTicks = this.CPUTicks / this.multiplier;	//CPU clocking can be updated from the LCD handling.
 	this.audioTicks += timedTicks;						//Audio Timing
@@ -5564,10 +5572,6 @@ GameBoyCore.prototype.initializeLCDController = function () {
 		if (line < 143) {
 			//We're on a normal scan line:
 			this.LINECONTROL[line] = function (parentObj) {
-				if (parentObj.LYIntSkip == 1) {
-					parentObj.LYIntSkip = 0;
-					parentObj.memory[0xFF0F] |= 0x2;
-				}
 				if (parentObj.LCDTicks < 20) {
 					parentObj.scanLineMode2();
 				}
@@ -5606,10 +5610,6 @@ GameBoyCore.prototype.initializeLCDController = function () {
 		else if (line == 143) {
 			//We're on the last visible scan line of the LCD screen:
 			this.LINECONTROL[143] = function (parentObj) {
-				if (parentObj.LYIntSkip == 1) {
-					parentObj.LYIntSkip = 0;
-					parentObj.memory[0xFF0F] |= 0x2;
-				}
 				if (parentObj.LCDTicks < 20) {
 					parentObj.scanLineMode2();
 				}
@@ -5655,10 +5655,6 @@ GameBoyCore.prototype.initializeLCDController = function () {
 		else if (line < 153) {
 			//In VBlank
 			this.LINECONTROL[line] = function (parentObj) {
-				if (parentObj.LYIntSkip == 1) {
-					parentObj.LYIntSkip = 0;
-					parentObj.memory[0xFF0F] |= 0x2;
-				}
 				if (parentObj.LCDTicks >= 114) {
 					//We're on a new scan line:
 					parentObj.LCDTicks -= 114;
@@ -5674,10 +5670,6 @@ GameBoyCore.prototype.initializeLCDController = function () {
 		else {
 			//VBlank Ending (We're on the last actual scan line)
 			this.LINECONTROL[153] = function (parentObj) {
-				if (parentObj.LYIntSkip == 1) {
-					parentObj.LYIntSkip = 0;
-					parentObj.memory[0xFF0F] |= 0x2;
-				}
 				if (parentObj.memory[0xFF44] == 153 && parentObj.LCDTicks >= 2) {	//TODO: Double-check to see if 2 is right.
 					parentObj.memory[0xFF44] = 0;	//LY register resets to 0 early.
 					parentObj.matchLYC();
