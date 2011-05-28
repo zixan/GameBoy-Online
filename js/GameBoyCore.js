@@ -17,14 +17,13 @@
  *TODO:
 	- Working On Right Now:
 		- Make I/O bit reading and writing more accurate.
-			- Now able to start up the Demotronic Final Demo, but still some issues with that ROM.
 	- Started already, but far from merging into here:
 		- Serial port link for multiplayer type stuff
 			- Returns default and triggers serial interrupts when requested for now.
 		- IR port
 			- Returns default for now.
-		- GBA (ARM7TDMI CPU Core) support will be coming when I feel like working on it more.
-			- Could be split off into a separate project, because the CPU is completely different.
+		- GBA (ARM7TDMI CPU Core) support will be coming:
+			- Coming as a separate project called IodineGBA.
 	- Afterwards....
 		- Fix some boogs.
 		- A Bit Later... Byte Later... Which ever comes first :P
