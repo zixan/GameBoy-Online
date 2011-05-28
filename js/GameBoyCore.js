@@ -194,6 +194,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.BGCHRBank1 = this.getTypedArray(0x800, 0, "uint8");
 	this.BGCHRBank2 = this.getTypedArray(0x800, 0, "uint8");
 	this.BGCHRCurrentBank = this.BGCHRBank1;
+	this.LYIntSkip = 0;
 	//DMG X-Coord to OAM address lookup cache:
 	this.OAMAddresses = this.ArrayPad(0x100, null);
 	//Tile Data Cache:
@@ -1168,41 +1169,56 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//HALT
 	//#0x76:
 	function (parentObj) {
-			//See if we're taking an interrupt already:
-			if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x1F) > 0) {
-				//If an IRQ is already going to launch:
-				if (!parentObj.halt && !parentObj.IME && !parentObj.cGBC && !parentObj.usedBootROM) {
-					//HALT bug in the DMG CPU model (Program Counter fails to increment for one instruction after HALT):
-					parentObj.skipPCIncrement = true;
-				}
-				return;
+		//See if we're taking an interrupt already:
+		if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x1F) > 0) {
+			//If an IRQ is already going to launch:
+			if (!parentObj.halt && !parentObj.IME && !parentObj.cGBC && !parentObj.usedBootROM) {
+				//HALT bug in the DMG CPU model (Program Counter fails to increment for one instruction after HALT):
+				parentObj.skipPCIncrement = true;
 			}
-			//Prepare the HALT run loop:
-			parentObj.halt = true;
-			var bitShift = 0;
-			var testbit = 1;
-			var interrupts = parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F];
-			//Loop until we throw an interrupt (Masking irrelevant) or we've clocked out for this iteration:
-			while (parentObj.halt && (parentObj.stopEmulator & 1) == 0) {
-				//We're hijacking the main interpreter loop to do this dirty business
-				//in order to not slow down the main interpreter loop code with halt state handling.
-				while (bitShift < 5) {
-					//Check to see if an interrupt is enabled AND requested.
-					if ((testbit & interrupts) == testbit) {
-						parentObj.halt = false;		//Get out of halt state if in halt state.
-						return;						//Let the main interrupt handler compute the interrupt.
+			return;
+		}
+		//Prepare the HALT run loop:
+		parentObj.halt = true;
+		var maximumClocks = (parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks) * parentObj.multiplier;
+		var currentClocks = maximumClocks;
+		if (parentObj.LCDisOn) {
+			if ((parentObj.memory[0xFFFF] & 0x1) == 0x1) {
+				currentClocks = Math.min(parentObj.clocksUntilMode1(), currentClocks);
+			}
+			if ((parentObj.memory[0xFFFF] & 0x2) == 0x2) {
+				if (parentObj.mode0TriggerSTAT) {
+					currentClocks = Math.min(parentObj.clocksUntilMode0(), currentClocks);
+				}
+				if (parentObj.mode1TriggerSTAT) {
+					currentClocks = Math.min(parentObj.clocksUntilMode1(), currentClocks);
+				}
+				if (parentObj.mode2TriggerSTAT) {
+					currentClocks = Math.min(parentObj.clocksUntilMode2(), currentClocks);
+				}
+				if (parentObj.LYCMatchTriggerSTAT && parentObj.memory[0xFF45] <= 153) {
+					var LYCClock = parentObj.clocksUntilLYCMatch();
+					if (currentClocks >= LYCClock) {
+						currentClocks = LYCClock;
+						if (parentObj.memory[0xFF45] == 0) {
+							parentObj.LYIntSkip = 2;	//Weird-ass thing to get Demotronic to work. :/
+						}
 					}
-					testbit = 1 << ++bitShift;
 				}
-				parentObj.CPUTicks = 1;				//1 machine cycle under HALT...
-				//Timing:
-				parentObj.updateCore();
-				//Set up for the next iteration:
-				bitShift = 0;
-				testbit = 1;
-				interrupts = parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F];
 			}
-			throw(new Error("HALT_OVERRUN"));		//Throw an error on purpose to exit out of the loop.
+		}
+		if (parentObj.TIMAEnabled && (parentObj.memory[0xFFFF] & 0x4) == 0x4) {
+			currentClocks = Math.min(parentObj.clocksUntilTIMA(), currentClocks);
+		}
+		parentObj.CPUTicks = Math.max(currentClocks, 1);
+		parentObj.updateCore();
+		parentObj.CPUTicks = 0;
+		if (currentClocks == maximumClocks) {
+			if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x1F) == 0) {
+				throw(new Error("HALT_OVERRUN"));		//Throw an error on purpose to exit out of the loop.
+			}
+		}
+		parentObj.halt = false;
 	},
 	//LD (HL), A
 	//#0x77:
@@ -5426,11 +5442,70 @@ GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 		}
 	}
 }
+GameBoyCore.prototype.clocksUntilTIMA = function () {
+	return (((0x100 - this.memory[0xFF05]) * this.TACClocker) - this.timerTicks);
+}
+GameBoyCore.prototype.clocksUntilLYCMatch = function () {
+	if (this.memory[0xFF45] != 0) {
+		if (this.memory[0xFF45] > this.actualScanLine) {
+			return ((114 * (this.memory[0xFF45] - this.actualScanLine)) - this.LCDTicks) * this.multiplier;
+		}
+		return ((114 * (154 - this.actualScanLine + this.memory[0xFF45])) - this.LCDTicks) * this.multiplier;
+	}
+	return ((114 * (154 - this.memory[0xFF44])) + 2 - this.LCDTicks) * this.multiplier;
+}
+GameBoyCore.prototype.clocksUntilMode2 = function () {
+	if (this.actualScanLine >= 143) {
+		return ((114 * (154 - this.actualScanLine)) - this.LCDTicks) * this.multiplier;
+	}
+	return (114 - this.LCDTicks) * this.multiplier;
+}
+GameBoyCore.prototype.clocksUntilMode0 = function () {
+	switch (this.modeSTAT) {
+		case 0:
+			if (this.actualScanLine == 143) {
+				this.updateSpriteCount(0);
+				return (this.spriteCount + 1254 - this.LCDTicks) * this.multiplier;
+			}
+			this.updateSpriteCount(this.actualScanLine + 1);
+			return (this.spriteCount + 114 - this.LCDTicks) * this.multiplier;
+		case 2:
+		case 3:
+			this.updateSpriteCount(this.actualScanLine);
+			return (this.spriteCount - this.LCDTicks) * this.multiplier;
+		case 1:
+			this.updateSpriteCount(0);
+			return (this.spriteCount + (114 * (154 - this.actualScanLine)) - this.LCDTicks) * this.multiplier;
+	}
+}
+GameBoyCore.prototype.clocksUntilMode1 = function () {
+	if (this.modeSTAT == 1) {
+		return ((114 * (298 - this.actualScanLine)) - this.LCDTicks) * this.multiplier;
+	}
+	return ((114 * (144 - this.actualScanLine)) - this.LCDTicks) * this.multiplier;
+}
+GameBoyCore.prototype.updateSpriteCount = function (line) {
+	this.spriteCount = 63;
+	if (this.cGBC && this.gfxSpriteShow) {										//Is the window enabled and are we in CGB mode?
+		var lineAdjusted = line + 0x10;
+		var yoffset = 0;
+		var yCap = (this.gfxSpriteDouble) ? 0x10 : 0x8;
+		for (var OAMAddress = 0xFE00; OAMAddress < 0xFEA0 && this.spriteCount < 78; OAMAddress += 4) {
+			yoffset = lineAdjusted - this.memory[OAMAddress];
+			if (yoffset > -1 && yoffset < yCap) {
+				this.spriteCount += 1.5;
+			}
+		}
+	}
+}
 GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
 	if (this.memory[0xFF44] == this.memory[0xFF45]) {
 		this.memory[0xFF41] |= 0x04;
-		if (this.LYCMatchTriggerSTAT) {
+		if (this.LYCMatchTriggerSTAT && this.LYIntSkip <= 1) {
 			this.memory[0xFF0F] |= 0x2;
+		}
+		else {
+			--this.LYIntSkip;
 		}
 	} 
 	else {
@@ -5490,6 +5565,10 @@ GameBoyCore.prototype.initializeLCDController = function () {
 		if (line < 143) {
 			//We're on a normal scan line:
 			this.LINECONTROL[line] = function (parentObj) {
+				if (parentObj.LYIntSkip == 1) {
+					parentObj.LYIntSkip = 0;
+					parentObj.memory[0xFF0F] |= 0x2;
+				}
 				if (parentObj.LCDTicks < 20) {
 					parentObj.scanLineMode2();
 				}
@@ -5528,6 +5607,10 @@ GameBoyCore.prototype.initializeLCDController = function () {
 		else if (line == 143) {
 			//We're on the last visible scan line of the LCD screen:
 			this.LINECONTROL[143] = function (parentObj) {
+				if (parentObj.LYIntSkip == 1) {
+					parentObj.LYIntSkip = 0;
+					parentObj.memory[0xFF0F] |= 0x2;
+				}
 				if (parentObj.LCDTicks < 20) {
 					parentObj.scanLineMode2();
 				}
@@ -5573,6 +5656,10 @@ GameBoyCore.prototype.initializeLCDController = function () {
 		else if (line < 153) {
 			//In VBlank
 			this.LINECONTROL[line] = function (parentObj) {
+				if (parentObj.LYIntSkip == 1) {
+					parentObj.LYIntSkip = 0;
+					parentObj.memory[0xFF0F] |= 0x2;
+				}
 				if (parentObj.LCDTicks >= 114) {
 					//We're on a new scan line:
 					parentObj.LCDTicks -= 114;
@@ -5588,6 +5675,10 @@ GameBoyCore.prototype.initializeLCDController = function () {
 		else {
 			//VBlank Ending (We're on the last actual scan line)
 			this.LINECONTROL[153] = function (parentObj) {
+				if (parentObj.LYIntSkip == 1) {
+					parentObj.LYIntSkip = 0;
+					parentObj.memory[0xFF0F] |= 0x2;
+				}
 				if (parentObj.memory[0xFF44] == 153 && parentObj.LCDTicks >= 2) {	//TODO: Double-check to see if 2 is right.
 					parentObj.memory[0xFF44] = 0;	//LY register resets to 0 early.
 					parentObj.matchLYC();
@@ -5770,6 +5861,10 @@ GameBoyCore.prototype.renderScanLine = function () {
 			}
 		}
 		this.SpriteLayerRender();
+	}
+	else {
+		//Extra clocking of mode3 for CGB still needs to be done, even when we frameskip:
+		this.updateSpriteCount(this.actualScanLine);
 	}
 	this.currentX = 0;
 }
