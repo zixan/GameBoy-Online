@@ -1168,12 +1168,21 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//HALT
 	//#0x76:
 	function (parentObj) {
+		if (parentObj.cGBC) {
+			parentObj.CPUTicks = 2;	//CGB adds a hidden NOP.
+		}
 		//See if we're taking an interrupt already:
 		if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x1F) > 0) {
 			//If an IRQ is already going to launch:
-			if (!parentObj.halt && !parentObj.IME && !parentObj.cGBC && !parentObj.usedBootROM) {
-				//HALT bug in the DMG CPU model (Program Counter fails to increment for one instruction after HALT):
-				parentObj.skipPCIncrement = true;
+			if (!parentObj.halt && !parentObj.IME && !parentObj.usedBootROM) {
+				if (!parentObj.cGBC) {
+					//HALT bug in the DMG CPU model (Program Counter fails to increment for one instruction after HALT):
+					parentObj.skipPCIncrement = true;
+				}
+				else {
+					//CGB gets around the HALT PC bug by doubling the hidden NOP.
+					parentObj.CPUTicks = 3;
+				}
 			}
 			return;
 		}
@@ -1203,7 +1212,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 		if (parentObj.TIMAEnabled && (parentObj.memory[0xFFFF] & 0x4) == 0x4) {
 			currentClocks = Math.min(parentObj.clocksUntilTIMA(), currentClocks);
 		}
-		parentObj.CPUTicks = Math.max(currentClocks, 1);
+		parentObj.CPUTicks += Math.max(currentClocks, 0);
 		parentObj.updateCore();
 		parentObj.CPUTicks = 0;
 		if (currentClocks == maximumClocks) {
@@ -5495,7 +5504,7 @@ GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
 	if (this.memory[0xFF44] == this.memory[0xFF45]) {
 		this.memory[0xFF41] |= 0x04;
 		if (this.LYCMatchTriggerSTAT) {
-			if (this.cGBC && this.halt) {
+			if (this.actualScanLine > 143 && this.halt) {
 				this.LYIntSkip |= 0x2;	//Demotronic Final Demo requires this.
 			}
 			else {
