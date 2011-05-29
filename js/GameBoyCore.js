@@ -5522,7 +5522,7 @@ GameBoyCore.prototype.doLYCIRQDelay = function () {
 	switch (this.LYIntSkip) {
 		case 1:
 		case 3:
-			this.LYIntSkip >>= 1;
+			this.LYIntSkip = 0;
 			this.memory[0xFF0F] |= 0x2;
 			return;
 		case 2:
@@ -5872,7 +5872,7 @@ GameBoyCore.prototype.renderScanLine = function () {
 }
 GameBoyCore.prototype.renderMidScanLine = function () {
 	if (this.actualScanLine < 144 && this.modeSTAT == 3 && (settings[4] == 0 || this.frameCount > 0)) {
-		var pixelEnd = (160 * Math.min((this.LCDTicks - 20) / 43, 1)) | 0;
+		var pixelEnd = Math.ceil(160 * Math.min(Math.max(this.LCDTicks - 23, 0) / 40, 1));
 		if (this.bgEnabled) {
 			this.pixelStart = this.actualScanLine * 160;
 			this.BGLayerRender(pixelEnd);
