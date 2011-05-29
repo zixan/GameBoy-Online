@@ -4011,7 +4011,8 @@ GameBoyCore.prototype.saveState = function () {
 		this.fromTypedArray(this.cachedBGPaletteConversion),
 		this.fromTypedArray(this.cachedOBJPaletteConversion),
 		this.fromTypedArray(this.BGCHRBank1),
-		this.fromTypedArray(this.BGCHRBank2)
+		this.fromTypedArray(this.BGCHRBank2),
+		this.LYIntSkip
 	];
 }
 GameBoyCore.prototype.returnFromState = function (returnedFrom) {
@@ -4177,6 +4178,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.cachedOBJPaletteConversion = this.toTypedArray(state[index++], "int32");
 	this.BGCHRBank1 = this.toTypedArray(state[index++], "uint8");
 	this.BGCHRBank2 = this.toTypedArray(state[index++], "uint8");
+	this.LYIntSkip = state[index];
 	this.fromSaveState = true;
 	this.initializeLCDController();
 	this.convertAuxilliary();
@@ -5504,7 +5506,7 @@ GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
 	if (this.memory[0xFF44] == this.memory[0xFF45]) {
 		this.memory[0xFF41] |= 0x04;
 		if (this.LYCMatchTriggerSTAT) {
-			if (this.actualScanLine > 143 && this.halt) {
+			if (this.halt && this.cGBC && this.modeSTAT == 1 && this.gameCode == "100%") {
 				this.LYIntSkip |= 0x2;	//Demotronic Final Demo requires this.
 			}
 			else {
@@ -7916,9 +7918,11 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	//LYC
 	this.memoryWriter[0xFF45] = function (parentObj, address, data) {
-		parentObj.memory[0xFF45] = data;
-		if (parentObj.LCDisOn) {
-			parentObj.matchLYC();	//Get the compare of the first scan line.
+		if (parentObj.memory[0xFF45] != data) {
+			parentObj.memory[0xFF45] = data;
+			if (parentObj.LCDisOn) {
+				parentObj.matchLYC();	//Get the compare of the first scan line.
+			}
 		}
 	}
 	//WY
