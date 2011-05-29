@@ -5456,7 +5456,7 @@ GameBoyCore.prototype.clocksUntilLYCMatch = function () {
 		}
 		return ((114 * (154 - this.actualScanLine + this.memory[0xFF45])) - this.LCDTicks) * this.multiplier;
 	}
-	return ((114 * (154 - this.memory[0xFF44])) + 2 - this.LCDTicks) * this.multiplier;
+	return ((114 * ((this.actualScanLine == 153 && this.memory[0xFF44] == 0) ? 154 : (153 - this.actualScanLine))) + 2 - this.LCDTicks) * this.multiplier;
 }
 GameBoyCore.prototype.clocksUntilMode2 = function () {
 	if (this.actualScanLine >= 143) {
