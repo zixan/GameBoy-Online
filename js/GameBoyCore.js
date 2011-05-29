@@ -5506,7 +5506,7 @@ GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
 	if (this.memory[0xFF44] == this.memory[0xFF45]) {
 		this.memory[0xFF41] |= 0x04;
 		if (this.LYCMatchTriggerSTAT) {
-			if (this.halt && this.cGBC && this.modeSTAT == 1 && this.gameCode == "100%") {
+			if (this.halt && this.cGBC && this.gameCode == "100%") {
 				this.LYIntSkip |= 0x2;	//Demotronic Final Demo requires this.
 			}
 			else {
