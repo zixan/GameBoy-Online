@@ -1168,23 +1168,24 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//HALT
 	//#0x76:
 	function (parentObj) {
-		if (parentObj.cGBC) {
-			parentObj.CPUTicks = 2;	//CGB adds a hidden NOP.
-		}
-		//See if we're taking an interrupt already:
-		if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x1F) > 0) {
-			//If an IRQ is already going to launch:
-			if (!parentObj.halt && !parentObj.IME && !parentObj.usedBootROM) {
-				if (!parentObj.cGBC) {
-					//HALT bug in the DMG CPU model (Program Counter fails to increment for one instruction after HALT):
-					parentObj.skipPCIncrement = true;
-				}
-				else {
-					//CGB gets around the HALT PC bug by doubling the hidden NOP.
-					parentObj.CPUTicks = 3;
-				}
+		if (!parentObj.halt) {
+			if (parentObj.cGBC) {
+				++parentObj.CPUTicks;	//CGB adds a hidden NOP.
 			}
-			return;
+			//See if we're taking an interrupt already:
+			if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x1F) > 0) {
+				//If an IRQ is already going to launch:
+				if (!parentObj.IME && !parentObj.usedBootROM) {
+					if (!parentObj.cGBC) {
+						//HALT bug in the DMG CPU model (Program Counter fails to increment for one instruction after HALT):
+						parentObj.skipPCIncrement = true;
+						return;
+					}
+					//CGB gets around the HALT PC bug by doubling the hidden NOP.
+					++parentObj.CPUTicks;
+				}
+				return;
+			}
 		}
 		//Prepare the HALT run loop:
 		parentObj.halt = true;
