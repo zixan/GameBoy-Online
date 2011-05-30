@@ -1198,7 +1198,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 				if (parentObj.mode0TriggerSTAT) {
 					currentClocks = Math.min(parentObj.clocksUntilMode0(), currentClocks);
 				}
-				if (parentObj.mode1TriggerSTAT) {
+				if (parentObj.mode1TriggerSTAT && (parentObj.memory[0xFFFF] & 0x1) == 0) {
 					currentClocks = Math.min(parentObj.clocksUntilMode1(), currentClocks);
 				}
 				if (parentObj.mode2TriggerSTAT) {
@@ -1210,7 +1210,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 			}
 		}
 		if (parentObj.TIMAEnabled && (parentObj.memory[0xFFFF] & 0x4) == 0x4) {
-			currentClocks = Math.min(parentObj.clocksUntilTIMA(), currentClocks);
+			currentClocks = Math.min(((0x100 - parentObj.memory[0xFF05]) * parentObj.TACClocker) - parentObj.timerTicks, currentClocks);
 		}
 		parentObj.CPUTicks += Math.max(currentClocks, 0);
 		parentObj.updateCore();
@@ -5445,9 +5445,6 @@ GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 			this.modeSTAT = 0;
 		}
 	}
-}
-GameBoyCore.prototype.clocksUntilTIMA = function () {
-	return (((0x100 - this.memory[0xFF05]) * this.TACClocker) - this.timerTicks);
 }
 GameBoyCore.prototype.clocksUntilLYCMatch = function () {
 	if (this.memory[0xFF45] != 0) {
