@@ -5337,10 +5337,12 @@ GameBoyCore.prototype.run = function () {
 					this.executeIteration();
 				}
 				else {						//If we bailed out of a halt because the iteration ran down its timing.
-					this.CPUTicks = 1;
+					this.CPUTicks = 0;
 					this.OPCODE[0x76](this);
 					//Execute Interrupt:
-					this.runInterrupt();
+					if (this.IME) {
+						this.runInterrupt();
+					}
 					//Timing:
 					this.updateCore();
 					this.executeIteration();
@@ -5362,6 +5364,11 @@ GameBoyCore.prototype.executeIteration = function () {
 	//Iterate the interpreter loop:
 	var op = 0;
 	while (this.stopEmulator == 0) {
+		//Execute Interrupt:
+		this.CPUTicks = 0;
+		if (this.IME) {
+			this.runInterrupt();
+		}
 		//Fetch the current opcode.
 		op = this.memoryReader[this.programCounter](this, this.programCounter);
 		if (!this.skipPCIncrement) {
@@ -5370,7 +5377,7 @@ GameBoyCore.prototype.executeIteration = function () {
 		}
 		this.skipPCIncrement = false;
 		//Get how many CPU cycles the current op code counts for:
-		this.CPUTicks = this.TICKTable[op];
+		this.CPUTicks += this.TICKTable[op];
 		//Execute the OP code instruction:
 		this.OPCODE[op](this);
 		//Interrupt Arming:
@@ -5379,10 +5386,6 @@ GameBoyCore.prototype.executeIteration = function () {
 				this.IME = true;
 			case 2:
 				this.untilEnable--;
-		}
-		//Execute Interrupt:
-		if (this.IME) {
-			this.runInterrupt();
 		}
 		//Timing:
 		this.updateCore();
@@ -5504,12 +5507,12 @@ GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
 	if (this.memory[0xFF44] == this.memory[0xFF45]) {
 		this.memory[0xFF41] |= 0x04;
 		if (this.LYCMatchTriggerSTAT) {
-			if (this.halt && this.cGBC && this.gameCode == "100%") {
+			/*if (this.halt && this.cGBC && this.gameCode == "100%") {
 				this.LYIntSkip |= 0x2;	//Demotronic Final Demo requires this.
 			}
-			else {
+			else {*/
 				this.memory[0xFF0F] |= 0x2;
-			}
+			//}
 		}
 	} 
 	else {
@@ -5531,7 +5534,7 @@ GameBoyCore.prototype.updateCore = function () {
 	//Update the clocking for the LCD emulation:
 	this.LCDTicks += this.CPUTicks / this.multiplier;	//LCD Timing
 	this.LCDCONTROL[this.actualScanLine](this);			//Scan Line and STAT Mode Control 
-	this.doLYCIRQDelay();
+	//this.doLYCIRQDelay();
 	//Single-speed relative timing for A/V emulation:
 	var timedTicks = this.CPUTicks / this.multiplier;	//CPU clocking can be updated from the LCD handling.
 	this.audioTicks += timedTicks;						//Audio Timing
