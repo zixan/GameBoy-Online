@@ -193,7 +193,6 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.BGCHRBank1 = this.getTypedArray(0x800, 0, "uint8");
 	this.BGCHRBank2 = this.getTypedArray(0x800, 0, "uint8");
 	this.BGCHRCurrentBank = this.BGCHRBank1;
-	this.LYIntSkip = 0;
 	//DMG X-Coord to OAM address lookup cache:
 	this.OAMAddresses = this.ArrayPad(0x100, null);
 	//Tile Data Cache:
@@ -4012,8 +4011,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.fromTypedArray(this.cachedBGPaletteConversion),
 		this.fromTypedArray(this.cachedOBJPaletteConversion),
 		this.fromTypedArray(this.BGCHRBank1),
-		this.fromTypedArray(this.BGCHRBank2),
-		this.LYIntSkip
+		this.fromTypedArray(this.BGCHRBank2)
 	];
 }
 GameBoyCore.prototype.returnFromState = function (returnedFrom) {
@@ -4178,8 +4176,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.cachedBGPaletteConversion = this.toTypedArray(state[index++], "int32");
 	this.cachedOBJPaletteConversion = this.toTypedArray(state[index++], "int32");
 	this.BGCHRBank1 = this.toTypedArray(state[index++], "uint8");
-	this.BGCHRBank2 = this.toTypedArray(state[index++], "uint8");
-	this.LYIntSkip = state[index];
+	this.BGCHRBank2 = this.toTypedArray(state[index], "uint8");
 	this.fromSaveState = true;
 	this.initializeLCDController();
 	this.convertAuxilliary();
