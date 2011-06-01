@@ -1187,7 +1187,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 				return;
 			}
 		}
-		//Prepare the HALT run loop:
+		//Prepare the short-circuit directly to the next IRQ event:
 		parentObj.halt = true;
 		var maximumClocks = (parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks) * parentObj.multiplier;
 		var currentClocks = maximumClocks;
@@ -5507,34 +5507,17 @@ GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
 	if (this.memory[0xFF44] == this.memory[0xFF45]) {
 		this.memory[0xFF41] |= 0x04;
 		if (this.LYCMatchTriggerSTAT) {
-			/*if (this.halt && this.cGBC && this.gameCode == "100%") {
-				this.LYIntSkip |= 0x2;	//Demotronic Final Demo requires this.
-			}
-			else {*/
-				this.memory[0xFF0F] |= 0x2;
-			//}
+			this.memory[0xFF0F] |= 0x2;
 		}
 	} 
 	else {
 		this.memory[0xFF41] &= 0xFB;
 	}
 }
-GameBoyCore.prototype.doLYCIRQDelay = function () {
-	switch (this.LYIntSkip) {
-		case 1:
-		case 3:
-			this.LYIntSkip = 0;
-			this.memory[0xFF0F] |= 0x2;
-			return;
-		case 2:
-			--this.LYIntSkip;
-	}
-}
 GameBoyCore.prototype.updateCore = function () {
 	//Update the clocking for the LCD emulation:
 	this.LCDTicks += this.CPUTicks / this.multiplier;	//LCD Timing
 	this.LCDCONTROL[this.actualScanLine](this);			//Scan Line and STAT Mode Control 
-	//this.doLYCIRQDelay();
 	//Single-speed relative timing for A/V emulation:
 	var timedTicks = this.CPUTicks / this.multiplier;	//CPU clocking can be updated from the LCD handling.
 	this.audioTicks += timedTicks;						//Audio Timing
