@@ -5504,17 +5504,34 @@ GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
 	if (this.memory[0xFF44] == this.memory[0xFF45]) {
 		this.memory[0xFF41] |= 0x04;
 		if (this.LYCMatchTriggerSTAT) {
-			this.memory[0xFF0F] |= 0x2;
+			if (this.halt && this.cGBC && this.gameCode == "100%") {
+				this.LYIntSkip |= 0x2;	//Demotronic Final Demo requires this.
+			}
+			else {
+				this.memory[0xFF0F] |= 0x2;
+			}
 		}
 	} 
 	else {
 		this.memory[0xFF41] &= 0xFB;
 	}
 }
+GameBoyCore.prototype.doLYCIRQDelay = function () {
+	switch (this.LYIntSkip) {
+		case 1:
+		case 3:
+			this.LYIntSkip = 0;
+			this.memory[0xFF0F] |= 0x2;
+			return;
+		case 2:
+			--this.LYIntSkip;
+	}
+}
 GameBoyCore.prototype.updateCore = function () {
 	//Update the clocking for the LCD emulation:
 	this.LCDTicks += this.CPUTicks / this.multiplier;	//LCD Timing
 	this.LCDCONTROL[this.actualScanLine](this);			//Scan Line and STAT Mode Control 
+	this.doLYCIRQDelay();
 	//Single-speed relative timing for A/V emulation:
 	var timedTicks = this.CPUTicks / this.multiplier;	//CPU clocking can be updated from the LCD handling.
 	this.audioTicks += timedTicks;						//Audio Timing
@@ -7363,7 +7380,6 @@ GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 	//Clock the CPU for the DMA transfer (CPU is halted during the transfer):
 	this.CPUTicks += 1 + (tilesToTransfer * this.multiplier);
 	this.LCDTicks += (1 / this.multiplier) + tilesToTransfer;			//LCD Timing Update For DMA.
-	this.runInterrupt();
 	//Source address of the transfer:
 	var source = (this.memory[0xFF51] << 8) | this.memory[0xFF52];
 	//Destination address in the VRAM memory range:
