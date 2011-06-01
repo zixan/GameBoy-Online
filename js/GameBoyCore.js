@@ -1187,9 +1187,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 			}
 		}
 		//Prepare the short-circuit directly to the next IRQ event:
-		parentObj.halt = true;
 		var maximumClocks = (parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks) * parentObj.multiplier;
-		var currentClocks = maximumClocks;
+		var currentClocks = maximumClocks + 1;
 		if (parentObj.LCDisOn) {
 			if ((parentObj.memory[0xFFFF] & 0x1) == 0x1) {
 				currentClocks = Math.min(parentObj.clocksUntilMode1(), currentClocks);
@@ -1212,15 +1211,16 @@ GameBoyCore.prototype.OPCODE = new Array(
 		if (parentObj.TIMAEnabled && (parentObj.memory[0xFFFF] & 0x4) == 0x4) {
 			currentClocks = Math.min(((0x100 - parentObj.memory[0xFF05]) * parentObj.TACClocker) - parentObj.timerTicks, currentClocks);
 		}
-		parentObj.CPUTicks += Math.max(currentClocks, 0);
-		parentObj.updateCore();
-		parentObj.CPUTicks = 0;
-		if (currentClocks == maximumClocks) {
-			if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x1F) == 0) {
-				throw(new Error("HALT_OVERRUN"));		//Throw an error on purpose to exit out of the loop.
-			}
+		if (currentClocks < (maximumClocks + 1)) {
+			//Exit out of HALT normally:
+			parentObj.CPUTicks += Math.max(currentClocks, 0);
+			parentObj.halt = false;
 		}
-		parentObj.halt = false;
+		else {
+			//We have to bail out of HALT since the clocking is so large:
+			parentObj.CPUTicks += maximumClocks;
+			parentObj.halt = true;	//Flags that we will jump back to HALT on the next iteration.
+		}
 	},
 	//LD (HL), A
 	//#0x77:
@@ -5325,35 +5325,20 @@ GameBoyCore.prototype.audioChannelsComputeSafe = function () {
 }
 GameBoyCore.prototype.run = function () {
 	//The preprocessing before the actual iteration loop:
-	try {
-		if ((this.stopEmulator & 2) == 0) {
-			if ((this.stopEmulator & 1) == 1) {
-				this.stopEmulator = 0;
-				this.clockUpdate();			//Frame skip and RTC code.
-				if (!this.halt) {			//If no HALT... Execute normally
-					this.executeIteration();
-				}
-				else {						//If we bailed out of a halt because the iteration ran down its timing.
-					this.CPUTicks = 0;
-					this.OPCODE[0x76](this);
-					//Execute Interrupt:
-					if (this.IME) {
-						this.runInterrupt();
-					}
-					//Timing:
-					this.updateCore();
-					this.executeIteration();
-				}
+	if ((this.stopEmulator & 2) == 0) {
+		if ((this.stopEmulator & 1) == 1) {
+			this.stopEmulator = 0;
+			this.clockUpdate();			//Frame skip and RTC code.
+			if (this.halt) {			//Finish the HALT rundown execution.
+				this.CPUTicks = 0;
+				this.OPCODE[0x76](this);
+				this.updateCore();
 			}
-			else {		//We can only get here if there was an internal error, but the loop was restarted.
-				cout("Iterator restarted a faulted core.", 2);
-				pause();
-			}
+			this.executeIteration();
 		}
-	}
-	catch (error) {
-		if (error.message != "HALT_OVERRUN") {
-			cout("GameBoy runtime error: " + error.message + "; line: " + error.lineNumber, 2);
+		else {		//We can only get here if there was an internal error, but the loop was restarted.
+			cout("Iterator restarted a faulted core.", 2);
+			pause();
 		}
 	}
 }
