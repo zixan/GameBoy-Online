@@ -512,12 +512,6 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x10:
 	function (parentObj) {
 		if (parentObj.cGBC) {
-			/*TODO: Emulate the speed switch delay:
-				Delay Amount:
-				16 ms when going to double-speed.
-				32 ms when going to single-speed.
-				Also, bits 4 and 5 of 0xFF00 should read as set (1), while the switch is in process.
-			*/
 			if ((parentObj.memory[0xFF4D] & 0x01) == 0x01) {		//Speed change requested.
 				if ((parentObj.memory[0xFF4D] & 0x80) == 0x80) {	//Go back to single speed mode.
 					cout("Going into single clock speed mode.", 0);
