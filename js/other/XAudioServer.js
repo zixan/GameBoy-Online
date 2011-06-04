@@ -84,6 +84,31 @@ XAudioServer.prototype.writeAudio = function (buffer) {
 		}
 		this.audioHandle.appendBatch(buffer);
 	}
+	else if (this.audioType == 3) {
+		//Flash Plugin Audio:
+		if (this.checkFlashInit()) {
+			var samplesRequested = this.writeFlashAudio(buffer);
+			if (samplesRequested > 0) {
+				this.writeFlashAudioNoReturn(this.underRunCallback(samplesRequested));
+			}
+		}
+		else {
+			//WAV PCM via Data URI:
+			this.sampleCount += buffer.length;
+			if (this.sampleCount >= webAudioMaxBufferSize) {
+				var silenceLength = Math.round(this.audioChannels * XAudioJSSampleRate / 2);
+				var silenceBuffer = new Array(silenceLength);
+				for (var index = 0; index < silenceLength; index++) {
+					silenceBuffer[index] = defaultNeutralValue;
+				}
+				this.audioHandle2.appendBatch(silenceBuffer);	//Try to dampen the unavoidable clicking by padding with the set neutral.
+				this.audioHandle2.outputAudio();
+				this.audioHandle2 = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
+				this.sampleCount -= webAudioMaxBufferSize;
+			}
+			this.audioHandle2.appendBatch(buffer);
+		}
+	}
 }
 //Developer can use this to see how many samples to write (example: minimum buffer allotment minus remaining samples left returned from this function to make sure maximum buffering is done...)
 //If -1 is returned, then that means metric could not be done.
@@ -95,6 +120,16 @@ XAudioServer.prototype.remainingBuffer = function () {
 	else if (this.audioType == 1) {
 		//WebKit Audio:
 		return ((startPosition > bufferEnd) ? (webAudioMaxBufferSize - startPosition + bufferEnd) : (bufferEnd - startPosition));
+	}
+	else if (this.audioType == 3) {
+		//Flash Plugin Audio:
+		if (this.checkFlashInit()) {
+			return this.audioHandle.remainingSamples();
+		}
+		else {
+			//WAV PCM via Data URI:
+			return -1;
+		}
 	}
 	else {
 		//WAV PCM via Data URI:
@@ -127,6 +162,24 @@ XAudioServer.prototype.executeCallback = function () {
 				else if (bufferEnd == webAudioMaxBufferSize) {
 					bufferEnd = 0;
 				}
+			}
+		}
+	}
+	else if (this.audioType == 3) {
+		//Flash Plugin Audio:
+		if (this.checkFlashInit()) {
+			var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
+			if (samplesRequested > 0) {
+				this.writeFlashAudioNoReturn(this.underRunCallback(samplesRequested));
+			}
+		}
+		else {
+			//WAV PCM via Data URI:
+			if (this.sampleCount > 0) {
+				//Output the audio immediately, since we can't utilize the callback...
+				this.audioHandle2.outputAudio();
+				this.audioHandle2 = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
+				this.sampleCount = 0;
 			}
 		}
 	}
@@ -168,11 +221,84 @@ XAudioServer.prototype.initializeAudio = function () {
 			resetWebAudioBuffer();
 		}
 		else {
-			this.audioHandle = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
-			this.audioType = 2;
-			this.sampleCount = 0;
+			try {
+				var objectNodes = document.getElementsByTagName("object");
+				var objectNode = null;
+				if (objectNodes) {
+					var index = 0;
+					while (index < objectNodes.length) {
+						if (objectNodes[index].getAttribute("data") == "XAudioJS.swf") {
+							objectNode = objectNodes[index];
+						}
+						index++;
+					}
+					if (objectNode) {
+						this.audioHandle = objectNode;
+						this.audioType = 3;
+						return;
+					}
+				}
+				objectNode = document.createElement("object");
+				objectNode.setAttribute("style", "position: fixed; bottom: 0px; left: 0px; height: 8px; width: 8px; overflow: hidden;");
+				objectNode.setAttribute("type", "application/x-shockwave-flash");
+				objectNode.setAttribute("data", "XAudioJS.swf");
+				var param = document.createElement("param");
+				param.setAttribute("name", "allowscriptaccess");
+				param.setAttribute("value", "always");
+				objectNode.appendChild(param);
+				document.getElementsByTagName("body")[0].appendChild(objectNode);
+				this.audioType = 3;
+				this.flashInitialized = false;
+				this.audioHandle = objectNode;
+				this.audioHandle2 = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
+				this.sampleCount = 0;
+			}
+			catch (error) {
+				this.audioHandle = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
+				this.audioType = 2;
+				this.sampleCount = 0;
+			}
 		}
 	}
+}
+XAudioServer.prototype.checkFlashInit = function () {
+	if (!this.flashInitialized && this.audioHandle.writeAudio && this.audioHandle.remainingSamples && this.audioHandle.initialize) {
+		this.flashInitialized = true;
+		this.audioHandle.initialize(XAudioJSSampleRate, webAudioMaxBufferSize, defaultNeutralValue);
+	}
+	return this.flashInitialized;
+}
+XAudioServer.prototype.writeFlashAudio = function (buffer) {
+	var copyArray = [];
+	var length = buffer.length;
+	if (this.audioChannels == 2) {
+		for (var index = 0; index < length; index++) {
+			copyArray[index] = (Math.min(Math.max(buffer[index], -1), 1) * 0x8000) | 0;
+		}
+	}
+	else {
+		var index2 = 0;
+		for (var index = 0; index < length; index++, index2 += 2) {
+			copyArray[index2] = copyArray[index2 + 1] = (Math.min(Math.max(buffer[index], -1), 1) * 0x8000) | 0;
+		}
+	}
+	return this.audioHandle.writeAudio(copyArray.join(" "));
+}
+XAudioServer.prototype.writeFlashAudioNoReturn = function (buffer) {
+	var copyArray = [];
+	var length = buffer.length;
+	if (this.audioChannels == 2) {
+		for (var index = 0; index < length; index++) {
+			copyArray[index] = (Math.min(Math.max(buffer[index], -1), 1) * 0x8000) | 0;
+		}
+	}
+	else {
+		var index2 = 0;
+		for (var index = 0; index < length; index++, index2 += 2) {
+			copyArray[index2] = copyArray[index2 + 1] = (Math.min(Math.max(buffer[index], -1), 1) * 0x8000) | 0;
+		}
+	}
+	this.audioHandle.writeAudioNoReturn(copyArray.join(" "));
 }
 /////////END LIB
 //Initialize WebKit Audio Buffer:
