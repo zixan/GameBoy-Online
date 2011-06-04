@@ -239,15 +239,18 @@ XAudioServer.prototype.initializeAudio = function () {
 						return;
 					}
 				}
+				var containerNode = document.createElement("div");
+				containerNode.setAttribute("style", "position: fixed; bottom: 0px; left: 0px; width: 8px; height: 8px; visibility: hidden;");
 				objectNode = document.createElement("object");
-				objectNode.setAttribute("style", "position: fixed; bottom: 0px; left: 0px; height: 8px; width: 8px; overflow: hidden;");
+				objectNode.setAttribute("style", "position: relative; height: 8px; width: 8px; overflow: hidden;");
 				objectNode.setAttribute("type", "application/x-shockwave-flash");
 				objectNode.setAttribute("data", "XAudioJS.swf");
 				var param = document.createElement("param");
 				param.setAttribute("name", "allowscriptaccess");
 				param.setAttribute("value", "always");
 				objectNode.appendChild(param);
-				document.getElementsByTagName("body")[0].appendChild(objectNode);
+				containerNode.appendChild(objectNode);
+				document.getElementsByTagName("body")[0].appendChild(containerNode);
 				this.audioType = 3;
 				this.flashInitialized = false;
 				this.audioHandle = objectNode;
