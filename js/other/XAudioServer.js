@@ -87,7 +87,7 @@ XAudioServer.prototype.writeAudio = function (buffer) {
 	else if (this.audioType == 3) {
 		//Flash Plugin Audio:
 		if (this.checkFlashInit()) {
-			var samplesRequested = this.writeFlashAudio(buffer);
+			var samplesRequested = Math.min(this.writeFlashAudio(buffer), 10);	//Workaround for the severe audio granularity with flash. :/
 			if (samplesRequested > 0) {
 				this.writeFlashAudioNoReturn(this.underRunCallback(samplesRequested));
 			}
@@ -224,7 +224,7 @@ XAudioServer.prototype.initializeAudio = function () {
 			try {
 				var objectNodes = document.getElementsByTagName("object");
 				var objectNode = null;
-				if (objectNodes) {
+				if (objectNodes.length > 0) {
 					var index = 0;
 					while (index < objectNodes.length) {
 						if (objectNodes[index].getAttribute("data") == "XAudioJS.swf") {
