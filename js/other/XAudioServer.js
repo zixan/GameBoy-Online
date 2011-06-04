@@ -87,8 +87,9 @@ XAudioServer.prototype.writeAudio = function (buffer) {
 	else if (this.audioType == 3) {
 		//Flash Plugin Audio:
 		if (this.checkFlashInit()) {
-			var samplesRequested = Math.min(this.writeFlashAudio(buffer), 10);	//Workaround for the severe audio granularity with flash. :/
+			var samplesRequested = this.writeFlashAudio(buffer);
 			if (samplesRequested > 0) {
+				//samplesRequested = (webAudioMinBufferSize - samplesRequested > 4096) ? 2 : samplesRequested;
 				this.writeFlashAudioNoReturn(this.underRunCallback(samplesRequested));
 			}
 		}
@@ -282,7 +283,7 @@ XAudioServer.prototype.writeFlashAudio = function (buffer) {
 			copyArray[index2] = copyArray[index2 + 1] = (Math.min(Math.max(buffer[index], -1), 1) * 0x8000) | 0;
 		}
 	}
-	return this.audioHandle.writeAudio(copyArray.join(" "));
+	return webAudioMinBufferSize - this.audioHandle.writeAudio(copyArray.join(" "));
 }
 XAudioServer.prototype.writeFlashAudioNoReturn = function (buffer) {
 	var copyArray = [];
