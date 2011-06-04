@@ -269,6 +269,7 @@ XAudioServer.prototype.checkFlashInit = function () {
 	if (!this.flashInitialized && this.audioHandle.writeAudio && this.audioHandle.remainingSamples && this.audioHandle.initialize) {
 		this.flashInitialized = true;
 		this.audioHandle.initialize(XAudioJSSampleRate, webAudioMaxBufferSize, defaultNeutralValue);
+		this.audioHandle.writeAudioNoReturn(getFloat32(webAudioMinBufferSize));
 	}
 	return this.flashInitialized;
 }
