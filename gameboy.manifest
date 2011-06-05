@@ -8,11 +8,12 @@ js/other/waveAudio.js
 js/other/BMPCanvas.js
 js/other/base64.js
 js/other/audioRunner.js
+js/other/XAudioServer.js
 js/other/transportHandler.js
 js/other/json2.js
 js/GameBoyCore.js
-js/GameBoyAudio.js
 js/GameBoyIO.js
+XAudioJS.swf
 css/GameBoy.css.php
 NETWORK:
 res/proxy.php
