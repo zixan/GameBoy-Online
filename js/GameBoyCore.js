@@ -4680,13 +4680,7 @@ GameBoyCore.prototype.initLCD = function () {
 			//Nasty since we are throwing on purpose to force a try/catch fallback
 			throw(new Error("Canvas 2D API path disabled."));
 		}
-		if (settings[11]) {
-			WebGL2D.enable(this.canvas);
-			this.drawContext = this.canvas.getContext("webgl-2d");
-		}
-		else {
-			this.drawContext = this.canvas.getContext("2d");
-		}
+		this.drawContext = this.canvas.getContext("2d");
 		//Get a CanvasPixelArray buffer:
 		try {
 			this.canvasBuffer = this.drawContext.createImageData(this.width, this.height);
