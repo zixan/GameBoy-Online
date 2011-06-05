@@ -93,7 +93,7 @@ XAudioServer.prototype.writeAudio = function (buffer) {
 				this.writeFlashAudioNoReturn(this.underRunCallback(samplesRequested));
 			}
 		}
-		else {
+		else if (!this.noWave) {
 			//WAV PCM via Data URI:
 			this.sampleCount += buffer.length;
 			if (this.sampleCount >= webAudioMaxBufferSize) {
@@ -176,7 +176,7 @@ XAudioServer.prototype.executeCallback = function () {
 		}
 		else {
 			//WAV PCM via Data URI:
-			if (this.sampleCount > 0) {
+			if (!this.noWave && this.sampleCount > 0) {
 				//Output the audio immediately, since we can't utilize the callback...
 				this.audioHandle2.outputAudio();
 				this.audioHandle2 = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
@@ -223,6 +223,7 @@ XAudioServer.prototype.initializeAudio = function () {
 		}
 		else {
 			try {
+				this.noWave = false;
 				var objectNodes = document.getElementsByTagName("object");
 				var objectNode = null;
 				if (objectNodes.length > 0) {
@@ -254,8 +255,13 @@ XAudioServer.prototype.initializeAudio = function () {
 				this.audioType = 3;
 				this.flashInitialized = false;
 				this.audioHandle = objectNode;
-				this.audioHandle2 = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
-				this.sampleCount = 0;
+				try {
+					this.audioHandle2 = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
+					this.sampleCount = 0;
+				}
+				catch (error) {
+					this.noWave = true;
+				}
 			}
 			catch (error) {
 				this.audioHandle = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
