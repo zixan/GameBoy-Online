@@ -241,7 +241,7 @@ XAudioServer.prototype.initializeAudio = function () {
 					}
 				}
 				var containerNode = document.createElement("div");
-				containerNode.setAttribute("style", "position: fixed; bottom: 0px; left: 0px; width: 8px; height: 8px; visibility: hidden;");
+				containerNode.setAttribute("style", "position: fixed; top: 0px; left: 0px; width: 0px; height: 0px; overflow: hidden; z-index: -1000; visibility: hidden;");
 				objectNode = document.createElement("object");
 				objectNode.setAttribute("style", "position: relative; height: 8px; width: 8px; overflow: hidden;");
 				objectNode.setAttribute("type", "application/x-shockwave-flash");
