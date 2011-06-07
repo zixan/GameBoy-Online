@@ -5409,7 +5409,7 @@ GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 			this.STATTracker |= 4
 		}
 		if (this.LCDTicks >= this.spriteCount) {
-			if (this.hdmaRunning && !this.halt) {
+			if (this.hdmaRunning) {
 				this.executeHDMA();
 			}
 			if (this.mode0TriggerSTAT || (this.mode2TriggerSTAT && this.STATTracker == 4)) {
@@ -5553,7 +5553,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 						if (parentObj.STATTracker < 4) {
 							parentObj.renderScanLine();
 						}
-						if (parentObj.hdmaRunning && !parentObj.halt) {
+						if (parentObj.hdmaRunning) {
 							parentObj.executeHDMA();
 						}
 						if (parentObj.mode0TriggerSTAT) {
@@ -5595,7 +5595,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 						if (parentObj.STATTracker < 4) {
 							parentObj.renderScanLine();
 						}
-						if (parentObj.hdmaRunning && !parentObj.halt) {
+						if (parentObj.hdmaRunning) {
 							parentObj.executeHDMA();
 						}
 						if (parentObj.mode0TriggerSTAT) {
@@ -5687,7 +5687,23 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 	}
 }
 GameBoyCore.prototype.executeHDMA = function () {
-	this.DMAWrite(1);
+	if (this.halt) {
+		if ((this.LCDTicks - this.spriteCount) < ((1 / this.multiplier) + 1)) {
+			this.DMAWrite(1);
+			this.CPUTicks = 1 + ((1 + this.spriteCount) * this.multiplier);
+			this.LCDTicks = this.spriteCount + (1 / this.multiplier) + 1;
+		}
+		else {
+			var lcdTicks = this.LCDTicks;
+			var clocks = this.CPUTicks;
+			this.DMAWrite(1);
+			this.LCDTicks = lcdTicks;
+			this.CPUTicks = clocks;
+		}
+	}
+	else {
+		this.DMAWrite(1);
+	}
 	if (this.memory[0xFF55] == 0) {
 		this.hdmaRunning = false;
 		this.memory[0xFF55] = 0xFF;	//Transfer completed ("Hidden last step," since some ROMs don't imply this, but most do).
