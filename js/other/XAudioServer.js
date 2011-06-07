@@ -224,21 +224,18 @@ XAudioServer.prototype.initializeAudio = function () {
 		else {
 			try {
 				this.noWave = false;
-				var objectNodes = document.getElementsByTagName("object");
-				var objectNode = null;
-				if (objectNodes.length > 0) {
-					var index = 0;
-					while (index < objectNodes.length) {
-						if (objectNodes[index].getAttribute("data") == "XAudioJS.swf") {
-							objectNode = objectNodes[index];
-						}
-						index++;
-					}
-					if (objectNode) {
-						this.audioHandle = objectNode;
-						this.audioType = 3;
-						return;
-					}
+				try {
+					this.audioHandle2 = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
+					this.sampleCount = 0;
+				}
+				catch (error) {
+					this.noWave = true;
+				}
+				var objectNode = document.getElementById("XAudioJS");
+				if (objectNode != null) {
+					this.audioHandle = objectNode;
+					this.audioType = 3;
+					return;
 				}
 				var containerNode = document.createElement("div");
 				containerNode.setAttribute("style", "position: fixed; top: 0px; left: 0px; width: 0px; height: 0px; overflow: hidden; z-index: -1000; visibility: hidden;");
@@ -246,6 +243,7 @@ XAudioServer.prototype.initializeAudio = function () {
 				objectNode.setAttribute("style", "position: relative; height: 8px; width: 8px; overflow: hidden;");
 				objectNode.setAttribute("type", "application/x-shockwave-flash");
 				objectNode.setAttribute("data", "XAudioJS.swf");
+				objectNode.setAttribute("id", "XAudioJS");
 				var param = document.createElement("param");
 				param.setAttribute("name", "allowscriptaccess");
 				param.setAttribute("value", "always");
@@ -255,13 +253,6 @@ XAudioServer.prototype.initializeAudio = function () {
 				this.audioType = 3;
 				this.flashInitialized = false;
 				this.audioHandle = objectNode;
-				try {
-					this.audioHandle2 = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
-					this.sampleCount = 0;
-				}
-				catch (error) {
-					this.noWave = true;
-				}
 			}
 			catch (error) {
 				this.audioHandle = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
