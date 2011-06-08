@@ -156,6 +156,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	var dateVar = new Date();
 	this.lastIteration = dateVar.getTime();//The last time we iterated the main loop.
 	this.actualScanLine = 0;			//Actual scan line...
+	this.haltPostClocks = 0;			//Post-Halt clocking:
 	//ROM Cartridge Components:
 	this.cMBC1 = false;					//Does the cartridge use MBC1?
 	this.cMBC2 = false;					//Does the cartridge use MBC2?
@@ -1168,8 +1169,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 			//See if we're taking an interrupt already:
 			if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x1F) > 0) {
 				//If an IRQ is already going to launch:
-				if (!parentObj.IME && !parentObj.usedBootROM) {
-					if (!parentObj.cGBC) {
+				if (!parentObj.IME) {
+					if (!parentObj.cGBC && !parentObj.usedBootROM) {
 						//HALT bug in the DMG CPU model (Program Counter fails to increment for one instruction after HALT):
 						parentObj.skipPCIncrement = true;
 						return;
@@ -1179,6 +1180,12 @@ GameBoyCore.prototype.OPCODE = new Array(
 				}
 				return;
 			}
+			//Make sure we minimally clock 1:
+			parentObj.haltPostClocks = --parentObj.CPUTicks;
+			var originalHaltClock = 1;
+		}
+		else {
+			var originalHaltClock = 0;
 		}
 		//Prepare the short-circuit directly to the next IRQ event:
 		var maximumClocks = (parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks) * parentObj.multiplier;
@@ -1207,14 +1214,14 @@ GameBoyCore.prototype.OPCODE = new Array(
 		}
 		if (currentClocks < (maximumClocks + 1)) {
 			//Exit out of HALT normally:
-			parentObj.CPUTicks += Math.max(currentClocks, 0);
+			parentObj.CPUTicks = Math.max(currentClocks, originalHaltClock);
 			parentObj.updateCore();
-			parentObj.CPUTicks = 0;
+			parentObj.CPUTicks = parentObj.haltPostClocks;
 			parentObj.halt = false;
 		}
 		else {
 			//We have to bail out of HALT since the clocking is so large:
-			parentObj.CPUTicks += maximumClocks;
+			parentObj.CPUTicks = maximumClocks;
 			parentObj.halt = true;	//Flags that we will jump back to HALT on the next iteration.
 		}
 	},
@@ -4007,7 +4014,8 @@ GameBoyCore.prototype.saveState = function () {
 		this.fromTypedArray(this.cachedBGPaletteConversion),
 		this.fromTypedArray(this.cachedOBJPaletteConversion),
 		this.fromTypedArray(this.BGCHRBank1),
-		this.fromTypedArray(this.BGCHRBank2)
+		this.fromTypedArray(this.BGCHRBank2),
+		this.haltPostClocks
 	];
 }
 GameBoyCore.prototype.returnFromState = function (returnedFrom) {
@@ -4172,7 +4180,8 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.cachedBGPaletteConversion = this.toTypedArray(state[index++], "int32");
 	this.cachedOBJPaletteConversion = this.toTypedArray(state[index++], "int32");
 	this.BGCHRBank1 = this.toTypedArray(state[index++], "uint8");
-	this.BGCHRBank2 = this.toTypedArray(state[index], "uint8");
+	this.BGCHRBank2 = this.toTypedArray(state[index++], "uint8");
+	this.haltPostClocks = state[index]
 	this.fromSaveState = true;
 	this.initializeLCDController();
 	this.convertAuxilliary();
