@@ -1208,6 +1208,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 		if (currentClocks < (maximumClocks + 1)) {
 			//Exit out of HALT normally:
 			parentObj.CPUTicks += Math.max(currentClocks, 0);
+			parentObj.updateCore();
+			parentObj.CPUTicks = 0;
 			parentObj.halt = false;
 		}
 		else {
@@ -5567,7 +5569,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					if (parentObj.LCDTicks >= 114) {
 						//We need to skip 1 or more scan lines:
 						parentObj.renderScanLine();
-						parentObj.LCDCONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control 
+						parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control 
 					}
 				}
 			}
@@ -5612,7 +5614,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					}
 					if (parentObj.LCDTicks >= 114) {
 						//We need to skip 1 or more scan lines:
-						parentObj.LCDCONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control 
+						parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control 
 					}
 				}
 			}
@@ -5627,7 +5629,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					parentObj.matchLYC();
 					if (parentObj.LCDTicks >= 114) {
 						//We need to skip 1 or more scan lines:
-						parentObj.LCDCONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control 
+						parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control 
 					}
 				}
 			}
@@ -5646,7 +5648,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					parentObj.scanLineMode2();
 					if (parentObj.LCDTicks >= 114) {
 						//We need to skip 1 or more scan lines:
-						parentObj.LCDCONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control 
+						parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control 
 					}
 				}
 			}
