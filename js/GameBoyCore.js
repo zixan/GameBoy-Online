@@ -1427,7 +1427,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	function (parentObj) {
 		//shift left register A one bit for some ops here as an optimization:
 		var dirtySum = (parentObj.registerA << 1) | ((parentObj.FCarry) ? 1 : 0);
-		parentObj.FHalfCarry = (((parentObj.registerA << 1) & 0x1E) | ((parentObj.FCarry) ? 1 : 0) > 0xF);
+		parentObj.FHalfCarry = ((((parentObj.registerA << 1) & 0x1E) | ((parentObj.FCarry) ? 1 : 0)) > 0xF);
 		parentObj.FCarry = (dirtySum > 0xFF);
 		parentObj.registerA = dirtySum & 0xFF;
 		parentObj.FZero = (parentObj.registerA == 0);
