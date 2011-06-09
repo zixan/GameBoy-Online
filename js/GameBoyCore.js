@@ -5800,7 +5800,7 @@ GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 		var widthRatio = this.widthRatio;
 		var height = this.height;
 		var width = this.width;
-		var compileStringArray = new Array(width * height);
+		var compileStringArray = new Array((width * height) + 2);
 		var compileStringIndex = 1;
 		compileStringArray[0] = "var t = this.scaledFrameBuffer;var o = this.frameBuffer";
 		for (var row = 0, rowOffset = 0, pixelOffset = 0; row < height; row++, rowOffset = ((row * heightRatio) | 0) * 160) {
