@@ -5800,14 +5800,16 @@ GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 		var widthRatio = this.widthRatio;
 		var height = this.height;
 		var width = this.width;
-		var ResizeFunction = "var t = this.scaledFrameBuffer;var o = this.frameBuffer;";
+		var compileStringArray = new Array(width * height);
+		var compileStringIndex = 1;
+		compileStringArray[0] = "var t = this.scaledFrameBuffer;var o = this.frameBuffer;";
 		for (var row = 0, rowOffset = 0, pixelOffset = 0; row < height; row++, rowOffset = ((row * heightRatio) | 0) * 160) {
 			for (column = 0, columnOffset = 0; column < width; column++, columnOffset += widthRatio) {
-				ResizeFunction += "t[" + (pixelOffset++) + "] = o[" + (rowOffset + (columnOffset | 0)) + "];";
+				compileStringArray[compileStringIndex++] = "t[" + (pixelOffset++) + "] = o[" + (rowOffset + (columnOffset | 0)) + "]";
 			}
 		}
-		ResizeFunction += "return t;";
-		this.resizeFrameBuffer = new Function(ResizeFunction);
+		compileStringArray[compileStringIndex] = "return t";
+		this.resizeFrameBuffer = new Function(compileStringArray.join(";"));
 	}
 	else {
 		//Runtime resolving version:
@@ -5853,7 +5855,7 @@ GameBoyCore.prototype.renderScanLine = function () {
 }
 GameBoyCore.prototype.renderMidScanLine = function () {
 	if (this.actualScanLine < 144 && this.modeSTAT == 3 && (settings[4] == 0 || this.frameCount > 0)) {
-		var pixelEnd = Math.ceil(160 * Math.min(Math.max(this.LCDTicks - 23, 0) / 40, 1));
+		var pixelEnd = Math.min(Math.ceil(160 * Math.min(Math.max(this.LCDTicks - 23, 0) / 40, 1)) + 4, 160);
 		if (this.bgEnabled) {
 			this.pixelStart = this.actualScanLine * 160;
 			this.BGLayerRender(pixelEnd);
@@ -7375,6 +7377,9 @@ GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 	var tileCacheValid = this.tileCacheValid;
 	var memoryReader = this.memoryReader;
 	var memory = this.memory;
+	//GDMA compatibility:
+	var stat = this.modeSTAT;
+	this.modeSTAT = 0;
 	//Determining which bank we're working on so we can optimize:
 	if (this.currVRAMBank == 0) {
 		//DMA transfer for VRAM bank 0:
@@ -7422,6 +7427,7 @@ GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 	memory[0xFF52] = source & 0xFF;
 	memory[0xFF53] = destination >> 8;
 	memory[0xFF54] = destination & 0xFF;
+	this.modeSTAT = stat;
 }
 GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	//I/O Registers (GB + GBC):

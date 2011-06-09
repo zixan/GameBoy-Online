@@ -344,9 +344,9 @@ div#GameBoy<?php echo($Adjacent_OP); ?> div#gfx<?php echo($Adjacent_OP); ?> span
 }
 div#about {
 	max-width: 400px;
-	max-height: 300px;
+	max-height: 350px;
 	min-width: 400px;
-	min-height: 300px;
+	min-height: 350px;
 }
 div#terminal {
 	min-height: 100px;
@@ -355,6 +355,9 @@ div#terminal {
 div#terminal, div#about, div#settings {
 	height: 350px;
 	width: 400px;
+}
+div#settings {
+	height: 370px;
 }
 div#terminal<?php echo($Adjacent_OP); ?> div#terminal_output {
 	background-color: rgb(0, 0, 0);
