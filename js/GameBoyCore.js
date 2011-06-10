@@ -1192,17 +1192,17 @@ GameBoyCore.prototype.OPCODE = new Array(
 		var currentClocks = maximumClocks + 1;
 		if (parentObj.LCDisOn) {
 			if ((parentObj.memory[0xFFFF] & 0x1) == 0x1) {
-				currentClocks = Math.min(parentObj.clocksUntilMode1(), currentClocks);
+				currentClocks = Math.min(((114 * (((parentObj.modeSTAT == 1) ? 298 : 144) - parentObj.actualScanLine)) - parentObj.LCDTicks) * parentObj.multiplier, currentClocks);
 			}
 			if ((parentObj.memory[0xFFFF] & 0x2) == 0x2) {
 				if (parentObj.mode0TriggerSTAT) {
 					currentClocks = Math.min(parentObj.clocksUntilMode0(), currentClocks);
 				}
 				if (parentObj.mode1TriggerSTAT && (parentObj.memory[0xFFFF] & 0x1) == 0) {
-					currentClocks = Math.min(parentObj.clocksUntilMode1(), currentClocks);
+					currentClocks = Math.min(((114 * (((parentObj.modeSTAT == 1) ? 298 : 144) - parentObj.actualScanLine)) - parentObj.LCDTicks) * parentObj.multiplier, currentClocks);
 				}
 				if (parentObj.mode2TriggerSTAT) {
-					currentClocks = Math.min(parentObj.clocksUntilMode2(), currentClocks);
+					currentClocks = Math.min((((parentObj.actualScanLine >= 143) ? (114 * (154 - parentObj.actualScanLine)) : 114) - parentObj.LCDTicks) * parentObj.multiplier, currentClocks);
 				}
 				if (parentObj.LYCMatchTriggerSTAT && parentObj.memory[0xFF45] <= 153) {
 					currentClocks = Math.min(parentObj.clocksUntilLYCMatch(), currentClocks);
@@ -5344,11 +5344,34 @@ GameBoyCore.prototype.run = function () {
 GameBoyCore.prototype.executeIteration = function () {
 	//Iterate the interpreter loop:
 	var op = 0;
+	var bitShift = 0;
+	var testbit = 1;
+	var interrupts = 0;
 	while (this.stopEmulator == 0) {
-		//Execute Interrupt:
 		this.CPUTicks = 0;
+		//Check for IRQ:
 		if (this.IME) {
-			this.runInterrupt();
+			bitShift = 0;
+			testbit = 1;
+			interrupts = this.memory[0xFFFF] & this.memory[0xFF0F];
+			do {
+				//Check to see if an interrupt is enabled AND requested.
+				if ((testbit & interrupts) == testbit) {
+					this.IME = false;					//Reset the interrupt enabling.
+					this.memory[0xFF0F] -= testbit;		//Reset the interrupt request.
+					//Set the stack pointer to the current program counter value:
+					this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
+					this.memoryWriter[this.stackPointer](this, this.stackPointer, this.programCounter >> 8);
+					this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
+					this.memoryWriter[this.stackPointer](this, this.stackPointer, this.programCounter & 0xFF);
+					//Set the program counter to the interrupt's address:
+					this.programCounter = 0x40 | (bitShift << 3);
+					//Interrupts have a certain clock cycle length:
+					this.CPUTicks += 5;	//People say it's around 5.
+					break;	//We only want the highest priority interrupt.
+				}
+				testbit = 1 << ++bitShift;
+			} while (bitShift < 5);
 		}
 		//Fetch the current opcode.
 		op = this.memoryReader[this.programCounter](this, this.programCounter);
@@ -5370,29 +5393,6 @@ GameBoyCore.prototype.executeIteration = function () {
 		}
 		//Timing:
 		this.updateCore();
-	}
-}
-GameBoyCore.prototype.runInterrupt = function () {
-	var bitShift = 0;
-	var testbit = 1;
-	var interrupts = this.memory[0xFFFF] & this.memory[0xFF0F];
-	while (bitShift < 5) {
-		//Check to see if an interrupt is enabled AND requested.
-		if ((testbit & interrupts) == testbit) {
-			this.IME = false;					//Reset the interrupt enabling.
-			this.memory[0xFF0F] -= testbit;		//Reset the interrupt request.
-			//Set the stack pointer to the current program counter value:
-			this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
-			this.memoryWriter[this.stackPointer](this, this.stackPointer, this.programCounter >> 8);
-			this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
-			this.memoryWriter[this.stackPointer](this, this.stackPointer, this.programCounter & 0xFF);
-			//Set the program counter to the interrupt's address:
-			this.programCounter = 0x40 | (bitShift << 3);
-			//Interrupts have a certain clock cycle length:
-			this.CPUTicks += 5;	//People say it's around 5.
-			break;	//We only want the highest priority interrupt.
-		}
-		testbit = 1 << ++bitShift;
 	}
 }
 GameBoyCore.prototype.scanLineMode2 = function () {	//OAM Search Period
@@ -5440,12 +5440,6 @@ GameBoyCore.prototype.clocksUntilLYCMatch = function () {
 	}
 	return ((114 * ((this.actualScanLine == 153 && this.memory[0xFF44] == 0) ? 154 : (153 - this.actualScanLine))) + 2 - this.LCDTicks) * this.multiplier;
 }
-GameBoyCore.prototype.clocksUntilMode2 = function () {
-	if (this.actualScanLine >= 143) {
-		return ((114 * (154 - this.actualScanLine)) - this.LCDTicks) * this.multiplier;
-	}
-	return (114 - this.LCDTicks) * this.multiplier;
-}
 GameBoyCore.prototype.clocksUntilMode0 = function () {
 	switch (this.modeSTAT) {
 		case 0:
@@ -5463,12 +5457,6 @@ GameBoyCore.prototype.clocksUntilMode0 = function () {
 			this.updateSpriteCount(0);
 			return (this.spriteCount + (114 * (154 - this.actualScanLine)) - this.LCDTicks) * this.multiplier;
 	}
-}
-GameBoyCore.prototype.clocksUntilMode1 = function () {
-	if (this.modeSTAT == 1) {
-		return ((114 * (298 - this.actualScanLine)) - this.LCDTicks) * this.multiplier;
-	}
-	return ((114 * (144 - this.actualScanLine)) - this.LCDTicks) * this.multiplier;
 }
 GameBoyCore.prototype.updateSpriteCount = function (line) {
 	this.spriteCount = 63;
@@ -5841,8 +5829,9 @@ GameBoyCore.prototype.renderScanLine = function () {
 		}
 		else {
 			var pixelLine = (this.actualScanLine + 1) * 160;
+			var defaultColor = (this.cGBC || (this.usedBootROM && settings[17])) ? 0xF8F8F8 : 0xEFFFDE;
 			for (var pixelPosition = (this.actualScanLine * 160) + this.currentX; pixelPosition < pixelLine; pixelPosition++) {
-				this.frameBuffer[pixelPosition] = 0xF8F8F8;
+				this.frameBuffer[pixelPosition] = defaultColor;
 			}
 		}
 		this.SpriteLayerRender();
@@ -5855,7 +5844,7 @@ GameBoyCore.prototype.renderScanLine = function () {
 }
 GameBoyCore.prototype.renderMidScanLine = function () {
 	if (this.actualScanLine < 144 && this.modeSTAT == 3 && (settings[4] == 0 || this.frameCount > 0)) {
-		var pixelEnd = Math.min(Math.ceil(160 * Math.min(Math.max(this.LCDTicks - 23, 0) / 40, 1)) + 4, 160);
+		var pixelEnd = Math.floor(160 * Math.min(Math.max(this.LCDTicks - 23, 0) / 40, 1));
 		if (this.bgEnabled) {
 			this.pixelStart = this.actualScanLine * 160;
 			this.BGLayerRender(pixelEnd);
@@ -5864,8 +5853,9 @@ GameBoyCore.prototype.renderMidScanLine = function () {
 		}
 		else {
 			var pixelLine = (this.actualScanLine * 160) + pixelEnd;
+			var defaultColor = (this.cGBC || (this.usedBootROM && settings[17])) ? 0xF8F8F8 : 0xEFFFDE;
 			for (var pixelPosition = (this.actualScanLine * 160) + this.currentX; pixelPosition < pixelLine; pixelPosition++) {
-				this.frameBuffer[pixelPosition] = 0xF8F8F8;
+				this.frameBuffer[pixelPosition] = defaultColor;
 			}
 		}
 		this.currentX = pixelEnd;
