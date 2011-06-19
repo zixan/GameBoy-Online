@@ -242,7 +242,7 @@ XAudioServer.prototype.initializeAudio = function () {
 				var mainContainerNode = document.createElement("div");
 				mainContainerNode.setAttribute("style", "position: fixed; bottom: 0px; right: 0px; margin: 0px; padding: 0px; border: none; width: 8px; height: 8px; overflow: hidden; z-index: -1000; ");
 				var containerNode = document.createElement("div");
-				containerNode.setAttribute("style", "position: static; border: none; width: 0px; height: 0px; visibility: hidden; margin: 0px; padding: 0px;");
+				containerNode.setAttribute("style", "position: static; border: none; width: 0px; height: 0px; visibility: hidden; margin: 8px; padding: 0px;");
 				containerNode.setAttribute("id", "XAudioJS");
 				mainContainerNode.appendChild(containerNode);
 				document.getElementsByTagName("body")[0].appendChild(mainContainerNode);
@@ -255,7 +255,7 @@ XAudioServer.prototype.initializeAudio = function () {
 					"",
 					{},
 					{"allowscriptaccess":"always"},
-					{"style":"position: static; visibility: hidden; margin: 0px; padding: 0px; border: none"},
+					{"style":"position: static; visibility: hidden; margin: 8px; padding: 0px; border: none"},
 					function (event) {
 						if (event.success) {
 							thisObj.audioHandle = event.ref;
