@@ -237,22 +237,36 @@ XAudioServer.prototype.initializeAudio = function () {
 					this.audioType = 3;
 					return;
 				}
+				var thisObj = this;
+				this.audioHandle = {};
+				var mainContainerNode = document.createElement("div");
+				mainContainerNode.setAttribute("style", "position: fixed; bottom: 0px; right: 0px; margin: 0px; padding: 0px; border: none; width: 8px; height: 8px; overflow: hidden; z-index: -1000; ");
 				var containerNode = document.createElement("div");
-				containerNode.setAttribute("style", "position: fixed; top: 0px; left: 0px; width: 0px; height: 0px; overflow: hidden; z-index: -1000; visibility: hidden;");
-				objectNode = document.createElement("object");
-				objectNode.setAttribute("style", "position: relative; height: 8px; width: 8px; overflow: hidden;");
-				objectNode.setAttribute("type", "application/x-shockwave-flash");
-				objectNode.setAttribute("data", "XAudioJS.swf");
-				objectNode.setAttribute("id", "XAudioJS");
-				var param = document.createElement("param");
-				param.setAttribute("name", "allowscriptaccess");
-				param.setAttribute("value", "always");
-				objectNode.appendChild(param);
-				containerNode.appendChild(objectNode);
-				document.getElementsByTagName("body")[0].appendChild(containerNode);
+				containerNode.setAttribute("style", "position: static; border: none; width: 0px; height: 0px; visibility: hidden; margin: 0px; padding: 0px;");
+				containerNode.setAttribute("id", "XAudioJS");
+				mainContainerNode.appendChild(containerNode);
+				document.getElementsByTagName("body")[0].appendChild(mainContainerNode);
+				swfobject.embedSWF(
+					"XAudioJS.swf",
+					"XAudioJS",
+					"8",
+					"8",
+					"9.0.0",
+					"",
+					{},
+					{"allowscriptaccess":"always"},
+					{"style":"position: static; visibility: hidden; margin: 0px; padding: 0px; border: none"},
+					function (event) {
+						if (event.success) {
+							thisObj.audioHandle = event.ref;
+						}
+						else {
+							alert("Your browser does not like the Adobe Flash audio fallback. :(");
+						}
+					}
+				);
 				this.audioType = 3;
 				this.flashInitialized = false;
-				this.audioHandle = objectNode;
 			}
 			catch (error) {
 				this.audioHandle = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
