@@ -5510,17 +5510,6 @@ GameBoyCore.prototype.updateCore = function () {
 	if (this.emulatorTicks >= this.CPUCyclesPerIteration) {
 		this.audioJIT();
 		this.playAudio();				//Output all the samples built up.
-		if (this.asyncDrawSupportDetected == 1) {
-			//Async Event Handler for requesting frame time (Firefox 4):
-			window.mozRequestAnimationFrame();
-		}
-		else if (this.asyncDrawSupportDetected == 2) {
-			//Async Event Handler for requesting frame time (Chrome 11):
-			window.webkitRequestAnimationFrame(vSyncGFX);
-		}
-		else if (this.drewBlank == 0) {	//LCD off takes at least 2 frames.
-			this.drawToCanvas();		//Display frame
-		}
 		//Update DIV Alignment (Integer overflow safety):
 		this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 6)) & 0xFF;
 		this.DIVTicks &= 0x3F;
@@ -5608,6 +5597,10 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					parentObj.memory[0xFF0F] |= 0x1;
 					if (parentObj.drewBlank > 0) {		//LCD off takes at least 2 frames.
 						parentObj.drewBlank--;
+					}
+					else {
+						//Draw the frame:
+						parentObj.drawToCanvas();
 					}
 					if (parentObj.LCDTicks >= 114) {
 						//We need to skip 1 or more scan lines:

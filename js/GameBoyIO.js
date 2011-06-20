@@ -255,13 +255,3 @@ function GameBoyJoyStickSignalHandler(e) {
 		catch (error) { }
 	}
 }
-//Generic vsync function for use in multiple APIs:
-function vSyncGFX() {
-	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
-		if (gameboy.drewBlank == 0) {	//LCD off takes at least 2 frames.
-			gameboy.drawToCanvas();		//Display frame
-		}
-	}
-}
-//MozBeforePaint Event Handler:
-addEvent("MozBeforePaint", window, vSyncGFX);
