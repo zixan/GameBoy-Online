@@ -40,6 +40,9 @@ function run() {
 	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 2) {
 		gameboy.stopEmulator &= 1;
 		cout("Starting the iterator.", 0);
+		var dateObj = new Date();
+		gameboy.firstIteration = dateObj.getTime();
+		gameboy.iterations = 0;
 		gbRunInterval = setInterval(function () { gameboy.run(); }, settings[20]);
 	}
 	else if ((gameboy.stopEmulator & 2) == 0) {

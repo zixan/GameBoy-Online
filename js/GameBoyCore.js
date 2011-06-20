@@ -155,6 +155,9 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.untilEnable = 0;				//Are the interrupts on queue to be enabled?
 	var dateVar = new Date();
 	this.lastIteration = dateVar.getTime();//The last time we iterated the main loop.
+	dateObj = new Date();
+	this.firstIteration = dateObj.getTime();
+	this.iterations = 0;
 	this.actualScanLine = 0;			//Actual scan line...
 	this.haltPostClocks = 0;			//Post-Halt clocking:
 	//ROM Cartridge Components:
@@ -5733,7 +5736,8 @@ GameBoyCore.prototype.clockUpdate = function () {
 		}
 		if (settings[7]) {
 			//Auto Frame Skip:
-			if (timeElapsed > settings[20]) {
+			this.iterations++;
+			if (timeElapsed > settings[20] && ((newTime - this.firstIteration) / this.iterations) > (settings[20] * 1.01)) {
 				//Did not finish in time...
 				if (settings[4] < settings[8]) {
 					settings[4]++;
@@ -5742,6 +5746,10 @@ GameBoyCore.prototype.clockUpdate = function () {
 			else if (settings[4] > 0) {
 				//We finished on time, decrease frame skipping (throttle to somewhere just below full speed)...
 				settings[4]--;
+			}
+			if (this.iterations > 200) {
+				this.iterations = 0;
+				this.firstIteration = newTime;
 			}
 		}
 	}
