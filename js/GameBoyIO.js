@@ -21,7 +21,7 @@ var settings = [						//Some settings.
 	true,								//Colorize GB mode?
 	2048,								//Sample size for webkit audio.
 	false,								//Whether to display the canvas at 144x160 on fullscreen or as stretched.
-	17,									//Interval for the emulator loop.
+	16,									//Interval for the emulator loop.
 	false,								//Render nearest-neighbor scaling in javascript?
 	false,								//Disallow typed arrays?
 	15000,								//Audio Buffer Low Limit.
