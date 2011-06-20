@@ -5737,7 +5737,7 @@ GameBoyCore.prototype.clockUpdate = function () {
 		if (settings[7]) {
 			//Auto Frame Skip:
 			this.iterations++;
-			if (timeElapsed > settings[20] && ((newTime - this.firstIteration) / this.iterations) > (settings[20] + 1)) {
+			if (timeElapsed > settings[20] && ((newTime - this.firstIteration) / this.iterations) > (settings[20] + 1 + (settings[20] / this.iterations))) {
 				//Did not finish in time...
 				if (settings[4] < settings[8]) {
 					settings[4]++;
