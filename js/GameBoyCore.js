@@ -57,6 +57,8 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.skipPCIncrement = false;				//Did we trip the DMG Halt bug?
 	this.stopEmulator = 3;						//Has the emulation been paused or a frame has ended?
 	this.IME = true;							//Are interrupts enabled?
+	this.interruptsRequested = 0;				//IF Register
+	this.interruptsEnabled = 0;					//IE Register
 	this.hdmaRunning = false;					//HDMA Transfer Flag - GBC only
 	this.CPUTicks = 0;							//The number of clock cycles emulated.
 	this.multiplier = 1;						//GBC Speed Multiplier
@@ -382,7 +384,7 @@ GameBoyCore.prototype.GBCBOOTROM = new Array(	//GBC BOOT ROM (Thanks to Costis f
 	0x12, 0xb0, 0x79, 0xb8, 0xad, 0x16, 0x17, 0x07, 	0xba, 0x05, 0x7c, 0x13, 0x00, 0x00, 0x00, 0x00
 );
 GameBoyCore.prototype.ffxxDump = new Array(	//Dump of the post-BOOT I/O register state (From gambatte):
-	0x0F, 0x00, 0x7C, 0xFF, 0x43, 0x00, 0x00, 0xF8, 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01,
+	0x0F, 0x00, 0x7C, 0xFF, 0x00, 0x00, 0x00, 0xF8, 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01,
 	0x80, 0xBF, 0xF3, 0xFF, 0xBF, 0xFF, 0x3F, 0x00, 	0xFF, 0xBF, 0x7F, 0xFF, 0x9F, 0xFF, 0xBF, 0xFF,
 	0xFF, 0x00, 0x00, 0xBF, 0x77, 0xF3, 0xF1, 0xFF, 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
 	0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 	0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF, 0x00, 0xFF,
@@ -1170,7 +1172,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 				++parentObj.CPUTicks;	//CGB adds a hidden NOP.
 			}
 			//See if we're taking an interrupt already:
-			if ((parentObj.memory[0xFFFF] & parentObj.memory[0xFF0F] & 0x1F) > 0) {
+			if ((parentObj.interruptsEnabled & parentObj.interruptsRequested & 0x1F) > 0) {
 				//If an IRQ is already going to launch:
 				if (!parentObj.IME) {
 					if (!parentObj.cGBC && !parentObj.usedBootROM) {
@@ -1194,14 +1196,14 @@ GameBoyCore.prototype.OPCODE = new Array(
 		var maximumClocks = (parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks) * parentObj.multiplier;
 		var currentClocks = maximumClocks + 1;
 		if (parentObj.LCDisOn) {
-			if ((parentObj.memory[0xFFFF] & 0x1) == 0x1) {
+			if ((parentObj.interruptsEnabled & 0x1) == 0x1) {
 				currentClocks = Math.min(((114 * (((parentObj.modeSTAT == 1) ? 298 : 144) - parentObj.actualScanLine)) - parentObj.LCDTicks) * parentObj.multiplier, currentClocks);
 			}
-			if ((parentObj.memory[0xFFFF] & 0x2) == 0x2) {
+			if ((parentObj.interruptsEnabled & 0x2) == 0x2) {
 				if (parentObj.mode0TriggerSTAT) {
 					currentClocks = Math.min(parentObj.clocksUntilMode0(), currentClocks);
 				}
-				if (parentObj.mode1TriggerSTAT && (parentObj.memory[0xFFFF] & 0x1) == 0) {
+				if (parentObj.mode1TriggerSTAT && (parentObj.interruptsEnabled & 0x1) == 0) {
 					currentClocks = Math.min(((114 * (((parentObj.modeSTAT == 1) ? 298 : 144) - parentObj.actualScanLine)) - parentObj.LCDTicks) * parentObj.multiplier, currentClocks);
 				}
 				if (parentObj.mode2TriggerSTAT) {
@@ -1212,7 +1214,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 				}
 			}
 		}
-		if (parentObj.TIMAEnabled && (parentObj.memory[0xFFFF] & 0x4) == 0x4) {
+		if (parentObj.TIMAEnabled && (parentObj.interruptsEnabled & 0x4) == 0x4) {
 			currentClocks = Math.min(((0x100 - parentObj.memory[0xFF05]) * parentObj.TACClocker) - parentObj.timerTicks, currentClocks);
 		}
 		if (currentClocks < (maximumClocks + 1)) {
@@ -4018,7 +4020,9 @@ GameBoyCore.prototype.saveState = function () {
 		this.fromTypedArray(this.cachedOBJPaletteConversion),
 		this.fromTypedArray(this.BGCHRBank1),
 		this.fromTypedArray(this.BGCHRBank2),
-		this.haltPostClocks
+		this.haltPostClocks,
+		this.interruptsRequested,
+		this.interruptsEnabled
 	];
 }
 GameBoyCore.prototype.returnFromState = function (returnedFrom) {
@@ -4184,7 +4188,9 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.cachedOBJPaletteConversion = this.toTypedArray(state[index++], "int32");
 	this.BGCHRBank1 = this.toTypedArray(state[index++], "uint8");
 	this.BGCHRBank2 = this.toTypedArray(state[index++], "uint8");
-	this.haltPostClocks = state[index]
+	this.haltPostClocks = state[index++];
+	this.interruptsRequested = state[index++];
+	this.interruptsEnabled = state[index];
 	this.fromSaveState = true;
 	this.initializeLCDController();
 	this.convertAuxilliary();
@@ -4287,9 +4293,9 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.rightChannel = this.ArrayPad(4, true);
 	this.LCDCONTROL = this.LINECONTROL;
 	this.LCDisOn = true;
-	this.modeSTAT = 0;
-	this.STATTracker = 0;
-	this.LCDTicks = 15;
+	this.modeSTAT = 3;
+	this.STATTracker = 1;
+	this.LCDTicks = 20;	//Boot ROM officially supposed to leave in mode 3.
 	this.actualScanLine = 0;
 	this.gfxWindowCHRBankPosition = 0;
 	this.gfxWindowDisplay = false;
@@ -4310,6 +4316,7 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 				case 0x00:
 				case 0x01:
 				case 0x02:
+				case 0x05:
 				case 0x07:
 				case 0x0F:
 				case 0xFF:
@@ -4742,7 +4749,7 @@ GameBoyCore.prototype.JoyPadEvent = function (key, down) {
 	if (down) {
 		this.JoyPad &= 0xFF ^ (1 << key);
 		/*if (!this.cGBC) {
-			this.memory[0xFF0F] |= 0x10;	//A real GBC doesn't set this!
+			this.interruptsRequested |= 0x10;	//A real GBC doesn't set this!
 		}*/
 	}
 	else {
@@ -5356,12 +5363,12 @@ GameBoyCore.prototype.executeIteration = function () {
 		if (this.IME) {
 			bitShift = 0;
 			testbit = 1;
-			interrupts = this.memory[0xFFFF] & this.memory[0xFF0F];
+			interrupts = this.interruptsEnabled & this.interruptsRequested;
 			do {
 				//Check to see if an interrupt is enabled AND requested.
 				if ((testbit & interrupts) == testbit) {
 					this.IME = false;					//Reset the interrupt enabling.
-					this.memory[0xFF0F] -= testbit;		//Reset the interrupt request.
+					this.interruptsRequested -= testbit;		//Reset the interrupt request.
 					//Set the stack pointer to the current program counter value:
 					this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
 					this.memoryWriter[this.stackPointer](this, this.stackPointer, this.programCounter >> 8);
@@ -5401,7 +5408,7 @@ GameBoyCore.prototype.executeIteration = function () {
 GameBoyCore.prototype.scanLineMode2 = function () {	//OAM Search Period
 	if (this.modeSTAT != 2) {
 		if (this.mode2TriggerSTAT) {
-			this.memory[0xFF0F] |= 0x2;
+			this.interruptsRequested |= 0x2;
 		}
 		this.STATTracker = 1;
 		this.modeSTAT = 2;
@@ -5410,7 +5417,7 @@ GameBoyCore.prototype.scanLineMode2 = function () {	//OAM Search Period
 GameBoyCore.prototype.scanLineMode3 = function () {	//Scan Line Drawing Period
 	if (this.modeSTAT != 3) {
 		if (this.mode2TriggerSTAT && this.STATTracker == 0) {
-			this.memory[0xFF0F] |= 0x2;
+			this.interruptsRequested |= 0x2;
 		}
 		this.STATTracker = 1;
 		this.modeSTAT = 3;
@@ -5427,7 +5434,7 @@ GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 				this.executeHDMA();
 			}
 			if (this.mode0TriggerSTAT || (this.mode2TriggerSTAT && this.STATTracker == 4)) {
-				this.memory[0xFF0F] |= 0x2;
+				this.interruptsRequested |= 0x2;
 			}
 			this.STATTracker = 2;
 			this.modeSTAT = 0;
@@ -5479,7 +5486,7 @@ GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
 	if (this.memory[0xFF44] == this.memory[0xFF45]) {
 		this.memory[0xFF41] |= 0x04;
 		if (this.LYCMatchTriggerSTAT) {
-			this.memory[0xFF0F] |= 0x2;
+			this.interruptsRequested |= 0x2;
 		}
 	} 
 	else {
@@ -5502,7 +5509,7 @@ GameBoyCore.prototype.updateCore = function () {
 			this.timerTicks -= this.TACClocker;
 			if (this.memory[0xFF05] == 0xFF) {
 				this.memory[0xFF05] = this.memory[0xFF06];
-				this.memory[0xFF0F] |= 0x4;
+				this.interruptsRequested |= 0x4;
 			}
 			else {
 				this.memory[0xFF05]++;
@@ -5548,7 +5555,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 							parentObj.executeHDMA();
 						}
 						if (parentObj.mode0TriggerSTAT) {
-							parentObj.memory[0xFF0F] |= 0x2;
+							parentObj.interruptsRequested |= 0x2;
 						}
 					}
 					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
@@ -5580,7 +5587,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					//Just finished the last visible scan line:
 					parentObj.LCDTicks -= 114;
 					if (parentObj.mode1TriggerSTAT) {
-						parentObj.memory[0xFF0F] |= 0x2;
+						parentObj.interruptsRequested |= 0x2;
 					}
 					if (parentObj.STATTracker != 2) {
 						if (parentObj.STATTracker < 4) {
@@ -5590,14 +5597,14 @@ GameBoyCore.prototype.initializeLCDController = function () {
 							parentObj.executeHDMA();
 						}
 						if (parentObj.mode0TriggerSTAT) {
-							parentObj.memory[0xFF0F] |= 0x2;
+							parentObj.interruptsRequested |= 0x2;
 						}
 					}
 					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
 					parentObj.matchLYC();
 					parentObj.STATTracker = 0;
 					parentObj.modeSTAT = 1;
-					parentObj.memory[0xFF0F] |= 0x1;
+					parentObj.interruptsRequested |= 0x1;
 					if (parentObj.drewBlank > 0) {		//LCD off takes at least 2 frames.
 						parentObj.drewBlank--;
 					}
@@ -6701,7 +6708,7 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 				case 0xFF0F:
 					//IF
 					this.memoryReader[0xFF0F] = function (parentObj, address) {
-						return 0xE0 | parentObj.memory[0xFF0F];
+						return 0xE0 | parentObj.interruptsRequested;
 					}
 					break;
 				case 0xFF10:
@@ -6860,6 +6867,12 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 				case 0xFF77:
 					this.memoryReader[index] = function (parentObj, address) {
 						return 0;
+					}
+					break;
+				case 0xFFFF:
+					//IE
+					this.memoryReader[0xFFFF] = function (parentObj, address) {
+						return parentObj.interruptsEnabled;
 					}
 					break;
 				default:
@@ -7435,7 +7448,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if (((data & 0x1) == 0x1)) {
 			//Internal clock:
 			parentObj.memory[0xFF02] = (data & 0x7F);
-			parentObj.memory[0xFF0F] |= 0x8;	//Get this time delayed...
+			parentObj.interruptsRequested |= 0x8;	//Get this time delayed...
 		}
 		else {
 			//External clock:
@@ -7464,7 +7477,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	//IF (Interrupt Request)
 	this.memoryWriter[0xFF0F] = function (parentObj, address, data) {
-		parentObj.memory[0xFF0F] = data;
+		parentObj.interruptsRequested = data;
 	}
 	this.memoryWriter[0xFF10] = function (parentObj, address, data) {
 		parentObj.audioJIT();
@@ -7891,6 +7904,10 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		//Read Only:
 		if (parentObj.LCDisOn) {
 			//Gambatte says to do this:
+			if (parentObj.drewBlank == 0 && (parentObj.actualScanLine > 0 || parentObj.STATTracker == 2)) {
+				//Blit out the partial frame:
+				parentObj.drawToCanvas();
+			}
 			parentObj.LCDTicks = parentObj.STATTracker = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 		}
 	}
@@ -7939,7 +7956,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryWriter[0xFF77] = this.cartIgnoreWrite;
 	//IE (Interrupt Enable)
 	this.memoryWriter[0xFFFF] = function (parentObj, address, data) {
-		parentObj.memory[0xFFFF] = data;
+		parentObj.interruptsEnabled = data;
 	}
 	if (this.cGBC) {
 		//GameBoy Color Specific I/O:
@@ -7961,7 +7978,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 					parentObj.LCDCONTROL = parentObj.DISPLAYOFFCONTROL;
 					parentObj.DisplayShowOff();
 				}
-				parentObj.memory[0xFF0F] &= 0xFD;
+				parentObj.interruptsRequested &= 0xFD;
 			}
 			parentObj.gfxWindowCHRBankPosition = ((data & 0x40) == 0x40) ? 0x400 : 0;
 			parentObj.gfxWindowDisplay = (data & 0x20) == 0x20;
@@ -8112,7 +8129,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 					parentObj.LCDCONTROL = parentObj.DISPLAYOFFCONTROL;
 					parentObj.DisplayShowOff();
 				}
-				parentObj.memory[0xFF0F] &= 0xFD;
+				parentObj.interruptsRequested &= 0xFD;
 			}
 			parentObj.gfxWindowCHRBankPosition = ((data & 0x40) == 0x40) ? 0x400 : 0;
 			parentObj.gfxWindowDisplay = (data & 0x20) == 0x20;
@@ -8137,7 +8154,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.mode0TriggerSTAT = ((data & 0x08) == 0x08);
 			parentObj.memory[0xFF41] = (data & 0xF8);
 			if (!parentObj.usedBootROM && parentObj.LCDisOn && parentObj.modeSTAT < 2) {
-				parentObj.memory[0xFF0F] |= 0x2;
+				parentObj.interruptsRequested |= 0x2;
 			}
 		}
 		this.memoryWriter[0xFF46] = function (parentObj, address, data) {
