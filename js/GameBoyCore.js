@@ -195,6 +195,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.windowY = 0;						//Current Y offset of the window.
 	this.windowX = 0;						//Current X offset of the window.
 	this.drewBlank = 0;						//To prevent the repeating of drawing a blank screen.
+	this.midScanlineOffset = 0;				//mid-scanline rendering offset.
 	//BG Tile Pointer Caches:
 	this.BGCHRBank1 = this.getTypedArray(0x800, 0, "uint8");
 	this.BGCHRBank2 = this.getTypedArray(0x800, 0, "uint8");
@@ -5852,7 +5853,10 @@ GameBoyCore.prototype.renderScanLine = function () {
 }
 GameBoyCore.prototype.renderMidScanLine = function () {
 	if (this.actualScanLine < 144 && this.modeSTAT == 3 && (settings[4] == 0 || this.frameCount > 0)) {
-		var pixelEnd = Math.min(Math.floor(160 * Math.min(Math.max(this.LCDTicks - 23, 0) / 40, 1)) + 4, 160);
+		if (this.currentX == 0) {
+			this.midScanlineOffset = 12 - (this.memory[0xFF43] & 7);
+		}
+		var pixelEnd = Math.min(Math.floor(160 * Math.min(Math.max(this.LCDTicks - 23, 0) / 40, 1)) + this.midScanlineOffset, 160);
 		if (this.bgEnabled) {
 			this.pixelStart = this.actualScanLine * 160;
 			this.BGLayerRender(pixelEnd);
