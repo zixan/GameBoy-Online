@@ -2111,6 +2111,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 		if (parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) == 0x76) {
 			//Immediate for HALT:
 			parentObj.IME = true;
+			parentObj.untilEnable = 0;
 		}
 		else {
 			parentObj.untilEnable = 2;
@@ -2375,6 +2376,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 		if (parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) == 0x76) {
 			//Immediate for HALT:
 			parentObj.IME = true;
+			parentObj.untilEnable = 0;
 		}
 		else {
 			parentObj.untilEnable = 2;
@@ -4535,6 +4537,7 @@ GameBoyCore.prototype.ROMLoad = function () {
 			MBCType = "HuC1";
 			break;
 		default:
+			this.cMBC5 = true;	//Leave this so Kirby's Tilt N' Tumble can boot without a gyro (I need to implement the MBC7 cartridge).
 			MBCType = "Unknown";
 			cout("Cartridge type is unknown.", 2);
 			pause();
@@ -5368,8 +5371,8 @@ GameBoyCore.prototype.executeIteration = function () {
 			do {
 				//Check to see if an interrupt is enabled AND requested.
 				if ((testbit & interrupts) == testbit) {
-					this.IME = false;					//Reset the interrupt enabling.
-					this.interruptsRequested -= testbit;		//Reset the interrupt request.
+					this.IME = false;						//Reset the interrupt enabling.
+					this.interruptsRequested -= testbit;	//Reset the interrupt request.
 					//Set the stack pointer to the current program counter value:
 					this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
 					this.memoryWriter[this.stackPointer](this, this.stackPointer, this.programCounter >> 8);
@@ -5384,6 +5387,15 @@ GameBoyCore.prototype.executeIteration = function () {
 				testbit = 1 << ++bitShift;
 			} while (bitShift < 5);
 		}
+		else {
+			//Interrupt Arming:
+			switch (this.untilEnable) {
+				case 1:
+					this.IME = true;
+				case 2:
+					this.untilEnable--;
+			}
+		}
 		//Fetch the current opcode.
 		op = this.memoryReader[this.programCounter](this, this.programCounter);
 		if (!this.skipPCIncrement) {
@@ -5395,13 +5407,6 @@ GameBoyCore.prototype.executeIteration = function () {
 		this.CPUTicks += this.TICKTable[op];
 		//Execute the OP code instruction:
 		this.OPCODE[op](this);
-		//Interrupt Arming:
-		switch (this.untilEnable) {
-			case 1:
-				this.IME = true;
-			case 2:
-				this.untilEnable--;
-		}
 		//Timing:
 		this.updateCore();
 	}
@@ -7144,7 +7149,7 @@ GameBoyCore.prototype.MBC1WriteRAMBank = function (parentObj, address, data) {
 	//MBC1 RAM bank switching
 	if (parentObj.MBC1Mode) {
 		//4/32 Mode
-		parentObj.currMBCRAMBank = data & 0x3;
+		parentObj.currMBCRAMBank = parentObj.numRAMBanks & data & 0x3;
 		parentObj.currMBCRAMBankPosition = (parentObj.currMBCRAMBank << 13) - 0xA000;
 	}
 	else {
@@ -7200,18 +7205,18 @@ GameBoyCore.prototype.MBC5WriteROMBankHigh = function (parentObj, address, data)
 }
 GameBoyCore.prototype.MBC5WriteRAMBank = function (parentObj, address, data) {
 	//MBC5 RAM bank switching
-	parentObj.currMBCRAMBank = data & 0xF;
+	parentObj.currMBCRAMBank = parentObj.numRAMBanks & data & 0xF;
 	parentObj.currMBCRAMBankPosition = (parentObj.currMBCRAMBank << 13) - 0xA000;
 }
 GameBoyCore.prototype.RUMBLEWriteRAMBank = function (parentObj, address, data) {
 	//MBC5 RAM bank switching
 	//Like MBC5, but bit 3 of the lower nibble is used for rumbling and bit 2 is ignored.
-	parentObj.currMBCRAMBank = data & 0x3;
+	parentObj.currMBCRAMBank = parentObj.numRAMBanks & data & 0x3;
 	parentObj.currMBCRAMBankPosition = (parentObj.currMBCRAMBank << 13) - 0xA000;
 }
 GameBoyCore.prototype.HuC3WriteRAMBank = function (parentObj, address, data) {
 	//HuC3 RAM bank switching
-	parentObj.currMBCRAMBank = data & 0x03;
+	parentObj.currMBCRAMBank = parentObj.numRAMBanks & data & 0x03;
 	parentObj.currMBCRAMBankPosition = (parentObj.currMBCRAMBank << 13) - 0xA000;
 }
 GameBoyCore.prototype.cartIgnoreWrite = function (parentObj, address, data) {
@@ -7379,64 +7384,113 @@ GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 	//Destination address in the VRAM memory range:
 	var destination = (this.memory[0xFF53] << 8) | this.memory[0xFF54];
 	//Initialization:
-	var dataRead = 0;
 	var tileTarget = 0;
-	var bytesToTransfer = tilesToTransfer << 4;
 	//Creating some references:
 	var tileCacheValid = this.tileCacheValid;
 	var memoryReader = this.memoryReader;
 	var memory = this.memory;
-	//GDMA compatibility:
-	var stat = this.modeSTAT;
-	this.modeSTAT = 0;
 	//Determining which bank we're working on so we can optimize:
 	if (this.currVRAMBank == 0) {
 		//DMA transfer for VRAM bank 0:
-		while (bytesToTransfer > 0) {
+		do {
 			if (destination < 0x1800) {
-				dataRead = memoryReader[source](this, source);
-				if (memory[0x8000 | destination] != dataRead) {
-					memory[0x8000 | destination] = dataRead;
-					tileTarget = destination >> 4;
-					tileCacheValid[tileTarget] = tileCacheValid[0x400 | tileTarget] = tileCacheValid[0x800 | tileTarget] = tileCacheValid[0xC00 | tileTarget] = 0;
-				}
-				destination++;
+				tileTarget = destination >> 4;
+				tileCacheValid[tileTarget] = tileCacheValid[0x400 | tileTarget] = tileCacheValid[0x800 | tileTarget] = tileCacheValid[0xC00 | tileTarget] = 0;
+				memory[0x8000 | destination] = memoryReader[source](this, source++);
+				memory[0x8001 | destination] = memoryReader[source](this, source++);
+				memory[0x8002 | destination] = memoryReader[source](this, source++);
+				memory[0x8003 | destination] = memoryReader[source](this, source++);
+				memory[0x8004 | destination] = memoryReader[source](this, source++);
+				memory[0x8005 | destination] = memoryReader[source](this, source++);
+				memory[0x8006 | destination] = memoryReader[source](this, source++);
+				memory[0x8007 | destination] = memoryReader[source](this, source++);
+				memory[0x8008 | destination] = memoryReader[source](this, source++);
+				memory[0x8009 | destination] = memoryReader[source](this, source++);
+				memory[0x800A | destination] = memoryReader[source](this, source++);
+				memory[0x800B | destination] = memoryReader[source](this, source++);
+				memory[0x800C | destination] = memoryReader[source](this, source++);
+				memory[0x800D | destination] = memoryReader[source](this, source++);
+				memory[0x800E | destination] = memoryReader[source](this, source++);
+				memory[0x800F | destination] = memoryReader[source](this, source++);
+				destination += 0x10;
 			}
 			else {
-				this.BGCHRBank1[destination & 0x7FF] = memoryReader[source](this, source);
-				destination = ((destination + 1) & 0x1FFF);
+				destination &= 0x7F0;
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank1[destination++] = memoryReader[source](this, source++);
+				destination = (destination + 0x1800) & 0x1FF0;
 			}
-			source = (source + 1) & 0xFFFF;
-			bytesToTransfer--;
-		}
+			source &= 0xFFF0;
+			tilesToTransfer--;
+		} while (tilesToTransfer > 0);
 	}
 	else {
 		var VRAM = this.VRAM;
 		//DMA transfer for VRAM bank 1:
-		while (bytesToTransfer > 0) {
+		do {
 			if (destination < 0x1800) {
-				dataRead = memoryReader[source](this, source);
-				if (VRAM[destination] != dataRead) {
-					VRAM[destination] = dataRead;
-					tileTarget = destination >> 4;
-					tileCacheValid[0x200 | tileTarget] = tileCacheValid[0x600 | tileTarget] = tileCacheValid[0xA00 | tileTarget] = tileCacheValid[0xE00 | tileTarget] = 0;
-				}
-				destination++;
+				tileTarget = destination >> 4;
+				tileCacheValid[0x200 | tileTarget] = tileCacheValid[0x600 | tileTarget] = tileCacheValid[0xA00 | tileTarget] = tileCacheValid[0xE00 | tileTarget] = 0;
+				VRAM[destination++] = memoryReader[source](this, source++);
+				VRAM[destination++] = memoryReader[source](this, source++);
+				VRAM[destination++] = memoryReader[source](this, source++);
+				VRAM[destination++] = memoryReader[source](this, source++);
+				VRAM[destination++] = memoryReader[source](this, source++);
+				VRAM[destination++] = memoryReader[source](this, source++);
+				VRAM[destination++] = memoryReader[source](this, source++);
+				VRAM[destination++] = memoryReader[source](this, source++);
+				VRAM[destination++] = memoryReader[source](this, source++);
+				VRAM[destination++] = memoryReader[source](this, source++);
+				VRAM[destination++] = memoryReader[source](this, source++);
+				VRAM[destination++] = memoryReader[source](this, source++);
+				VRAM[destination++] = memoryReader[source](this, source++);
+				VRAM[destination++] = memoryReader[source](this, source++);
+				VRAM[destination++] = memoryReader[source](this, source++);
+				VRAM[destination++] = memoryReader[source](this, source++);
 			}
 			else {
-				this.BGCHRBank2[destination & 0x7FF] = memoryReader[source](this, source);
-				destination = ((destination + 1) & 0x1FFF);
+				destination &= 0x7F0;
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				this.BGCHRBank2[destination++] = memoryReader[source](this, source++);
+				destination = (destination + 0x1800) & 0x1FF0;
 			}
-			source = (source + 1) & 0xFFFF;
-			bytesToTransfer--;
-		}
+			source &= 0xFFF0;
+			tilesToTransfer--;
+		} while (tilesToTransfer > 0);
 	}
 	//Update the HDMA registers to their next addresses:
 	memory[0xFF51] = source >> 8;
-	memory[0xFF52] = source & 0xFF;
+	memory[0xFF52] = source & 0xF0;
 	memory[0xFF53] = destination >> 8;
-	memory[0xFF54] = destination & 0xFF;
-	this.modeSTAT = stat;
+	memory[0xFF54] = destination & 0xF0;
 }
 GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	//I/O Registers (GB + GBC):
