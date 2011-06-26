@@ -113,6 +113,11 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.RTCDays = 0;							//RTC days counter.
 	this.RTCDayOverFlow = false;				//Did the RTC overflow and wrap the day counter?
 	this.RTCHALT = false;						//Is the RTC allowed to clock up?
+	//Gyro:
+	this.highX = 127;
+	this.lowX = 127;
+	this.highY = 127;
+	this.lowY = 127;
 	//Sound variables:
 	this.audioHandle = null;					//Audio object or the WAV PCM generator wrapper
 	this.outTracker = 0;						//Buffering counter for the WAVE PCM output.
@@ -4524,6 +4529,12 @@ GameBoyCore.prototype.ROMLoad = function () {
 			this.cCamera = true;
 			MBCType = "GameBoy Camera";
 			break;
+		case 0x22:
+			this.cMBC7 = true;
+			this.cSRAM = true;
+			this.cBATT = true;
+			MBCType = "MBC7 + SRAM + BATT";
+			break;
 		case 0xFD:
 			this.cTAMA5 = true;
 			MBCType = "TAMA5";
@@ -4537,7 +4548,6 @@ GameBoyCore.prototype.ROMLoad = function () {
 			MBCType = "HuC1";
 			break;
 		default:
-			this.cMBC5 = true;	//Leave this so Kirby's Tilt N' Tumble can boot without a gyro (I need to implement the MBC7 cartridge).
 			MBCType = "Unknown";
 			cout("Cartridge type is unknown.", 2);
 			pause();
@@ -4760,6 +4770,16 @@ GameBoyCore.prototype.JoyPadEvent = function (key, down) {
 		this.JoyPad |= (1 << key);
 	}
 	this.memory[0xFF00] = (this.memory[0xFF00] & 0x30) + ((((this.memory[0xFF00] & 0x20) == 0) ? (this.JoyPad >> 4) : 0xF) & (((this.memory[0xFF00] & 0x10) == 0) ? (this.JoyPad & 0xF) : 0xF));
+}
+GameBoyCore.prototype.GyroEvent = function (x, y) {
+	x *= 100;
+	x += 2047;
+	this.highX = x >> 8;
+	this.lowX = x & 0xFF;
+	y *= 100;
+	y += 2047;
+	this.highY = y >> 8;
+	this.lowY = y & 0xFF;
 }
 GameBoyCore.prototype.initSound = function () {
 	this.soundChannelsAllocated = (!settings[1]) ? 2 : 1;
@@ -6640,7 +6660,10 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 		}
 		else if (index >= 0xA000 && index < 0xC000) {
 			if ((this.numRAMBanks == 1 / 16 && index < 0xA200) || this.numRAMBanks >= 1) {
-				if (!this.cMBC3) {
+				if (this.cMBC7) {
+					this.memoryReader[index] = this.memoryReadMBC7;
+				}
+				else if (!this.cMBC3) {
 					this.memoryReader[index] = this.memoryReadMBC;
 				}
 				else {
@@ -6908,6 +6931,36 @@ GameBoyCore.prototype.memoryReadMBC = function (parentObj, address) {
 	//cout("Reading from disabled RAM.", 1);
 	return 0xFF;
 }
+GameBoyCore.prototype.memoryReadMBC7 = function (parentObj, address) {
+	//Switchable RAM
+	if (parentObj.MBCRAMBanksEnabled || settings[10]) {
+		switch (address) {
+			case 0xA000:
+			case 0xA060:
+			case 0xA070:
+				return 0;
+			case 0xA080:
+				//TODO: Gyro Control Register
+				return 0;
+			case 0xA050:
+				//Y High Byte
+				return parentObj.highY;
+			case 0xA040:
+				//Y Low Byte
+				return parentObj.lowY;
+			case 0xA030:
+				//X High Byte
+				return parentObj.highX;
+			case 0xA020:
+				//X Low Byte:
+				return parentObj.lowX;
+			default:
+				return parentObj.MBCRam[address + parentObj.currMBCRAMBankPosition];
+		}
+	}
+	//cout("Reading from disabled RAM.", 1);
+	return 0xFF;
+}
 GameBoyCore.prototype.memoryReadMBC3 = function (parentObj, address) {
 	//Switchable RAM
 	if (parentObj.MBCRAMBanksEnabled || settings[10]) {
@@ -7044,7 +7097,7 @@ GameBoyCore.prototype.memoryWriteJumpCompile = function () {
 					this.memoryWriter[index] = this.MBC3WriteRTCLatch;
 				}
 			}
-			else if (this.cMBC5 || this.cRUMBLE) {
+			else if (this.cMBC5 || this.cRUMBLE || this.cMBC7) {
 				if (index < 0x2000) {
 					this.memoryWriter[index] = this.MBCWriteEnable;
 				}
@@ -7058,7 +7111,12 @@ GameBoyCore.prototype.memoryWriteJumpCompile = function () {
 					this.memoryWriter[index] = (this.cRUMBLE) ? this.RUMBLEWriteRAMBank : this.MBC5WriteRAMBank;
 				}
 				else {
-					this.memoryWriter[index] = this.cartIgnoreWrite;
+					if (!this.cMBC7) {
+						this.memoryWriter[index] = this.cartIgnoreWrite;
+					}
+					else {
+						this.memoryWriter[index] = this.cartIgnoreWriteLog;
+					}
 				}
 			}
 			else if (this.cHuC3) {
@@ -7221,6 +7279,9 @@ GameBoyCore.prototype.HuC3WriteRAMBank = function (parentObj, address, data) {
 }
 GameBoyCore.prototype.cartIgnoreWrite = function (parentObj, address, data) {
 	//We might have encountered illegal RAM writing or such, so just do nothing...
+}
+GameBoyCore.prototype.cartIgnoreWriteLog = function (parentObj, address, data) {
+	cout("address: " + address + "\r\n data: " + data);
 }
 GameBoyCore.prototype.memoryWriteNormal = function (parentObj, address, data) {
 	parentObj.memory[address] = data;
@@ -7967,7 +8028,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				//Blit out the partial frame:
 				parentObj.drawToCanvas();
 			}
-			parentObj.LCDTicks = parentObj.STATTracker = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+			parentObj.modeSTAT = parentObj.LCDTicks = parentObj.STATTracker = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 		}
 	}
 	//LYC
@@ -8057,16 +8118,16 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 		this.memoryWriter[0xFF46] = function (parentObj, address, data) {
 			parentObj.memory[0xFF46] = data;
-			data <<= 8;
-			address = 0xFE00;
-			var stat = parentObj.modeSTAT;
-			if (stat != 2) {
+			if (data < 0xE0) {
+				data <<= 8;
+				address = 0xFE00;
+				var stat = parentObj.modeSTAT;
 				parentObj.modeSTAT = 0;
+				while (address < 0xFEA0) {
+					parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+				}
+				parentObj.modeSTAT = stat;
 			}
-			while (address < 0xFEA0) {
-				parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
-			}
-			parentObj.modeSTAT = stat;
 		}
 		//KEY1
 		this.memoryWriter[0xFF4D] = function (parentObj, address, data) {
@@ -8104,9 +8165,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 		this.memoryWriter[0xFF55] = function (parentObj, address, data) {
 			if (!parentObj.hdmaRunning) {
-				if ((data & 0x80) == 0) {
+				if ((data & 0x80) == 0 || !this.LCDisOn) {	//Undocumented behavior alert: HDMA becomes GDMA when LCD is off (Worms Armageddon Fix).
 					//DMA
-					parentObj.DMAWrite(data + 1);
+					parentObj.DMAWrite((data & 0x7F) + 1);
 					parentObj.memory[0xFF55] = 0xFF;	//Transfer completed.
 				}
 				else {
@@ -8218,13 +8279,11 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 		this.memoryWriter[0xFF46] = function (parentObj, address, data) {
 			parentObj.memory[0xFF46] = data;
-			if (data > 0x7F) {	//DMG cannot DMA from the ROM banks.
+			if (data > 0x7F && data < 0xE0) {	//DMG cannot DMA from the ROM banks.
 				data <<= 8;
 				address = 0xFE00;
 				var stat = parentObj.modeSTAT;
-				if (stat != 2) {
-					parentObj.modeSTAT = 0;
-				}
+				parentObj.modeSTAT = 0;
 				while (address < 0xFEA0) {
 					parentObj.memoryWriter[address](parentObj, address++, parentObj.memoryReader[data](parentObj, data++));
 				}
