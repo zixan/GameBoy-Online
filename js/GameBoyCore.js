@@ -7207,7 +7207,7 @@ GameBoyCore.prototype.MBC1WriteRAMBank = function (parentObj, address, data) {
 	//MBC1 RAM bank switching
 	if (parentObj.MBC1Mode) {
 		//4/32 Mode
-		parentObj.currMBCRAMBank = parentObj.numRAMBanks & data & 0x3;
+		parentObj.currMBCRAMBank = data & 0x03;
 		parentObj.currMBCRAMBankPosition = (parentObj.currMBCRAMBank << 13) - 0xA000;
 	}
 	else {
@@ -7263,18 +7263,18 @@ GameBoyCore.prototype.MBC5WriteROMBankHigh = function (parentObj, address, data)
 }
 GameBoyCore.prototype.MBC5WriteRAMBank = function (parentObj, address, data) {
 	//MBC5 RAM bank switching
-	parentObj.currMBCRAMBank = parentObj.numRAMBanks & data & 0xF;
+	parentObj.currMBCRAMBank = data & 0xF;
 	parentObj.currMBCRAMBankPosition = (parentObj.currMBCRAMBank << 13) - 0xA000;
 }
 GameBoyCore.prototype.RUMBLEWriteRAMBank = function (parentObj, address, data) {
 	//MBC5 RAM bank switching
 	//Like MBC5, but bit 3 of the lower nibble is used for rumbling and bit 2 is ignored.
-	parentObj.currMBCRAMBank = parentObj.numRAMBanks & data & 0x3;
+	parentObj.currMBCRAMBank = data & 0x03;
 	parentObj.currMBCRAMBankPosition = (parentObj.currMBCRAMBank << 13) - 0xA000;
 }
 GameBoyCore.prototype.HuC3WriteRAMBank = function (parentObj, address, data) {
 	//HuC3 RAM bank switching
-	parentObj.currMBCRAMBank = parentObj.numRAMBanks & data & 0x03;
+	parentObj.currMBCRAMBank = data & 0x03;
 	parentObj.currMBCRAMBankPosition = (parentObj.currMBCRAMBank << 13) - 0xA000;
 }
 GameBoyCore.prototype.cartIgnoreWrite = function (parentObj, address, data) {
