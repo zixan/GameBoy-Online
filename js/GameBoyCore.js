@@ -172,6 +172,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.cMBC2 = false;					//Does the cartridge use MBC2?
 	this.cMBC3 = false;					//Does the cartridge use MBC3?
 	this.cMBC5 = false;					//Does the cartridge use MBC5?
+	this.cMBC7 = false;					//Does the cartridge use MBC7?
 	this.cSRAM = false;					//Does the cartridge use save RAM?
 	this.cMMMO1 = false;				//...
 	this.cRUMBLE = false;				//Does the cartridge use the RUMBLE addressing (modified MBC5)?
@@ -3927,6 +3928,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.cMBC2,
 		this.cMBC3,
 		this.cMBC5,
+		this.cMBC7,
 		this.cSRAM,
 		this.cMMMO1,
 		this.cRUMBLE,
@@ -4095,6 +4097,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.cMBC2 = state[index++];
 	this.cMBC3 = state[index++];
 	this.cMBC5 = state[index++];
+	this.cMBC7 = state[index++];
 	this.cSRAM = state[index++];
 	this.cMMMO1 = state[index++];
 	this.cRUMBLE = state[index++];
@@ -4691,25 +4694,11 @@ GameBoyCore.prototype.setupRAM = function () {
 	this.memoryWriteJumpCompile();
 }
 GameBoyCore.prototype.MBCRAMUtilized = function () {
-	return this.cMBC1 || this.cMBC2 || this.cMBC3 || this.cMBC5 || this.cRUMBLE;
+	return this.cMBC1 || this.cMBC2 || this.cMBC3 || this.cMBC5 || this.cMBC7 || this.cRUMBLE;
 }
 GameBoyCore.prototype.initLCD = function () {
 	this.scaledFrameBuffer = this.getTypedArray(this.pixelCount, 0, "int32");	//Used for software side scaling...
 	this.compileResizeFrameBufferFunction();
-	try {
-		window.mozRequestAnimationFrame();
-		this.asyncDrawSupportDetected = 1;
-	}
-	catch (error) {
-		try {
-			window.webkitRequestAnimationFrame(vSyncGFX);
-			this.asyncDrawSupportDetected = 2;
-		}
-		catch (error) {
-			this.asyncDrawSupportDetected = 0;
-			cout("window.mozRequestAnimationFrame was not found.", 1);
-		}
-	}
 	try {
 		if (settings[5]) {
 			//Nasty since we are throwing on purpose to force a try/catch fallback
@@ -5383,6 +5372,13 @@ GameBoyCore.prototype.executeIteration = function () {
 	var interrupts = 0;
 	while (this.stopEmulator == 0) {
 		this.CPUTicks = 0;
+		//Interrupt Arming:
+		switch (this.untilEnable) {
+			case 1:
+				this.IME = true;
+			case 2:
+				this.untilEnable--;
+		}
 		//Check for IRQ:
 		if (this.IME) {
 			bitShift = 0;
@@ -5406,15 +5402,6 @@ GameBoyCore.prototype.executeIteration = function () {
 				}
 				testbit = 1 << ++bitShift;
 			} while (bitShift < 5);
-		}
-		else {
-			//Interrupt Arming:
-			switch (this.untilEnable) {
-				case 1:
-					this.IME = true;
-				case 2:
-					this.untilEnable--;
-			}
 		}
 		//Fetch the current opcode.
 		op = this.memoryReader[this.programCounter](this, this.programCounter);
@@ -6873,7 +6860,7 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 						}
 					}
 					else {
-						this.memoryReader[0xFF56] = this.memoryReadNormal;
+						this.memoryReader[0xFF55] = this.memoryReadNormal;
 					}
 					break;
 				case 0xFF56:
@@ -7128,12 +7115,7 @@ GameBoyCore.prototype.memoryWriteJumpCompile = function () {
 					this.memoryWriter[index] = (this.cRUMBLE) ? this.RUMBLEWriteRAMBank : this.MBC5WriteRAMBank;
 				}
 				else {
-					if (!this.cMBC7) {
-						this.memoryWriter[index] = this.cartIgnoreWrite;
-					}
-					else {
-						this.memoryWriter[index] = this.cartIgnoreWriteLog;
-					}
+					this.memoryWriter[index] = this.cartIgnoreWrite;
 				}
 			}
 			else if (this.cHuC3) {
