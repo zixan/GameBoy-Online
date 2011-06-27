@@ -6860,6 +6860,22 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 						return parentObj.currVRAMBank;
 					}
 					break;
+				case 0xFF55:
+					if (this.cGBC) {
+						this.memoryReader[0xFF55] = function (parentObj, address) {
+							if (!parentObj.LCDisOn && parentObj.hdmaRunning) {	//Undocumented behavior alert: HDMA becomes GDMA when LCD is off (Worms Armageddon Fix).
+								//DMA
+								parentObj.DMAWrite((parentObj.memory[0xFF55] & 0x7F) + 1);
+								parentObj.memory[0xFF55] = 0xFF;	//Transfer completed.
+								parentObj.hdmaRunning = false;
+							}
+							return parentObj.memory[0xFF55];
+						}
+					}
+					else {
+						this.memoryReader[0xFF56] = this.memoryReadNormal;
+					}
+					break;
 				case 0xFF56:
 					if (this.cGBC) {
 						this.memoryReader[0xFF56] = function (parentObj, address) {
@@ -8166,7 +8182,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 		this.memoryWriter[0xFF55] = function (parentObj, address, data) {
 			if (!parentObj.hdmaRunning) {
-				if ((data & 0x80) == 0 || !this.LCDisOn) {	//Undocumented behavior alert: HDMA becomes GDMA when LCD is off (Worms Armageddon Fix).
+				if ((data & 0x80) == 0) {
 					//DMA
 					parentObj.DMAWrite((data & 0x7F) + 1);
 					parentObj.memory[0xFF55] = 0xFF;	//Transfer completed.
