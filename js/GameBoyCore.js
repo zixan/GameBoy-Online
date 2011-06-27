@@ -159,7 +159,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.timerTicks = 0;				//Counter for the TIMA timer.
 	this.TIMAEnabled = false;			//Is TIMA enabled?
 	this.TACClocker = 256;				//Timer Max Ticks
-	this.untilEnable = 0;				//Are the interrupts on queue to be enabled?
+	this.IRQEnableDelay = false;				//Are the interrupts on queue to be enabled?
 	var dateVar = new Date();
 	this.lastIteration = dateVar.getTime();//The last time we iterated the main loop.
 	dateObj = new Date();
@@ -2117,10 +2117,10 @@ GameBoyCore.prototype.OPCODE = new Array(
 		if (parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) == 0x76) {
 			//Immediate for HALT:
 			parentObj.IME = true;
-			parentObj.untilEnable = 0;
+			parentObj.IRQEnableDelay = false;
 		}
 		else {
-			parentObj.untilEnable = 2;
+			parentObj.IRQEnableDelay = true;
 		}
 	},
 	//JP FC, nn
@@ -2322,7 +2322,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0xF3:
 	function (parentObj) {
 		parentObj.IME = false;
-		parentObj.untilEnable = 0;
+		parentObj.IRQEnableDelay = false;
 	},
 	//0xF4 - Illegal
 	//#0xF4:
@@ -2382,10 +2382,10 @@ GameBoyCore.prototype.OPCODE = new Array(
 		if (parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) == 0x76) {
 			//Immediate for HALT:
 			parentObj.IME = true;
-			parentObj.untilEnable = 0;
+			parentObj.IRQEnableDelay = false;
 		}
 		else {
-			parentObj.untilEnable = 2;
+			parentObj.IRQEnableDelay = true;
 		}
 	},
 	//0xFC - Illegal
@@ -3922,7 +3922,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.LCDTicks,
 		this.timerTicks,
 		this.TACClocker,
-		this.untilEnable,
+		this.IRQEnableDelay,
 		this.lastIteration,
 		this.cMBC1,
 		this.cMBC2,
@@ -4091,7 +4091,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.LCDTicks = state[index++];
 	this.timerTicks = state[index++];
 	this.TACClocker = state[index++];
-	this.untilEnable = state[index++];
+	this.IRQEnableDelay = state[index++];
 	this.lastIteration = state[index++];
 	this.cMBC1 = state[index++];
 	this.cMBC2 = state[index++];
@@ -5372,15 +5372,8 @@ GameBoyCore.prototype.executeIteration = function () {
 	var interrupts = 0;
 	while (this.stopEmulator == 0) {
 		this.CPUTicks = 0;
-		//Interrupt Arming:
-		switch (this.untilEnable) {
-			case 1:
-				this.IME = true;
-			case 2:
-				this.untilEnable--;
-		}
-		//Check for IRQ:
 		if (this.IME) {
+			//Check for IRQ:
 			bitShift = 0;
 			testbit = 1;
 			interrupts = this.interruptsEnabled & this.interruptsRequested;
@@ -5402,6 +5395,11 @@ GameBoyCore.prototype.executeIteration = function () {
 				}
 				testbit = 1 << ++bitShift;
 			} while (bitShift < 5);
+		}
+		else if (this.IRQEnableDelay) {
+			//Interrupt Arming:
+			this.IME = true;
+			this.IRQEnableDelay = false;
 		}
 		//Fetch the current opcode.
 		op = this.memoryReader[this.programCounter](this, this.programCounter);
