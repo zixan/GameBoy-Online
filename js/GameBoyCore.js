@@ -54,6 +54,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.inBootstrap = true;					//Whether we're in the GBC boot ROM.
 	this.usedBootROM = false;					//Updated upon ROM loading...
 	this.halt = false;							//Has the CPU been suspended until the next interrupt?
+	this.skipPCIncrement = false;				//Did we trip the DMG Halt bug?
 	this.stopEmulator = 3;						//Has the emulation been paused or a frame has ended?
 	this.IME = true;							//Are interrupts enabled?
 	this.interruptsRequested = 0;				//IF Register
@@ -1181,10 +1182,13 @@ GameBoyCore.prototype.OPCODE = new Array(
 			if ((parentObj.interruptsEnabled & parentObj.interruptsRequested & 0x1F) > 0) {
 				//If an IRQ is already going to launch:
 				if (!parentObj.IME) {
-					if (parentObj.cGBC) {
-						//CGB gets around the HALT PC bug by doubling the hidden NOP.
-						++parentObj.CPUTicks;
+					if (!parentObj.cGBC && !parentObj.usedBootROM) {
+						//HALT bug in the DMG CPU model (Program Counter fails to increment for one instruction after HALT):
+						parentObj.skipPCIncrement = true;
+						return;
 					}
+					//CGB gets around the HALT PC bug by doubling the hidden NOP.
+					++parentObj.CPUTicks;
 				}
 				return;
 			}
@@ -4007,6 +4011,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.RTCDayOverFlow,
 		this.RTCHALT,
 		this.usedBootROM,
+		this.skipPCIncrement,
 		this.STATTracker,
 		this.gbcRamBankPositionECHO,
 		this.numRAMBanks,
@@ -4175,6 +4180,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.RTCDayOverFlow = state[index++];
 	this.RTCHALT = state[index++];
 	this.usedBootROM = state[index++];
+	this.skipPCIncrement = state[index++];
 	this.STATTracker = state[index++];
 	this.gbcRamBankPositionECHO = state[index++];
 	this.numRAMBanks = state[index++];
@@ -5400,8 +5406,11 @@ GameBoyCore.prototype.executeIteration = function () {
 		}
 		//Fetch the current opcode.
 		op = this.memoryReader[this.programCounter](this, this.programCounter);
-		//Increment the program counter to the next instruction:
-		this.programCounter = (this.programCounter + 1) & 0xFFFF;
+		if (!this.skipPCIncrement) {
+			//Increment the program counter to the next instruction:
+			this.programCounter = (this.programCounter + 1) & 0xFFFF;
+		}
+		this.skipPCIncrement = false;
 		//Get how many CPU cycles the current op code counts for:
 		this.CPUTicks += this.TICKTable[op];
 		//Execute the OP code instruction:
