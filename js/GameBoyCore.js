@@ -5975,7 +5975,7 @@ GameBoyCore.prototype.BGGBLayerRender = function (pixelEnd) {
 	var scrollXAdjusted = (this.memory[0xFF43] + this.currentX) & 0xFF;						//The scroll amount of the BG.
 	var pixelPosition = this.pixelStart + this.currentX;									//Current pixel we're working on.
 	var pixelPositionEnd = this.pixelStart + ((this.gfxWindowDisplay && (this.actualScanLine - this.windowY) >= 0) ? Math.min(this.windowX + this.currentX, pixelEnd) : pixelEnd);	//Make sure we do at most 160 pixels a scanline.
-	var tileNumber = (tileYDown + (scrollXAdjusted / 8)) | 0;
+	var tileNumber = tileYDown + (scrollXAdjusted >> 3);
 	var chrCode = this.BGCHRBank1[tileNumber];
 	if (chrCode < this.gfxBackgroundBankOffset) {
 		chrCode |= 0x100;
@@ -6048,7 +6048,7 @@ GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
 	var scrollXAdjusted = (this.memory[0xFF43] + this.currentX) & 0xFF;						//The scroll amount of the BG.
 	var pixelPosition = this.pixelStart + this.currentX;									//Current pixel we're working on.
 	var pixelPositionEnd = this.pixelStart + ((this.gfxWindowDisplay && (this.actualScanLine - this.windowY) >= 0) ? Math.min(this.windowX + this.currentX, pixelEnd) : pixelEnd);	//Make sure we do at most 160 pixels a scanline.
-	var tileNumber = (tileYDown + (scrollXAdjusted / 8)) | 0;
+	var tileNumber = tileYDown + (scrollXAdjusted >> 3);
 	var chrCode = this.BGCHRBank1[tileNumber];
 	if (chrCode < this.gfxBackgroundBankOffset) {
 		chrCode |= 0x100;
@@ -6142,7 +6142,7 @@ GameBoyCore.prototype.WindowGBLayerRender = function (pixelEnd) {
 			var pixelPositionEnd = this.pixelStart + pixelEnd;
 			if (pixelPosition < pixelPositionEnd) {
 				var tileYLine = scrollYAdjusted & 7;
-				var tileNumber = ((this.gfxWindowCHRBankPosition | ((scrollYAdjusted & 0xF8) << 2)) + (this.currentX / 8)) | 0;
+				var tileNumber = (this.gfxWindowCHRBankPosition | ((scrollYAdjusted & 0xF8) << 2)) + (this.currentX >> 3);
 				var chrCode = this.BGCHRBank1[tileNumber];
 				if (chrCode < this.gfxBackgroundBankOffset) {
 					chrCode |= 0x100;
@@ -6174,7 +6174,7 @@ GameBoyCore.prototype.WindowGBCLayerRender = function (pixelEnd) {
 			var pixelPositionEnd = this.pixelStart + pixelEnd;
 			if (pixelPosition < pixelPositionEnd) {
 				var tileYLine = scrollYAdjusted & 7;
-				var tileNumber = ((this.gfxWindowCHRBankPosition | ((scrollYAdjusted & 0xF8) << 2)) + (this.currentX / 8)) | 0;
+				var tileNumber = (this.gfxWindowCHRBankPosition | ((scrollYAdjusted & 0xF8) << 2)) + (this.currentX >> 3);
 				chrCode = this.BGCHRBank1[tileNumber];
 				if (chrCode < this.gfxBackgroundBankOffset) {
 					chrCode |= 0x100;
@@ -6825,7 +6825,7 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 				case 0xFF3E:
 				case 0xFF3F:
 					this.memoryReader[index] = function (parentObj, address) {
-						return (parentObj.channel3canPlay) ? parentObj.memory[0xFF00 | (parentObj.channel3Tracker / 2)] : parentObj.memory[address];
+						return (parentObj.channel3canPlay) ? parentObj.memory[0xFF00 | (parentObj.channel3Tracker >> 1)] : parentObj.memory[address];
 					}
 					break;
 				case 0xFF41:
