@@ -5962,12 +5962,12 @@ GameBoyCore.prototype.updateGBCBGPalette = function (index, data) {
 }
 GameBoyCore.prototype.updateGBCOBJPalette = function (index, data) {
 	if (this.gbcOBJRawPalette[index] != data) {
-		this.renderMidScanLine();
 		//Update the color palette for OBJ tiles since it changed:
 		this.gbcOBJRawPalette[index] = data;
-		var value = (this.gbcOBJRawPalette[index | 1] << 8) | this.gbcOBJRawPalette[index & -2];
 		if ((index & 0x06) > 0) {
 			//Regular Palettes (No special crap)
+			this.renderMidScanLine();
+			var value = (this.gbcOBJRawPalette[index | 1] << 8) | this.gbcOBJRawPalette[index & -2];
 			this.OBJPalette[index >> 1] = 0x1000000 | ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
 		}
 	}
