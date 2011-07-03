@@ -5887,6 +5887,16 @@ GameBoyCore.prototype.consoleModeAdjust = function () {
 	//Reference the correct palette ahead of time...
 	this.BGPalette = (this.cGBC) ? this.gbcBGPalette : ((this.usedBootROM && settings[17]) ? this.gbBGColorizedPalette : this.gbBGPalette);
 	this.OBJPalette = (this.cGBC) ? this.gbcOBJPalette : ((this.usedBootROM && settings[17]) ? this.gbOBJColorizedPalette : this.gbOBJPalette);
+	if (this.OBJPalette && this.OBJPalette.length > 1) {
+		var length = this.OBJPalette.length;
+		while (length > 0) {
+			//Make sure the sprites have the bit mask set for the render path logic:
+			this.OBJPalette[--length][0] |= 0x1000000;
+			this.OBJPalette[length][1] |= 0x1000000;
+			this.OBJPalette[length][2] |= 0x1000000;
+			this.OBJPalette[length][3] |= 0x1000000;
+		}
+	}
 	this.BGLayerRender = (this.cGBC) ? this.BGGBCLayerRender : this.BGGBLayerRender;
 	this.WindowLayerRender = (this.cGBC) ? this.WindowGBCLayerRender : this.WindowGBLayerRender;
 	this.SpriteLayerRender = (this.cGBC) ? this.SpriteGBCLayerRender : this.SpriteGBLayerRender;
@@ -5928,14 +5938,14 @@ GameBoyCore.prototype.updateGBBGPalette = function (data) {
 	}
 }
 GameBoyCore.prototype.updateGBOBJPalette = function (index, data) {
-	this.gbOBJPalette[index][1] = this.colors[(data >> 2) & 0x03];
-	this.gbOBJPalette[index][2] = this.colors[(data >> 4) & 0x03];
-	this.gbOBJPalette[index][3] = this.colors[data >> 6];
+	this.gbOBJPalette[index][1] = 0x1000000 | this.colors[(data >> 2) & 0x03];
+	this.gbOBJPalette[index][2] = 0x1000000 | this.colors[(data >> 4) & 0x03];
+	this.gbOBJPalette[index][3] = 0x1000000 | this.colors[data >> 6];
 	if (this.usedBootROM) {	//Do palette conversions if we did the GBC bootup:
 		//GB colorization:
-		this.gbOBJColorizedPalette[index][1] = this.cachedOBJPaletteConversion[index | ((data >> 2) & 0x03)];
-		this.gbOBJColorizedPalette[index][2] = this.cachedOBJPaletteConversion[index | ((data >> 4) & 0x03)];
-		this.gbOBJColorizedPalette[index][3] = this.cachedOBJPaletteConversion[index | (data >> 6)];
+		this.gbOBJColorizedPalette[index][1] = 0x1000000 | this.cachedOBJPaletteConversion[index | ((data >> 2) & 0x03)];
+		this.gbOBJColorizedPalette[index][2] = 0x1000000 | this.cachedOBJPaletteConversion[index | ((data >> 4) & 0x03)];
+		this.gbOBJColorizedPalette[index][3] = 0x1000000 | this.cachedOBJPaletteConversion[index | (data >> 6)];
 	}
 }
 GameBoyCore.prototype.updateGBCBGPalette = function (index, data) {
@@ -5946,11 +5956,12 @@ GameBoyCore.prototype.updateGBCBGPalette = function (index, data) {
 		var value = (this.gbcBGRawPalette[index | 1] << 8) | this.gbcBGRawPalette[index & -2];
 		if ((index & 0x06) == 0) {
 			//Palette 0 (Special tile Priority stuff)
-			this.BGPalette[index >> 3][(index >> 1) & 0x3] = 0x2000000 | ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
+			this.BGPalette[index >> 3][0] = 0x2000000 | ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
 		}
 		else {
 			//Regular Palettes (No special crap)
-			this.BGPalette[index >> 3][(index >> 1) & 0x3] = ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
+			index >>= 1;			//We don't want to alias anymore on high/low byte boundaries...
+			this.BGPalette[index >> 2][index & 0x3] = ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
 		}
 	}
 }
@@ -5960,9 +5971,10 @@ GameBoyCore.prototype.updateGBCOBJPalette = function (index, data) {
 		//Update the color palette for OBJ tiles since it changed:
 		this.gbcOBJRawPalette[index] = data;
 		var value = (this.gbcOBJRawPalette[index | 1] << 8) | this.gbcOBJRawPalette[index & -2];
-		if ((index & 0x06) > 0) {
+		index >>= 1;				//We don't want to alias anymore on high/low byte boundaries...
+		if ((index & 0x03) > 0) {	//Sub-Palette 0 is always transparent, so skip it...
 			//Regular Palettes (No special crap)
-			this.OBJPalette[index >> 3][(index >> 1) & 0x3] = ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
+			this.OBJPalette[index >> 2][index & 0x3] = 0x1000000 | ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
 		}
 	}
 }
@@ -6247,13 +6259,13 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							if (this.frameBuffer[currentPixel] >= 0x2000000) {
 								data = tile[xCounter - xcoord];
 								if (data > 0) {
-									this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+									this.frameBuffer[currentPixel] = palette[data];
 								}
 							}
 							else if (this.frameBuffer[currentPixel] < 0x1000000) {
 								data = tile[xCounter - xcoord];
 								if (data > 0 && attrCode < 0x80) {
-									this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+									this.frameBuffer[currentPixel] = palette[data];
 								}
 							}
 						}
@@ -6276,13 +6288,13 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							if (this.frameBuffer[currentPixel] >= 0x2000000) {
 								data = tile[xcoord];
 								if (data > 0) {
-									this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+									this.frameBuffer[currentPixel] = palette[data];
 								}
 							}
 							else if (this.frameBuffer[currentPixel] < 0x1000000) {
 								data = tile[xcoord];
 								if (data > 0 && attrCode < 0x80) {
-									this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+									this.frameBuffer[currentPixel] = palette[data];
 								}
 							}
 						}
@@ -6306,13 +6318,13 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							if (this.frameBuffer[currentPixel] >= 0x2000000) {
 								data = tile[xcoord];
 								if (data > 0) {
-									this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+									this.frameBuffer[currentPixel] = palette[data];
 								}
 							}
 							else if (this.frameBuffer[currentPixel] < 0x1000000) {
 								data = tile[xcoord];
 								if (data > 0 && attrCode < 0x80) {
-									this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+									this.frameBuffer[currentPixel] = palette[data];
 								}
 							}
 						}
@@ -6354,13 +6366,13 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							if (this.frameBuffer[currentPixel] >= 0x2000000) {
 								data = tile[xCounter - xcoord];
 								if (data > 0) {
-									this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+									this.frameBuffer[currentPixel] = palette[data];
 								}
 							}
 							else if (this.frameBuffer[currentPixel] < 0x1000000) {
 								data = tile[xCounter - xcoord];
 								if (data > 0 && attrCode < 0x80) {
-									this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+									this.frameBuffer[currentPixel] = palette[data];
 								}
 							}
 						}
@@ -6390,13 +6402,13 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							if (this.frameBuffer[currentPixel] >= 0x2000000) {
 								data = tile[xcoord];
 								if (data > 0) {
-									this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+									this.frameBuffer[currentPixel] = palette[data];
 								}
 							}
 							else if (this.frameBuffer[currentPixel] < 0x1000000) {
 								data = tile[xcoord];
 								if (data > 0 && attrCode < 0x80) {
-									this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+									this.frameBuffer[currentPixel] = palette[data];
 								}
 							}
 						}
@@ -6427,13 +6439,13 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							if (this.frameBuffer[currentPixel] >= 0x2000000) {
 								data = tile[xcoord];
 								if (data > 0) {
-									this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+									this.frameBuffer[currentPixel] = palette[data];
 								}
 							}
 							else if (this.frameBuffer[currentPixel] < 0x1000000) {
 								data = tile[xcoord];
 								if (data > 0 && attrCode < 0x80) {
-									this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+									this.frameBuffer[currentPixel] = palette[data];
 								}
 							}
 						}
@@ -6471,13 +6483,13 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 						if (this.frameBuffer[currentPixel] >= 0x2000000) {
 							data = tile[xCounter - xcoord];
 							if (data > 0) {
-								this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+								this.frameBuffer[currentPixel] = palette[data];
 							}
 						}
 						else if (this.frameBuffer[currentPixel] < 0x1000000) {
 							data = tile[xCounter - xcoord];
 							if (data > 0 && attrCode < 0x80) {
-								this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+								this.frameBuffer[currentPixel] = palette[data];
 							}
 						}
 					}
@@ -6506,13 +6518,13 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 						if (this.frameBuffer[currentPixel] >= 0x2000000) {
 							data = tile[xCounter - xcoord];
 							if (data > 0) {
-								this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+								this.frameBuffer[currentPixel] = palette[data];
 							}
 						}
 						else if (this.frameBuffer[currentPixel] < 0x1000000) {
 							data = tile[xCounter - xcoord];
 							if (data > 0 && attrCode < 0x80) {
-								this.frameBuffer[currentPixel] = 0x1000000 | palette[data];
+								this.frameBuffer[currentPixel] = palette[data];
 							}
 						}
 					}
