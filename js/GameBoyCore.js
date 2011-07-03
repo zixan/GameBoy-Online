@@ -5928,13 +5928,11 @@ GameBoyCore.prototype.updateGBBGPalette = function (data) {
 	}
 }
 GameBoyCore.prototype.updateGBOBJPalette = function (index, data) {
-	this.gbOBJPalette[index] = this.colors[data & 0x03] | 0x2000000;
 	this.gbOBJPalette[index | 1] = this.colors[(data >> 2) & 0x03];
 	this.gbOBJPalette[index | 2] = this.colors[(data >> 4) & 0x03];
 	this.gbOBJPalette[index | 3] = this.colors[data >> 6];
 	if (this.usedBootROM) {	//Do palette conversions if we did the GBC bootup:
 		//GB colorization:
-		this.gbOBJColorizedPalette[index] = this.cachedOBJPaletteConversion[index | (data & 0x03)] | 0x2000000;
 		this.gbOBJColorizedPalette[index | 1] = this.cachedOBJPaletteConversion[index | ((data >> 2) & 0x03)];
 		this.gbOBJColorizedPalette[index | 2] = this.cachedOBJPaletteConversion[index | ((data >> 4) & 0x03)];
 		this.gbOBJColorizedPalette[index | 3] = this.cachedOBJPaletteConversion[index | (data >> 6)];
@@ -6254,7 +6252,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							}
 							else if (this.frameBuffer[currentPixel] < 0x1000000) {
 								data = tile[xCounter - xcoord];
-								if (attrCode < 0x80 && data > 0) {
+								if (data > 0 && attrCode < 0x80) {
 									this.frameBuffer[currentPixel] = 0x1000000 | this.OBJPalette[palette | data];
 								}
 							}
@@ -6283,7 +6281,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							}
 							else if (this.frameBuffer[currentPixel] < 0x1000000) {
 								data = tile[xcoord];
-								if (attrCode < 0x80 && data > 0) {
+								if (data > 0 && attrCode < 0x80) {
 									this.frameBuffer[currentPixel] = 0x1000000 | this.OBJPalette[palette | data];
 								}
 							}
@@ -6313,7 +6311,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							}
 							else if (this.frameBuffer[currentPixel] < 0x1000000) {
 								data = tile[xcoord];
-								if (attrCode < 0x80 && data > 0) {
+								if (data > 0 && attrCode < 0x80) {
 									this.frameBuffer[currentPixel] = 0x1000000 | this.OBJPalette[palette | data];
 								}
 							}
