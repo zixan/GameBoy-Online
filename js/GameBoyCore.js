@@ -5366,13 +5366,14 @@ GameBoyCore.prototype.executeIteration = function () {
 	var testbit = 1;
 	var interrupts = 0;
 	while (this.stopEmulator == 0) {
+		//Reset clocking:
 		this.CPUTicks = 0;
 		//Interrupt Arming:
 		switch (this.IRQEnableDelay) {
 			case 1:
 				this.IME = true;
 			case 2:
-				this.IRQEnableDelay--;
+				--this.IRQEnableDelay;
 		}
 		//Are IRQs Masked?
 		if (this.IME) {
@@ -5393,19 +5394,21 @@ GameBoyCore.prototype.executeIteration = function () {
 					//Set the program counter to the interrupt's address:
 					this.programCounter = 0x40 | (bitShift << 3);
 					//Interrupts have a certain clock cycle length:
-					this.CPUTicks += 5;	//People say it's around 5.
-					break;	//We only want the highest priority interrupt.
+					this.CPUTicks += 5;						//People say it's around 5.
+					break;									//We only want the highest priority interrupt.
 				}
 				testbit = 1 << ++bitShift;
 			} while (bitShift < 5);
 		}
 		//Fetch the current opcode.
 		op = this.memoryReader[this.programCounter](this, this.programCounter);
-		if (!this.skipPCIncrement) {
-			//Increment the program counter to the next instruction:
-			this.programCounter = (this.programCounter + 1) & 0xFFFF;
+		//Increment the program counter to the next instruction:
+		this.programCounter = (this.programCounter + 1) & 0xFFFF;
+		//Check for the program counter quirk:
+		if (this.skipPCIncrement) {
+			this.programCounter = (this.programCounter - 1) & 0xFFFF;
+			this.skipPCIncrement = false;
 		}
-		this.skipPCIncrement = false;
 		//Get how many CPU cycles the current op code counts for:
 		this.CPUTicks += this.TICKTable[op];
 		//Execute the OP code instruction:
