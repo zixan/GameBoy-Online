@@ -2098,14 +2098,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 	function (parentObj) {
 		parentObj.programCounter = (parentObj.memoryRead((parentObj.stackPointer + 1) & 0xFFFF) << 8) | parentObj.memoryReader[parentObj.stackPointer](parentObj, parentObj.stackPointer);
 		parentObj.stackPointer = (parentObj.stackPointer + 2) & 0xFFFF;
-		if (parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) == 0x76) {
-			//Immediate for HALT:
-			parentObj.IME = true;
-			parentObj.IRQEnableDelay = 0;
-		}
-		else {
-			parentObj.IRQEnableDelay = 2;
-		}
+		//Immediate for HALT:
+		parentObj.IRQEnableDelay = (parentObj.IRQEnableDelay == 2 || parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) == 0x76) ? 1 : 2;
 	},
 	//JP FC, nn
 	//#0xDA:
@@ -2363,14 +2357,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//EI
 	//#0xFB:
 	function (parentObj) {
-		if (parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) == 0x76) {
-			//Immediate for HALT:
-			parentObj.IME = true;
-			parentObj.IRQEnableDelay = 0;
-		}
-		else {
-			parentObj.IRQEnableDelay = 2;
-		}
+		//Immediate for HALT:
+		parentObj.IRQEnableDelay = (parentObj.IRQEnableDelay == 2 || parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) == 0x76) ? 1 : 2;
 	},
 	//0xFC - Illegal
 	//#0xFC:
@@ -4770,7 +4758,7 @@ GameBoyCore.prototype.initSound = function () {
 	if (settings[0]) {
 		try {
 			var parentObj = this;
-			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], settings[23], settings[24], function (sampleCount) {
+			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], settings[23] << this.soundChannelsAllocated, settings[24] << this.soundChannelsAllocated, function (sampleCount) {
 				return parentObj.audioUnderRun(sampleCount);
 			}, -1);
 		}
