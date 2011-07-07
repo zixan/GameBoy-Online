@@ -351,18 +351,20 @@ function audioOutputEvent(event) {
 			count++;
 		}
 	}
-	var returned = resampler(buffer1, buffer2, countDown);
-	buffer1 = returned[0];
-	buffer2 = returned[1];
+	if (samplesInBuffer > 0) {
+		var returned = resampler(buffer1, buffer2, countDown);
+		buffer1 = returned[0];
+		buffer2 = returned[1];
+	}
 }
 function downsampler(buffer1, buffer2, countDown) {
 	if (webAudioMono) {
 		//MONO:
-		while (countDown < resamplingRate) {
+		while (countDown < resamplingRate && startPosition != bufferEnd) {
 			sampleBase1 = audioContextSampleBuffer[startPosition++];
 			if (startPosition == bufferEnd) {
 				//Resampling must be clipped here:
-				buffer2[countDown] = buffer1[countDown] = sampleBase1;
+				buffer2[countDown++] = buffer1[countDown] = sampleBase1;
 				break;
 			}
 			if (startPosition == webAudioMaxBufferSize) {
@@ -373,7 +375,7 @@ function downsampler(buffer1, buffer2, countDown) {
 				sampleBase1 += audioContextSampleBuffer[startPosition++];
 				if (startPosition == bufferEnd) {
 					//Resampling must be clipped here:
-					buffer2[countDown] = buffer1[countDown] = sampleBase1 / sampleIndice;
+					buffer2[countDown++] = buffer1[countDown] = sampleBase1 / sampleIndice;
 					break;
 				}
 				if (startPosition == webAudioMaxBufferSize) {
@@ -389,19 +391,18 @@ function downsampler(buffer1, buffer2, countDown) {
 				}
 				sampleIndice++;
 			}
-			buffer2[countDown] = buffer1[countDown] = sampleBase1 / sampleIndice;
-			countDown++;
+			buffer2[countDown++] = buffer1[countDown] = sampleBase1 / sampleIndice;
 		}
 	}
 	else {
 		//STEREO:
-		while (countDown < resamplingRate) {
+		while (countDown < resamplingRate && startPosition != bufferEnd) {
 			sampleBase1 = audioContextSampleBuffer[startPosition++];
 			sampleBase2 = audioContextSampleBuffer[startPosition++];
 			if (startPosition == bufferEnd) {
 				//Resampling must be clipped here:
 				buffer1[countDown] = sampleBase1;
-				buffer2[countDown] = sampleBase2;
+				buffer2[countDown++] = sampleBase2;
 				break;
 			}
 			if (startPosition == webAudioMaxBufferSize) {
@@ -414,7 +415,7 @@ function downsampler(buffer1, buffer2, countDown) {
 				if (startPosition == bufferEnd) {
 					//Resampling must be clipped here:
 					buffer1[countDown] = sampleBase1 / sampleIndice;
-					buffer2[countDown] = sampleBase2 / sampleIndice;
+					buffer2[countDown++] = sampleBase2 / sampleIndice;
 					break;
 				}
 				if (startPosition == webAudioMaxBufferSize) {
@@ -435,12 +436,13 @@ function downsampler(buffer1, buffer2, countDown) {
 			buffer2[countDown++] = sampleBase2 / sampleIndice;
 		}
 	}
+	
 	return [buffer1, buffer2];
 }
 function upsampler(buffer1, buffer2, countDown) {
 	if (webAudioMono) {
 		//MONO:
-		while (countDown < resamplingRate) {
+		while (countDown < resamplingRate && startPosition != bufferEnd) {
 			buffer2[countDown] = buffer1[countDown] = audioContextSampleBuffer[startPosition];
 			countDown++;
 			startPositionOverflow += resampleAmount;
@@ -456,7 +458,7 @@ function upsampler(buffer1, buffer2, countDown) {
 	}
 	else {
 		//STEREO:
-		while (countDown < resamplingRate) {
+		while (countDown < resamplingRate && startPosition != bufferEnd) {
 			buffer1[countDown] = audioContextSampleBuffer[startPosition];
 			buffer2[countDown++] = audioContextSampleBuffer[startPosition + 1];
 			startPositionOverflow += resampleAmount;
@@ -469,28 +471,33 @@ function upsampler(buffer1, buffer2, countDown) {
 			}
 		}
 	}
+	while (countDown < resamplingRate) {
+		buffer2[countDown++] = buffer1[countDown] = defaultNeutralValue;
+	}
 	return [buffer1, buffer2];
 }
 function noresample(buffer1, buffer2, countDown) {
 	if (webAudioMono) {
 		//MONO:
-		while (countDown < resamplingRate) {
-			buffer2[countDown] = buffer1[countDown] = audioContextSampleBuffer[startPosition++];
+		while (countDown < resamplingRate && startPosition != bufferEnd) {
+			buffer2[countDown++] = buffer1[countDown] = audioContextSampleBuffer[startPosition++];
 			if (startPosition == webAudioMaxBufferSize) {
 				startPosition = 0;
 			}
-			countDown++;
 		}
 	}
 	else {
 		//STEREO:
-		while (countDown < resamplingRate) {
+		while (countDown < resamplingRate && startPosition != bufferEnd) {
 			buffer1[countDown] = audioContextSampleBuffer[startPosition++];
 			buffer2[countDown++] = audioContextSampleBuffer[startPosition++];
 			if (startPosition == webAudioMaxBufferSize) {
 				startPosition = 0;
 			}
 		}
+	}
+	while (countDown < resamplingRate) {
+		buffer2[countDown++] = buffer1[countDown] = defaultNeutralValue;
 	}
 	return [buffer1, buffer2];
 }
