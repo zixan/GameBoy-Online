@@ -24,7 +24,7 @@ var settings = [						//Some settings.
 	16,									//Interval for the emulator loop.
 	false,								//Render nearest-neighbor scaling in javascript?
 	false,								//Disallow typed arrays?
-	15000,								//Audio Buffer Low Limit.
+	7500,								//Audio Buffer Low Limit.
 	25000								//Audio Buffer High Limit
 ];
 function start(canvas, canvasAlt, ROM) {
@@ -249,9 +249,9 @@ function GameBoyKeyUp(e) {
 		cout("Keyboard key release ignored, since the core is not running.", 1);
 	}
 }
-function GameBoyJoyStickSignalHandler(e) {
+function GameBoyGyroSignalHandler(e) {
 	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
-		//TODO: Add MBC support first for Kirby's Tilt n Tumble
+		gameboy.GyroEvent(e.x, e.y);
 		try {
 			e.preventDefault();
 		}
