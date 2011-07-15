@@ -4758,7 +4758,7 @@ GameBoyCore.prototype.initSound = function () {
 	if (settings[0]) {
 		try {
 			var parentObj = this;
-			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], settings[23] << this.soundChannelsAllocated, settings[24] << this.soundChannelsAllocated, function (sampleCount) {
+			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], settings[23] << (this.soundChannelsAllocated - 1), settings[24] << (this.soundChannelsAllocated - 1), function (sampleCount) {
 				return parentObj.audioUnderRun(sampleCount);
 			}, -1);
 		}

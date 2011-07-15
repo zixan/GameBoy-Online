@@ -16,7 +16,7 @@ var settings = [						//Some settings.
 	10,									//Frameskip base factor
 	false,								//Enable the software scaling algorithm to be compiled through JIT.
 	70000,								//Sample Rate
-	0x10,								//How many bits per WAV PCM sample (For browsers that fall back to WAV PCM generation)
+	null,								//Extra Setting Slot
 	true,								//Use the GBC BIOS?
 	true,								//Colorize GB mode?
 	2048,								//Sample size for webkit audio.
