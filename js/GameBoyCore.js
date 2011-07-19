@@ -207,7 +207,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.BGCHRBank2 = this.getTypedArray(0x800, 0, "uint8");
 	this.BGCHRCurrentBank = this.BGCHRBank1;
 	//DMG X-Coord to OAM address lookup cache:
-	this.OAMAddresses = this.ArrayPad(0x100, null);
+	this.OAMAddresses = this.ArrayPad(168, null);
 	//Tile Data Cache:
 	this.tileCache = this.generateCacheArray(0xF80);
 	this.tileCacheValid = this.getTypedArray(0xF80, 0, "int8");
@@ -4612,7 +4612,7 @@ GameBoyCore.prototype.disableBootROM = function () {
 		cout("Stepping down from GBC mode.", 0);
 		this.getGBCColor();
 		this.BGCHRBank2 = this.VRAM = this.GBCMemory = null;	//Deleting these causes Google's V8 engine and Safari's JSC to deoptimize heavily.
-		for (index = 0; index < 0x100; index++) {
+		for (index = 0; index < 168; index++) {
 			this.OAMAddresses[index] = [];
 		}
 	}
@@ -4669,7 +4669,7 @@ GameBoyCore.prototype.setupRAM = function () {
 	else {
 		this.tileCache = this.generateCacheArray(0x700);
 		this.tileCacheValid = this.getTypedArray(0x700, 0, "int8");
-		for (index = 0; index < 0x100; index++) {
+		for (index = 0; index < 168; index++) {
 			this.OAMAddresses[index] = [];
 		}
 	}
@@ -7334,29 +7334,30 @@ GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) 
 	if (parentObj.modeSTAT < 2) {		//OAM RAM cannot be written to in mode 2 & 3
 		var oldData = parentObj.memory[address];
 		if (oldData != data) {
-			//Remove the old position:
-			var currentAddress = address & 0xFFFC;
-			var length = parentObj.OAMAddresses[oldData].length;
-			for (var index = 0; index < length; index++) {
-				if (parentObj.OAMAddresses[oldData][index] == currentAddress) {
-					parentObj.OAMAddresses[oldData] = (parentObj.OAMAddresses[oldData].slice(0, index)).concat(parentObj.OAMAddresses[oldData].slice(index + 1, length));
-					break;
-				}
-			}
-			parentObj.memory[address] = data;
-			if (data > 0 && data < 168) {
-				//Make sure the stacking is correct if multiple sprites are at the same x-coord:
-				var length = parentObj.OAMAddresses[data].length;
-				for (var index = 0; index < length; index++) {
-					if (parentObj.OAMAddresses[data][index] > currentAddress) {
-						var newArray = parentObj.OAMAddresses[data].slice(0, index);
-						newArray.push(currentAddress);
-						parentObj.OAMAddresses[data] = newArray.concat(parentObj.OAMAddresses[data].slice(index, length));
-						return;
+			parentObj.memory[address--] = data;
+			if (oldData < 168) {
+				//Remove the old position:
+				var length = parentObj.OAMAddresses[oldData].length;
+				while (length > 0) {
+					if (parentObj.OAMAddresses[oldData][--length] == address) {
+						parentObj.OAMAddresses[oldData].splice(length, 1);
+						break;
 					}
 				}
 			}
-			parentObj.OAMAddresses[data].push(currentAddress);
+			if (data < 168) {
+				if (data > 0) {
+					//Make sure the stacking is correct if multiple sprites are at the same x-coord:
+					var length = parentObj.OAMAddresses[data].length;
+					while (length > 0) {
+						if (parentObj.OAMAddresses[data][--length] > address) {
+							parentObj.OAMAddresses[data].splice(length, 0, address);
+							return;
+						}
+					}
+				}
+				parentObj.OAMAddresses[data].push(address);
+			}
 		}
 	}
 }
@@ -8455,8 +8456,8 @@ GameBoyCore.prototype.ArrayPad = function (length, defaultValue) {
 	return arrayHandle;
 }
 GameBoyCore.prototype.returnOAMXCacheCopy = function (array) {
-	var arrayHandle = this.ArrayPad(0x100, null);
-	for (var subindex = 0; subindex < 0x100; subindex++) {
+	var arrayHandle = this.ArrayPad(168, null);
+	for (var subindex = 0; subindex < 168; subindex++) {
 		arrayHandle[subindex] = [];
 	}
 	if (array.length) {
