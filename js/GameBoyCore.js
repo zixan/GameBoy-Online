@@ -125,10 +125,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.numSamplesTotal = 0;					//Length of the sound buffers.
 	this.sampleSize = 0;						//Length of the sound buffer for one channel.
 	this.dutyLookup = [0.125, 0.25, 0.5, 0.75];	//Map the duty values given to ones we can work with.
-	this.audioSamples = [];						//The audio buffer we're working on (When not overflowing).
-	this.audioBackup = [];						//Audio overflow buffer.
-	this.usingBackupAsMain = 0;					//Don't copy over the backup buffer to the main buffer on the next iteration, instead make the backup the main buffer (vice versa).
-	this.currentBuffer = this.audioSamples;		//Pointer to the sample workbench.
+	this.currentBuffer = [];					//The audio buffer we're working on.
 	this.initializeAudioStartState();
 	this.soundMasterEnabled = false;			//As its name implies
 	this.audioType = -1;						//Track what method we're using for audio output.
@@ -148,7 +145,6 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.initializeTiming();
 	this.samplesOut = 0;				//Premultiplier for audio samples per instruction.
 	//Audio generation counters:
-	this.audioOverflow = false;			//Safety boolean to check for whether we're about to overwrite our buffers.
 	this.audioTicks = 0;				//Used to sample the audio system every x CPU instructions.
 	this.audioIndex = 0;				//Used to keep alignment on audio generation.
 	this.rollover = 0;					//Used to keep alignment on the number of samples to output (Realign from counter alias).
@@ -4783,14 +4779,13 @@ GameBoyCore.prototype.initSound = function () {
 	}
 }
 GameBoyCore.prototype.initAudioBuffer = function () {
-	this.audioIndex = 0;
-	this.sampleSize = Math.floor(settings[14] / 1000 * settings[20]);
+	this.audioTicks = this.audioIndex = 0;
+	this.sampleSize = settings[14] / 1000 * settings[20];
 	cout("...Samples per interpreter loop iteration (Per Channel): " + this.sampleSize, 0);
 	this.samplesOut = this.sampleSize / this.CPUCyclesPerIteration;
 	cout("...Samples per machine cycle (Per Channel): " + this.samplesOut, 0);
-	this.numSamplesTotal = this.sampleSize * this.soundChannelsAllocated;
-	this.audioSamples = this.getTypedArray(this.numSamplesTotal, -1, "float32");
-	this.audioBackup = this.getTypedArray(this.numSamplesTotal, -1, "float32");
+	this.numSamplesTotal = this.sampleSize << (this.soundChannelsAllocated - 1);
+	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, -1, "float32");
 	//Noise Sample Table:
 	var noiseSampleTable = this.getTypedArray(0x80000, 0, "float32");
 	this.noiseSampleTable = noiseSampleTable;
@@ -4855,15 +4850,6 @@ GameBoyCore.prototype.audioUnderRun = function (samplesRequestedRaw) {
 		return tempBuffer;
 	}
 }
-GameBoyCore.prototype.playAudio = function () {
-	if (settings[0]) {
-		if (!this.audioOverflow && this.audioIndex < this.numSamplesTotal) {
-			//Make sure we don't under-run the sample generation (Round off the CPU-timed audio generation):
-			this.generateAudio((this.numSamplesTotal - this.audioIndex) / this.soundChannelsAllocated);
-		}
-		this.audioHandle.writeAudio((this.audioOverflow != this.usingBackupAsMain) ? this.audioBackup : this.audioSamples);
-	}
-}
 GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel1adjustedFrequencyPrep = 0;
 	this.channel1lastSampleLookup = 0;
@@ -4919,105 +4905,74 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 }
 //Below are the audio generation functions timed against the CPU:
 GameBoyCore.prototype.generateAudio = function (numSamples) {
-	if (settings[0]) {
-		if (this.soundMasterEnabled) {
-			if (settings[1]) {						//Split Mono & Stereo into two, to avoid this if statement every iteration of the loop.
-				while (--numSamples >= 0) {
-					//MONO
-					this.channel1Compute();
-					this.channel2Compute();
-					this.channel3Compute();
-					this.channel4Compute();
-					this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
-					if (this.audioIndex == this.numSamplesTotal) {
-						this.audioIndex = 0;
-						if (this.usingBackupAsMain) {
-							this.currentBuffer = this.audioSamples;
-							this.usingBackupAsMain = false;
-						}
-						else {
-							this.currentBuffer = this.audioBackup;
-							this.usingBackupAsMain = true;
-						}
-						this.audioOverflow = true;
-					}
-				}
-			}
-			else {
-				while (--numSamples >= 0) {
-					//STEREO
-					this.channel1Compute();
-					this.channel2Compute();
-					this.channel3Compute();
-					this.channel4Compute();
-					this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1;
-					this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
-					if (this.audioIndex == this.numSamplesTotal) {
-						this.audioIndex = 0;
-						if (this.usingBackupAsMain) {
-							this.currentBuffer = this.audioSamples;
-							this.usingBackupAsMain = false;
-						}
-						else {
-							this.currentBuffer = this.audioBackup;
-							this.usingBackupAsMain = true;
-						}
-						this.audioOverflow = true;
-					}
+	if (this.soundMasterEnabled) {
+		if (settings[1]) {						//Split Mono & Stereo into two, to avoid this if statement every iteration of the loop.
+			while (--numSamples >= 0) {
+				//MONO
+				this.channel1Compute();
+				this.channel2Compute();
+				this.channel3Compute();
+				this.channel4Compute();
+				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
+				if (this.audioIndex == this.numSamplesTotal) {
+					this.audioIndex = 0;
+					this.audioHandle.writeAudio(this.currentBuffer);
 				}
 			}
 		}
 		else {
-			//SILENT OUTPUT:
-			if (settings[1]) {
-				while (--numSamples >= 0) {
-					//MONO
-					this.currentBuffer[this.audioIndex++] = -1;
-					if (this.audioIndex == this.numSamplesTotal) {
-						this.audioIndex = 0;
-						if (this.usingBackupAsMain) {
-							this.currentBuffer = this.audioSamples;
-							this.usingBackupAsMain = false;
-						}
-						else {
-							this.currentBuffer = this.audioBackup;
-							this.usingBackupAsMain = true;
-						}
-						this.audioOverflow = true;
-					}
+			while (--numSamples >= 0) {
+				//STEREO
+				this.channel1Compute();
+				this.channel2Compute();
+				this.channel3Compute();
+				this.channel4Compute();
+				this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1;
+				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
+				if (this.audioIndex == this.numSamplesTotal) {
+					this.audioIndex = 0;
+					this.audioHandle.writeAudio(this.currentBuffer);
 				}
 			}
-			else {
-				while (--numSamples >= 0) {
-					//STEREO
-					this.currentBuffer[this.audioIndex++] = this.currentBuffer[this.audioIndex++] = -1;
-					if (this.audioIndex == this.numSamplesTotal) {
-						this.audioIndex = 0;
-						if (this.usingBackupAsMain) {
-							this.currentBuffer = this.audioSamples;
-							this.usingBackupAsMain = false;
-						}
-						else {
-							this.currentBuffer = this.audioBackup;
-							this.usingBackupAsMain = true;
-						}
-						this.audioOverflow = true;
-					}
+		}
+	}
+	else {
+		//SILENT OUTPUT:
+		if (settings[1]) {
+			while (--numSamples >= 0) {
+				//MONO
+				this.currentBuffer[this.audioIndex++] = -1;
+				if (this.audioIndex == this.numSamplesTotal) {
+					this.audioIndex = 0;
+					this.audioHandle.writeAudio(this.currentBuffer);
+				}
+			}
+		}
+		else {
+			while (--numSamples >= 0) {
+				//STEREO
+				this.currentBuffer[this.audioIndex++] = -1;
+				this.currentBuffer[this.audioIndex++] = -1;
+				if (this.audioIndex == this.numSamplesTotal) {
+					this.audioIndex = 0;
+					this.audioHandle.writeAudio(this.currentBuffer);
 				}
 			}
 		}
 	}
 }
 GameBoyCore.prototype.audioJIT = function () {
-	//Audio Sample Generation Timing:
-	var amount = this.audioTicks * this.samplesOut;
-	var actual = amount | 0;
-	this.rollover += amount - actual;
-	if (this.rollover >= 1) {
-		this.rollover--;
-		actual++;
+	if (settings[0]) {
+		//Audio Sample Generation Timing:
+		var amount = this.audioTicks * this.samplesOut;
+		var actual = amount | 0;
+		this.rollover += amount - actual;
+		if (this.rollover >= 1) {
+			this.rollover--;
+			actual++;
+		}
+		this.generateAudio(actual);
 	}
-	this.generateAudio(actual);
 	this.audioTicks = 0;
 }
 GameBoyCore.prototype.channel1Compute = function () {
@@ -5189,15 +5144,7 @@ GameBoyCore.prototype.generateAudioSafe = function (numSamples) {
 					this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
-						if (this.usingBackupAsMain) {
-							this.currentBuffer = this.audioSamples;
-							this.usingBackupAsMain = false;
-						}
-						else {
-							this.currentBuffer = this.audioBackup;
-							this.usingBackupAsMain = true;
-						}
-						this.audioOverflow = true;
+						this.audioHandle.writeAudio(this.currentBuffer);
 					}
 				}
 			}
@@ -5209,15 +5156,7 @@ GameBoyCore.prototype.generateAudioSafe = function (numSamples) {
 					this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
-						if (this.usingBackupAsMain) {
-							this.currentBuffer = this.audioSamples;
-							this.usingBackupAsMain = false;
-						}
-						else {
-							this.currentBuffer = this.audioBackup;
-							this.usingBackupAsMain = true;
-						}
-						this.audioOverflow = true;
+						this.audioHandle.writeAudio(this.currentBuffer);
 					}
 				}
 			}
@@ -5230,33 +5169,18 @@ GameBoyCore.prototype.generateAudioSafe = function (numSamples) {
 					this.currentBuffer[this.audioIndex++] = -1;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
-						if (this.usingBackupAsMain) {
-							this.currentBuffer = this.audioSamples;
-							this.usingBackupAsMain = false;
-						}
-						else {
-							this.currentBuffer = this.audioBackup;
-							this.usingBackupAsMain = true;
-						}
-						this.audioOverflow = true;
+						this.audioHandle.writeAudio(this.currentBuffer);
 					}
 				}
 			}
 			else {
 				while (--numSamples >= 0) {
 					//STEREO
-					this.currentBuffer[this.audioIndex++] = this.currentBuffer[this.audioIndex++] = -1;
+					this.currentBuffer[this.audioIndex++] = -1;
+					this.currentBuffer[this.audioIndex++] = -1;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
-						if (this.usingBackupAsMain) {
-							this.currentBuffer = this.audioSamples;
-							this.usingBackupAsMain = false;
-						}
-						else {
-							this.currentBuffer = this.audioBackup;
-							this.usingBackupAsMain = true;
-						}
-						this.audioOverflow = true;
+						this.audioHandle.writeAudio(this.currentBuffer);
 					}
 				}
 			}
@@ -5517,8 +5441,7 @@ GameBoyCore.prototype.updateCore = function () {
 	}
 	//End of iteration routine:
 	if (this.emulatorTicks >= this.CPUCyclesPerIteration) {
-		this.audioJIT();
-		this.playAudio();				//Output all the samples built up.
+		this.audioJIT();	//Make sure we at least output once per iteration.
 		//Update DIV Alignment (Integer overflow safety):
 		this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 6)) & 0xFF;
 		this.DIVTicks &= 0x3F;
