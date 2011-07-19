@@ -197,6 +197,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.windowY = 0;						//Current Y offset of the window.
 	this.windowX = 0;						//Current X offset of the window.
 	this.drewBlank = 0;						//To prevent the repeating of drawing a blank screen.
+	this.drewFrame = false;					//Throttle how many draws we can do to once per iteration.
 	this.midScanlineOffset = 0;				//mid-scanline rendering offset.
 	//BG Tile Pointer Caches:
 	this.BGCHRBank1 = this.getTypedArray(0x800, 0, "uint8");
@@ -5259,6 +5260,7 @@ GameBoyCore.prototype.run = function () {
 	if ((this.stopEmulator & 2) == 0) {
 		if ((this.stopEmulator & 1) == 1) {
 			this.stopEmulator = 0;
+			this.drewFrame = false;
 			this.clockUpdate();			//Frame skip and RTC code.
 			if (this.halt) {			//Finish the HALT rundown execution.
 				this.CPUTicks = 0;
@@ -5688,7 +5690,7 @@ GameBoyCore.prototype.clockUpdate = function () {
 }
 GameBoyCore.prototype.drawToCanvas = function () {
 	//Draw the frame buffer to the canvas:
-	if (settings[4] == 0 || this.frameCount > 0) {
+	if (!this.drewFrame && (settings[4] == 0 || this.frameCount > 0)) {
 		//Copy and convert the framebuffer data to the CanvasPixelArray format.
 		var canvasData = this.canvasBuffer.data;
 		var frameBuffer = (settings[21] && this.pixelCount > 0 && this.width != 160 && this.height != 144) ? this.resizeFrameBuffer() : this.frameBuffer;
@@ -5705,6 +5707,7 @@ GameBoyCore.prototype.drawToCanvas = function () {
 			//Increment the frameskip counter:
 			this.frameCount -= settings[4];
 		}
+		this.drewFrame = true;
 	}
 	else {
 		//Reset the frameskip counter:
