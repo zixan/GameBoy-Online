@@ -4815,46 +4815,45 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 		noiseSampleTable[0x78000 | index] = randomFactor;
 	}
 }
-GameBoyCore.prototype.audioUnderRun = function (samplesRequested) {
-	samplesRequested = Math.min(samplesRequested, this.numSamplesTotal - this.soundChannelsAllocated);
-		//We need more audio samples since we went below our set low limit:
-		var neededSamples = samplesRequested - this.audioIndex;
-		if (neededSamples > 0) {
-			var tempBuffer = [];
-			//Use any existing samples and then create some:
-			if (this.audioIndex > 0) {
-				tempBuffer = this.audioBufferSlice(this.audioIndex);
-				this.audioIndex = 0;
+GameBoyCore.prototype.audioUnderRun = function (samplesRequestedRaw) {
+	//We need more audio samples since we went below our set low limit:
+	var neededSamples = samplesRequestedRaw - this.audioIndex;
+	if (neededSamples > 0) {
+		//Use any existing samples and then create some:
+		var tempBuffer = [];
+		if (this.audioIndex > 0) {
+			var tempBuffer2 = this.audioBufferSlice(this.audioIndex);
+			for (var index = 0; index < this.audioIndex; index++) {
+				tempBuffer.push(tempBuffer2[index]);
 			}
-			this.generateAudioSafe(neededSamples / this.soundChannelsAllocated);
-			var oldlength = tempBuffer.length;
-			var newlength = oldlength + this.audioIndex;
-			var tempBuffer2 = this.getTypedArray(newlength, 0, "float32");
-			for (var index = 0; index < oldlength; index++) {
-				tempBuffer2[index] = tempBuffer[index];
-			}
-			for (var index2 = 0; index < newlength; index++) {
-				tempBuffer2[index] = this.currentBuffer[index2++];
-			}
+			samplesRequestedRaw -= this.audioIndex;
 			this.audioIndex = 0;
-			return tempBuffer2;
 		}
-		else if (neededSamples == 0) {
-			//Use the overflow buffer's existing samples:
-			this.audioIndex = 0;
-			return this.currentBuffer;
-		}
-		else {
-			//Use the overflow buffer's existing samples:
-			var tempBuffer = this.audioBufferSlice(samplesRequested);
-			neededSamples = this.audioIndex - samplesRequested;
-			while (--neededSamples >= 0) {
-				//Move over the remaining samples to their new positions:
-				this.currentBuffer[neededSamples] = this.currentBuffer[samplesRequested + neededSamples];
+		while (samplesRequestedRaw > 0) {
+			this.generateAudioSafe(Math.min(samplesRequestedRaw, this.numSamplesTotal - this.soundChannelsAllocated) / this.soundChannelsAllocated);
+			for (var index = 0; index < this.audioIndex; index++) {
+				tempBuffer.push(this.currentBuffer[index]);
 			}
-			this.audioIndex -= samplesRequested;
-			return tempBuffer;
+			samplesRequestedRaw -= this.audioIndex;
+			this.audioIndex = 0;
 		}
+		return tempBuffer;
+	}
+	else if (neededSamples == 0) {
+		//Use the overflow buffer's existing samples:
+		this.audioIndex = 0;
+		return this.currentBuffer;
+	}
+	else {
+		//Use the overflow buffer's existing samples:
+		var tempBuffer = this.audioBufferSlice(samplesRequestedRaw);
+		this.audioIndex = neededSamples = this.audioIndex - samplesRequestedRaw;
+		while (--neededSamples >= 0) {
+			//Move over the remaining samples to their new positions:
+			this.currentBuffer[neededSamples] = this.currentBuffer[samplesRequestedRaw + neededSamples];
+		}
+		return tempBuffer;
+	}
 }
 GameBoyCore.prototype.playAudio = function () {
 	if (settings[0]) {
@@ -7361,6 +7360,35 @@ GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) 
 		}
 	}
 }
+GameBoyCore.prototype.memoryWriteGBOAMRAMUnsafe = function (parentObj, address, data) {
+	var oldData = parentObj.memory[address];
+	if (oldData != data) {
+		parentObj.memory[address--] = data;
+		if (oldData < 168) {
+			//Remove the old position:
+			var length = parentObj.OAMAddresses[oldData].length;
+			while (length > 0) {
+				if (parentObj.OAMAddresses[oldData][--length] == address) {
+					parentObj.OAMAddresses[oldData].splice(length, 1);
+					break;
+				}
+			}
+		}
+		if (data < 168) {
+			if (data > 0) {
+				//Make sure the stacking is correct if multiple sprites are at the same x-coord:
+				var length = parentObj.OAMAddresses[data].length;
+				while (length > 0) {
+					if (parentObj.OAMAddresses[data][--length] > address) {
+						parentObj.OAMAddresses[data].splice(length, 0, address);
+						return;
+					}
+				}
+			}
+			parentObj.OAMAddresses[data].push(address);
+		}
+	}
+}
 GameBoyCore.prototype.memoryWriteGBCOAMRAM = function (parentObj, address, data) {
 	if (parentObj.modeSTAT < 2) {		//OAM RAM cannot be written to in mode 2 & 3
 		parentObj.memory[address] = data;
@@ -8114,9 +8142,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				address = 0xFE00;
 				var stat = parentObj.modeSTAT;
 				parentObj.modeSTAT = 0;
-				while (address < 0xFEA0) {
+				do {
 					parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
-				}
+				} while (address < 0xFEA0);
 				parentObj.modeSTAT = stat;
 			}
 		}
@@ -8275,9 +8303,12 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				address = 0xFE00;
 				var stat = parentObj.modeSTAT;
 				parentObj.modeSTAT = 0;
-				while (address < 0xFEA0) {
-					parentObj.memoryWriter[address](parentObj, address++, parentObj.memoryReader[data](parentObj, data++));
-				}
+				do {
+					parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+					parentObj.memoryWriteGBOAMRAMUnsafe(parentObj, address++, parentObj.memoryReader[data](parentObj, data++));
+					parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+					parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+				} while (address < 0xFEA0);
 				parentObj.modeSTAT = stat;
 			}
 		}
