@@ -39,24 +39,6 @@ function windowingInitialize() {
 	catch (error) {
 		cout("Fatal windowing error: \"" + error.message + "\" file:" + error.fileName + " line: " + error.lineNumber, 2);
 	}
-	try {
-		try {
-			//Check for mozAudio
-			var audiohook = new Audio();
-			audiohook.mozSetup(2, 44100);
-		}
-		catch (error) {
-			//Check for the proposed standard Audio API's context object.
-			if (typeof AudioContext == "undefined" && typeof webkitAudioContext == "undefined") {
-				throw(new Error(""));
-			}
-		}
-	}
-	catch (error) {
-		//settings[0] = false;	//Turn off audio by default
-		settings[1] = true;		//Mono on non-native to speed it up.
-		//cout("Native audio sample writing support not found, audio turned off by default.", 1);
-	}
 	//Update the settings to the emulator's default:
 	document.getElementById("enable_sound").checked = settings[0];
 	document.getElementById("enable_mono_sound").checked = settings[1];
@@ -92,7 +74,7 @@ function registerGUIEvents() {
 		}
 	});
 	addEvent("keyup", document, GameBoyKeyUp);
-	//addEvent("MozOrientation", window, GameBoyJoyStickSignalHandler);
+	addEvent("MozOrientation", window, GameBoyGyroSignalHandler);
 	new popupMenu(document.getElementById("GameBoy_file_menu"), document.getElementById("GameBoy_file_popup"));
 	addEvent("click", document.getElementById("data_uri_clicker"), function () {
 		var datauri = prompt("Please input the ROM image's Base 64 Encoded Text:", "");
@@ -134,6 +116,14 @@ function registerGUIEvents() {
 			}
 			catch (error) {
 				alert(error.message + " file: " + error.fileName + " line: " + error.lineNumber);
+			}
+		}
+	});
+	addEvent("click", document.getElementById("set_speed"), function () {
+		if (typeof gameboy == "object" && gameboy != null) {
+			var speed = prompt("Set the speed multiplier here:", "");
+			if (speed != null && speed.length > 0) {
+				gameboy.setEmulatorSpeed(Math.max(speed | 0, 1));
 			}
 		}
 	});
