@@ -4780,7 +4780,7 @@ GameBoyCore.prototype.initSound = function () {
 		try {
 			this.audioHandle = new XAudioServer(1, 1000, 5000, 20000, function (sampleCount) {
 				return [];
-			}, -1);
+			}, 0);
 		}
 		catch (error) { }
 	}
@@ -4789,7 +4789,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioTicks = this.audioIndex = 0;
 	this.sampleSize = settings[14] / 1000 * settings[20];
 	cout("...Samples per interpreter loop iteration (Per Channel): " + this.sampleSize, 0);
-	this.samplesOut = this.sampleSize / this.baseCPUCyclesPerIteration;
+	this.samplesOut = this.sampleSize / this.CPUCyclesPerIteration;
 	cout("...Samples per machine cycle (Per Channel): " + this.samplesOut, 0);
 	this.numSamplesTotal = this.sampleSize << (this.soundChannelsAllocated - 1);
 	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, -1, "float32");
