@@ -4623,15 +4623,19 @@ GameBoyCore.prototype.initializeTiming = function () {
 	this.baseCPUCyclesPerIteration = (41943 / 40) * settings[20];
 	this.setEmulatorSpeed(1);
 	//Audio Timing:
+	this.setAudioSpeed(1);
+}
+GameBoyCore.prototype.setEmulatorSpeed = function(speed) {
+	this.CPUCyclesPerIteration = this.baseCPUCyclesPerIteration * speed;
+	this.setAudioSpeed(speed);
+}
+GameBoyCore.prototype.setAudioSpeed = function (speed) {
 	this.preChewedAudioComputationMultiplier = 0x20000 / settings[14];
 	this.preChewedWAVEAudioComputationMultiplier = 0x200000 / settings[14];
 	this.whiteNoiseFrequencyPreMultiplier = 4194300 / settings[14] / 8;
-	this.volumeEnvelopePreMultiplier = settings[14] / 0x40;
-	this.channel1TimeSweepPreMultiplier = settings[14] / 0x80;
-	this.audioTotalLengthMultiplier = settings[14] / 0x100;
-}
-GameBoyCore.prototype.setEmulatorSpeed = function (speed) {
-	this.CPUCyclesPerIteration = this.baseCPUCyclesPerIteration * speed;
+	this.volumeEnvelopePreMultiplier = settings[14] / 0x40 / speed;
+	this.channel1TimeSweepPreMultiplier = settings[14] / 0x80 / speed;
+	this.audioTotalLengthMultiplier = settings[14] / 0x100 / speed;
 }
 GameBoyCore.prototype.setupRAM = function () {
 	//Setup the auxilliary/switchable RAM to their maximum possible size (Bad headers can lie).
