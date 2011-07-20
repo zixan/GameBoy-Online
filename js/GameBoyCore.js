@@ -51,6 +51,8 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.stackPointer = 0xFFFE;					//Stack Pointer
 	this.programCounter = 0x0100;				//Program Counter
 	//Some CPU Emulation State Variables:
+	this.CPUCyclesPerIteration = 0;				//Relative CPU clocking to speed set.
+	this.baseCPUCyclesPerIteration	= 0;		//CPU clocks per iteration at 1x speed.
 	this.inBootstrap = true;					//Whether we're in the GBC boot ROM.
 	this.usedBootROM = false;					//Updated upon ROM loading...
 	this.halt = false;							//Has the CPU been suspended until the next interrupt?
@@ -4618,6 +4620,7 @@ GameBoyCore.prototype.disableBootROM = function () {
 }
 GameBoyCore.prototype.initializeTiming = function () {
 	//Emulator Timing:
+	this.baseCPUCyclesPerIteration = (41943 / 40) * settings[20];
 	this.setEmulatorSpeed(1);
 	//Audio Timing:
 	this.preChewedAudioComputationMultiplier = 0x20000 / settings[14];
@@ -4628,7 +4631,7 @@ GameBoyCore.prototype.initializeTiming = function () {
 	this.audioTotalLengthMultiplier = settings[14] / 0x100;
 }
 GameBoyCore.prototype.setEmulatorSpeed = function (speed) {
-	this.CPUCyclesPerIteration = (41943 / 40) * settings[20] * speed;
+	this.CPUCyclesPerIteration = this.baseCPUCyclesPerIteration * speed;
 }
 GameBoyCore.prototype.setupRAM = function () {
 	//Setup the auxilliary/switchable RAM to their maximum possible size (Bad headers can lie).
@@ -4786,7 +4789,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioTicks = this.audioIndex = 0;
 	this.sampleSize = settings[14] / 1000 * settings[20];
 	cout("...Samples per interpreter loop iteration (Per Channel): " + this.sampleSize, 0);
-	this.samplesOut = this.sampleSize / this.CPUCyclesPerIteration;
+	this.samplesOut = this.sampleSize / this.baseCPUCyclesPerIteration;
 	cout("...Samples per machine cycle (Per Channel): " + this.samplesOut, 0);
 	this.numSamplesTotal = this.sampleSize << (this.soundChannelsAllocated - 1);
 	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, -1, "float32");
