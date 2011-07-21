@@ -124,6 +124,7 @@ function registerGUIEvents() {
 			var speed = prompt("Set the speed multiplier here:", "1.0");
 			if (speed != null && speed.length > 0) {
 				gameboy.setEmulatorSpeed(Math.min(Math.max(parseFloat(speed), 0.01), 50));
+				gameboy.initSound();
 			}
 		}
 	});
