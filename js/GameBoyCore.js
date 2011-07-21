@@ -5155,7 +5155,6 @@ GameBoyCore.prototype.generateAudioSafe = function (numSamples) {
 					this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
-						this.audioHandle.writeAudio(this.currentBuffer);
 					}
 				}
 			}
@@ -5167,7 +5166,6 @@ GameBoyCore.prototype.generateAudioSafe = function (numSamples) {
 					this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
-						this.audioHandle.writeAudio(this.currentBuffer);
 					}
 				}
 			}
@@ -5180,7 +5178,6 @@ GameBoyCore.prototype.generateAudioSafe = function (numSamples) {
 					this.currentBuffer[this.audioIndex++] = -1;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
-						this.audioHandle.writeAudio(this.currentBuffer);
 					}
 				}
 			}
@@ -5191,7 +5188,6 @@ GameBoyCore.prototype.generateAudioSafe = function (numSamples) {
 					this.currentBuffer[this.audioIndex++] = -1;
 					if (this.audioIndex == this.numSamplesTotal) {
 						this.audioIndex = 0;
-						this.audioHandle.writeAudio(this.currentBuffer);
 					}
 				}
 			}
