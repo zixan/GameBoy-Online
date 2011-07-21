@@ -121,10 +121,9 @@ function registerGUIEvents() {
 	});
 	addEvent("click", document.getElementById("set_speed"), function () {
 		if (typeof gameboy == "object" && gameboy != null) {
-			var speed = prompt("Set the speed multiplier here:", "");
+			var speed = prompt("Set the speed multiplier here:", "1.0");
 			if (speed != null && speed.length > 0) {
-				gameboy.setEmulatorSpeed(Math.max(parseFloat(speed), 0.1));
-				gameboy.initSound();
+				gameboy.setEmulatorSpeed(Math.min(Math.max(parseFloat(speed), 0.01), 50));
 			}
 		}
 	});
