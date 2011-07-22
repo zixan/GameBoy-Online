@@ -4611,9 +4611,7 @@ GameBoyCore.prototype.disableBootROM = function () {
 		cout("Stepping down from GBC mode.", 0);
 		this.getGBCColor();
 		this.BGCHRBank2 = this.VRAM = this.GBCMemory = null;	//Deleting these causes Google's V8 engine and Safari's JSC to deoptimize heavily.
-		for (index = 0; index < 168; index++) {
-			this.OAMAddresses[index] = [];
-		}
+		this.resetOAMXCache();
 	}
 	this.memoryReadJumpCompile();
 	this.memoryWriteJumpCompile();
@@ -4676,9 +4674,7 @@ GameBoyCore.prototype.setupRAM = function () {
 	else {
 		this.tileCache = this.generateCacheArray(0x700);
 		this.tileCacheValid = this.getTypedArray(0x700, 0, "int8");
-		for (index = 0; index < 168; index++) {
-			this.OAMAddresses[index] = [];
-		}
+		this.resetOAMXCache();
 	}
 	this.memoryReadJumpCompile();
 	this.memoryWriteJumpCompile();
@@ -7295,32 +7291,19 @@ GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) 
 	}
 }
 GameBoyCore.prototype.memoryWriteGBOAMRAMUnsafe = function (parentObj, address, data) {
-	var oldData = parentObj.memory[address];
-	if (oldData != data) {
-		parentObj.memory[address--] = data;
-		if (oldData < 168) {
-			//Remove the old position:
-			var length = parentObj.OAMAddresses[oldData].length;
+	parentObj.memory[address--] = data;
+	if (data < 168) {
+		if (data > 0) {
+			//Make sure the stacking is correct if multiple sprites are at the same x-coord:
+			var length = parentObj.OAMAddresses[data].length;
 			while (length > 0) {
-				if (parentObj.OAMAddresses[oldData][--length] == address) {
-					parentObj.OAMAddresses[oldData].splice(length, 1);
-					break;
+				if (parentObj.OAMAddresses[data][--length] > address) {
+					parentObj.OAMAddresses[data].splice(length, 0, address);
+					return;
 				}
 			}
 		}
-		if (data < 168) {
-			if (data > 0) {
-				//Make sure the stacking is correct if multiple sprites are at the same x-coord:
-				var length = parentObj.OAMAddresses[data].length;
-				while (length > 0) {
-					if (parentObj.OAMAddresses[data][--length] > address) {
-						parentObj.OAMAddresses[data].splice(length, 0, address);
-						return;
-					}
-				}
-			}
-			parentObj.OAMAddresses[data].push(address);
-		}
+		parentObj.OAMAddresses[data].push(address);
 	}
 }
 GameBoyCore.prototype.memoryWriteGBCOAMRAM = function (parentObj, address, data) {
@@ -8237,6 +8220,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				address = 0xFE00;
 				var stat = parentObj.modeSTAT;
 				parentObj.modeSTAT = 0;
+				parentObj.resetOAMXCache();
 				do {
 					parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
 					parentObj.memoryWriteGBOAMRAMUnsafe(parentObj, address++, parentObj.memoryReader[data](parentObj, data++));
@@ -8419,6 +8403,11 @@ GameBoyCore.prototype.ArrayPad = function (length, defaultValue) {
 		arrayHandle[index++] = defaultValue;
 	}
 	return arrayHandle;
+}
+GameBoyCore.prototype.resetOAMXCache = function () {
+	for (var index = 0; index < 168; index++) {
+		this.OAMAddresses[index] = [];
+	}
 }
 GameBoyCore.prototype.returnOAMXCacheCopy = function (array) {
 	var arrayHandle = this.ArrayPad(168, null);
