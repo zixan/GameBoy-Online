@@ -5693,28 +5693,30 @@ GameBoyCore.prototype.clockUpdate = function () {
 }
 GameBoyCore.prototype.drawToCanvas = function () {
 	//Draw the frame buffer to the canvas:
-	if (!this.drewFrame && (settings[4] == 0 || this.frameCount > 0)) {
-		//Copy and convert the framebuffer data to the CanvasPixelArray format.
-		var canvasData = this.canvasBuffer.data;
-		var frameBuffer = (settings[21] && this.pixelCount > 0 && this.width != 160 && this.height != 144) ? this.resizeFrameBuffer() : this.frameBuffer;
-		var bufferIndex = this.pixelCount;
-		var canvasIndex = this.rgbCount;
-		while (canvasIndex > 3) {
-			canvasData[canvasIndex -= 4] = (frameBuffer[--bufferIndex] >> 16) & 0xFF;		//Red
-			canvasData[canvasIndex + 1] = (frameBuffer[bufferIndex] >> 8) & 0xFF;			//Green
-			canvasData[canvasIndex + 2] = frameBuffer[bufferIndex] & 0xFF;					//Blue
+	if (!this.drewFrame) {	//Throttle blitting to once per interpreter loop iteration.
+		if (settings[4] == 0 || this.frameCount > 0) {
+			//Copy and convert the framebuffer data to the CanvasPixelArray format.
+			var canvasData = this.canvasBuffer.data;
+			var frameBuffer = (settings[21] && this.pixelCount > 0 && this.width != 160 && this.height != 144) ? this.resizeFrameBuffer() : this.frameBuffer;
+			var bufferIndex = this.pixelCount;
+			var canvasIndex = this.rgbCount;
+			while (canvasIndex > 3) {
+				canvasData[canvasIndex -= 4] = (frameBuffer[--bufferIndex] >> 16) & 0xFF;		//Red
+				canvasData[canvasIndex + 1] = (frameBuffer[bufferIndex] >> 8) & 0xFF;			//Green
+				canvasData[canvasIndex + 2] = frameBuffer[bufferIndex] & 0xFF;					//Blue
+			}
+			//Draw out the CanvasPixelArray data:
+			this.drawContext.putImageData(this.canvasBuffer, 0, 0);
+			if (settings[4] > 0) {
+				//Increment the frameskip counter:
+				this.frameCount -= settings[4];
+			}
+			this.drewFrame = true;
 		}
-		//Draw out the CanvasPixelArray data:
-		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
-		if (settings[4] > 0) {
-			//Increment the frameskip counter:
-			this.frameCount -= settings[4];
+		else {
+			//Reset the frameskip counter:
+			this.frameCount += settings[12];
 		}
-		this.drewFrame = true;
-	}
-	else {
-		//Reset the frameskip counter:
-		this.frameCount += settings[12];
 	}
 }
 GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
