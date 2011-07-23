@@ -1,3 +1,4 @@
+//"use strict";
 /* 
  * JavaScript GameBoy Color Emulator
  * Copyright (C) 2010 - 2011 Grant Galitz
@@ -160,7 +161,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.IRQEnableDelay = 0;			//Are the interrupts on queue to be enabled?
 	var dateVar = new Date();
 	this.lastIteration = dateVar.getTime();//The last time we iterated the main loop.
-	dateObj = new Date();
+	var dateObj = new Date();
 	this.firstIteration = dateObj.getTime();
 	this.iterations = 0;
 	this.actualScanLine = 0;			//Actual scan line...
@@ -4347,9 +4348,10 @@ GameBoyCore.prototype.ROMLoad = function () {
 		throw(new Error("ROM image size too small."));
 	}
 	this.ROM = this.getTypedArray(maxLength, 0, "uint8");
+	var romIndex = 0;
 	if (this.usedBootROM) {
 		//Patch in the GBC boot ROM into the memory map:
-		for (romIndex = 0; romIndex < 0x100; romIndex++) {
+		for (; romIndex < 0x100; romIndex++) {
 			this.memory[romIndex] = this.GBCBOOTROM[romIndex];											//Load in the GameBoy Color BOOT ROM.
 			this.ROM[romIndex] = (this.ROMImage.charCodeAt(romIndex) & 0xFF);							//Decode the ROM binary for the switch out.
 		}
@@ -4366,7 +4368,7 @@ GameBoyCore.prototype.ROMLoad = function () {
 	}
 	else {
 		//Don't load in the boot ROM:
-		for (romIndex = 0; romIndex < 0x4000; romIndex++) {
+		for (; romIndex < 0x4000; romIndex++) {
 			this.memory[romIndex] = this.ROM[romIndex] = (this.ROMImage.charCodeAt(romIndex) & 0xFF);	//Load in the game ROM.
 		}
 	}
@@ -6071,7 +6073,7 @@ GameBoyCore.prototype.WindowGBLayerRender = function (pixelEnd) {
 				if (chrCode < this.gfxBackgroundBankOffset) {
 					chrCode |= 0x100;
 				}
-				tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBTile(chrCode))[tileYLine];
+				var tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBTile(chrCode))[tileYLine];
 				for (var texel = (this.currentX % 8); texel < 8 && scrollXAdjusted < 160 && pixelPosition < pixelPositionEnd; scrollXAdjusted++) {
 					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
 				}
@@ -6099,14 +6101,14 @@ GameBoyCore.prototype.WindowGBCLayerRender = function (pixelEnd) {
 			if (pixelPosition < pixelPositionEnd) {
 				var tileYLine = scrollYAdjusted & 7;
 				var tileNumber = (this.gfxWindowCHRBankPosition | ((scrollYAdjusted & 0xF8) << 2)) + (this.currentX >> 3);
-				chrCode = this.BGCHRBank1[tileNumber];
+				var chrCode = this.BGCHRBank1[tileNumber];
 				if (chrCode < this.gfxBackgroundBankOffset) {
 					chrCode |= 0x100;
 				}
-				attrCode = this.BGCHRBank2[tileNumber];
+				var attrCode = this.BGCHRBank2[tileNumber];
 				chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
-				tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
-				pixelFlag = (attrCode << 17) & this.BGPriorityEnabled;
+				var tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
+				var pixelFlag = (attrCode << 17) & this.BGPriorityEnabled;
 				var palette = (attrCode & 0x7) << 2;
 				for (var texel = (this.currentX % 8); texel < 8 && scrollXAdjusted < 160 && pixelPosition < pixelPositionEnd; scrollXAdjusted++) {
 					this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[texel++]];
