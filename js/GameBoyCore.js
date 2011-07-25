@@ -133,8 +133,6 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.soundMasterEnabled = false;			//As its name implies
 	this.audioType = -1;						//Track what method we're using for audio output.
 	//Vin Shit:
-	this.VinLeftChannelEnabled = false;			//Is the VIN left channel enabled?
-	this.VinRightChannelEnabled = false;		//Is the VIN right channel enabled?
 	this.VinLeftChannelMasterVolume = 1;		//Computed post-mixing volume.
 	this.VinRightChannelMasterVolume = 1;		//Computed post-mixing volume.
 	//Channels Enabled:
@@ -3963,8 +3961,6 @@ GameBoyCore.prototype.saveState = function () {
 		this.channel4volumeEnvTimeLast,
 		this.channel4lastTotalLength,
 		this.soundMasterEnabled,
-		this.VinLeftChannelEnabled,
-		this.VinRightChannelEnabled,
 		this.VinLeftChannelMasterVolume,
 		this.VinRightChannelMasterVolume,
 		this.leftChannel,
@@ -4132,8 +4128,6 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel4volumeEnvTimeLast = state[index++];
 	this.channel4lastTotalLength = state[index++];
 	this.soundMasterEnabled = state[index++];
-	this.VinLeftChannelEnabled = state[index++];
-	this.VinRightChannelEnabled = state[index++];
 	this.VinLeftChannelMasterVolume = state[index++];
 	this.VinRightChannelMasterVolume = state[index++];
 	this.leftChannel = state[index++];
@@ -7713,8 +7707,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if (parentObj.memory[0xFF24] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF24] = data;
-			parentObj.VinLeftChannelEnabled = ((data & 0x80) == 0x80);
-			parentObj.VinRightChannelEnabled = ((data & 0x8) == 0x8);
 			parentObj.VinLeftChannelMasterVolume = (((data >> 4) & 0x07) + 1) / 8;
 			parentObj.VinRightChannelMasterVolume = ((data & 0x07) + 1) / 8;
 		}
