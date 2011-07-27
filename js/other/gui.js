@@ -237,6 +237,9 @@ function registerGUIEvents() {
 	});
 	addEvent("click", document.getElementById("bmp_method"), function () {
 		settings[5] = document.getElementById("bmp_method").checked;
+		if (typeof gameboy == "object" && gameboy != null) {
+			gameboy.initLCD();
+		}
 	});
 	addEvent("click", document.getElementById("auto_frameskip"), function () {
 		settings[7] = document.getElementById("auto_frameskip").checked;
@@ -264,15 +267,13 @@ function registerGUIEvents() {
 	addEvent("click", document.getElementById("software_resizing"), function () {
 		settings[21] = document.getElementById("software_resizing").checked;
 		if (typeof gameboy == "object" && gameboy != null && !gameboy.canvasFallbackHappened) {
-			initNewCanvasSize();
-			gameboy.initLCD();
+			initNewCanvas();
 		}
 	});
 	addEvent("click", document.getElementById("resizing_jit"), function () {
 		settings[13] = document.getElementById("resizing_jit").checked;
 		if (typeof gameboy == "object" && gameboy != null && !gameboy.canvasFallbackHappened) {
-			initNewCanvasSize();
-			gameboy.initLCD();
+			initNewCanvas();
 		}
 	});
 	addEvent("click", document.getElementById("typed_arrays_disallow"), function () {
@@ -289,14 +290,23 @@ function registerGUIEvents() {
 	});
 }
 function onResizeOutput() {
-	if (typeof gameboy == "object" && gameboy != null && !gameboy.canvasFallbackHappened && (settings[21] || settings[11])) {
-		cout("Resizing canvas.", 0);
+	if (typeof gameboy == "object" && gameboy != null && !gameboy.canvasFallbackHappened) {
 		initNewCanvasSize();
-		gameboy.initLCD();
 	}
 }
 function initNewCanvasSize() {
-	if (!settings[21] && !settings[11]) {
+	if (!settings[21]) {
+		gameboy.canvas.width = gameboy.width = 160;
+		gameboy.canvas.height = gameboy.height = 144;
+	}
+	else {
+		gameboy.canvas.width = gameboy.width = gameboy.canvas.clientWidth;
+		gameboy.canvas.height = gameboy.height = gameboy.canvas.clientHeight;
+		gameboy.initLCD();
+	}
+}
+function initNewCanvas() {
+	if (!settings[21]) {
 		gameboy.canvas.width = gameboy.width = 160;
 		gameboy.canvas.height = gameboy.height = 144;
 	}
@@ -304,17 +314,11 @@ function initNewCanvasSize() {
 		gameboy.canvas.width = gameboy.width = gameboy.canvas.clientWidth;
 		gameboy.canvas.height = gameboy.height = gameboy.canvas.clientHeight;
 	}
-	gameboy.pixelCount = gameboy.width * gameboy.height;
-	gameboy.rgbCount = gameboy.pixelCount * 4;
-	gameboy.widthRatio = 160 / gameboy.width;
-	gameboy.heightRatio = 144 / gameboy.height;
+	gameboy.initLCD();
 }
 function initPlayer() {
 	if (typeof gameboy == "object" && gameboy != null && !gameboy.canvasFallbackHappened) {
 		initNewCanvasSize();
-		if (settings[21] || settings[11]) {
-			gameboy.initLCD();
-		}
 	}
 	document.getElementById("title").style.display = "none";
 	document.getElementById("port_title").style.display = "none";
@@ -333,8 +337,7 @@ function fullscreenPlayer() {
 			document.getElementById("fullscreenContainer").style.display = "none";
 			windowStacks[0].show();
 		}
-		initNewCanvasSize();
-		gameboy.initLCD();
+		initNewCanvas();
 		inFullscreen = !inFullscreen;
 	}
 	else {

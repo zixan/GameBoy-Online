@@ -4678,7 +4678,15 @@ GameBoyCore.prototype.setupRAM = function () {
 GameBoyCore.prototype.MBCRAMUtilized = function () {
 	return this.cMBC1 || this.cMBC2 || this.cMBC3 || this.cMBC5 || this.cMBC7 || this.cRUMBLE;
 }
+GameBoyCore.prototype.recomputeDimension = function () {
+	//Cache some dimension info:
+	this.pixelCount = this.width * this.height;
+	this.rgbCount = this.pixelCount * 4;
+	this.widthRatio = 160 / this.width;
+	this.heightRatio = 144 / this.height;
+}
 GameBoyCore.prototype.initLCD = function () {
+	this.recomputeDimension();
 	this.scaledFrameBuffer = this.getTypedArray(this.pixelCount, 0, "int32");	//Used for software side scaling...
 	this.compileResizeFrameBufferFunction();
 	try {
@@ -4695,16 +4703,12 @@ GameBoyCore.prototype.initLCD = function () {
 			cout("Falling back to the getImageData initialization (Error \"" + error.message + "\").", 1);
 			this.canvasBuffer = this.drawContext.getImageData(0, 0, this.width, this.height);
 		}
-		var index = 23040;
-		var index2 = this.rgbCount;
+		var index = this.rgbCount;
 		while (index > 0) {
-			this.frameBuffer[--index] = 0xF8F8F8;
-		}
-		while (index2 > 0) {
-			this.canvasBuffer.data[index2 -= 4] = 0xF8;
-			this.canvasBuffer.data[index2 + 1] = 0xF8;
-			this.canvasBuffer.data[index2 + 2] = 0xF8;
-			this.canvasBuffer.data[index2 + 3] = 0xFF;
+			this.canvasBuffer.data[index -= 4] = 0xF8;
+			this.canvasBuffer.data[index + 1] = 0xF8;
+			this.canvasBuffer.data[index + 2] = 0xF8;
+			this.canvasBuffer.data[index + 3] = 0xFF;
 		}
 		this.drawContext.putImageData(this.canvasBuffer, 0, 0);		//Throws any browser that won't support this later on.
 		this.canvasAlt.style.visibility = "hidden";	//Make sure, if restarted, that the fallback images aren't going cover the canvas.
@@ -4719,10 +4723,6 @@ GameBoyCore.prototype.initLCD = function () {
 		this.canvasFallbackHappened = true;
 		this.drawContext = new BMPCanvas(this.canvasAlt, 160, 144, settings[6][0], settings[6][1]);
 		this.canvasBuffer = new Object();
-		var index = 23040;
-		while (index > 0) {
-			this.frameBuffer[--index] = 0xF8F8F8;
-		}
 		this.canvasBuffer.data = this.ArrayPad(92160, 0xF8);
 		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 		//Make visible only after the images have been initialized.
@@ -5685,11 +5685,11 @@ GameBoyCore.prototype.clockUpdate = function () {
 }
 GameBoyCore.prototype.drawToCanvas = function () {
 	//Draw the frame buffer to the canvas:
-	if (!this.drewFrame) {	//Throttle blitting to once per interpreter loop iteration.
+	if (!this.drewFrame && this.pixelCount > 0) {	//Throttle blitting to once per interpreter loop iteration.
 		if (settings[4] == 0 || this.frameCount > 0) {
 			//Copy and convert the framebuffer data to the CanvasPixelArray format.
 			var canvasData = this.canvasBuffer.data;
-			var frameBuffer = (settings[21] && this.pixelCount > 0 && this.width != 160 && this.height != 144) ? this.resizeFrameBuffer() : this.frameBuffer;
+			var frameBuffer = (settings[21] && this.width != 160 && this.height != 144) ? this.resizeFrameBuffer() : this.frameBuffer;
 			var bufferIndex = this.pixelCount;
 			var canvasIndex = this.rgbCount;
 			while (canvasIndex > 3) {
