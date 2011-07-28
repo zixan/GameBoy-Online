@@ -4373,6 +4373,17 @@ GameBoyCore.prototype.ROMLoad = function () {
 	//Set up the emulator for the cartidge specifics:
 	this.interpretCartridge();
 }
+GameBoyCore.prototype.getROMImage = function () {
+	//Return the binary version of the ROM image currently running:
+	if (this.ROMImage.length > 0) {
+		return this.ROMImage.length;
+	}
+	var length = this.ROM.length;
+	for (var index = 0; index < length; index++) {
+		this.ROMImage += String.fromCharCode(this.ROM[index]);
+	}
+	return this.ROMImage;
+}
 GameBoyCore.prototype.interpretCartridge = function () {
 	// ROM name
 	for (var index = 0x134; index < 0x13F; index++) {
@@ -4593,6 +4604,7 @@ GameBoyCore.prototype.interpretCartridge = function () {
 		//New Style License Header
 		cout("New style license code: " + cNewLicense, 0);
 	}
+	this.ROMImage = "";	//Memory consumption reduction.
 }
 GameBoyCore.prototype.disableBootROM = function () {
 	//Remove any traces of the boot ROM from ROM memory.

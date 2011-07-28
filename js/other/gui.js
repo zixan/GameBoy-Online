@@ -189,10 +189,10 @@ function registerGUIEvents() {
 		}
 	});
 	addEvent("click", document.getElementById("restart_cpu_clicker"), function () {
-		if (typeof gameboy == "object" && gameboy != null && typeof gameboy.ROMImage == "string") {
+		if (typeof gameboy == "object" && gameboy != null) {
 			try {
 				if (!gameboy.fromSaveState) {
-					start(mainCanvas, document.getElementById("canvasAltContainer"), gameboy.ROMImage);
+					start(mainCanvas, document.getElementById("canvasAltContainer"), gameboy.getROMImage());
 					initPlayer();
 				}
 				else {
