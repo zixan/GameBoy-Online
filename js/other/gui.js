@@ -296,12 +296,16 @@ function onResizeOutput() {
 }
 function initNewCanvasSize() {
 	if (!settings[21]) {
-		gameboy.canvas.width = gameboy.width = 160;
-		gameboy.canvas.height = gameboy.height = 144;
+		if (gameboy.width != 160 || gameboy.height != 144 || gameboy.canvas.width != 160 || gameboy.canvas.height != 144) {
+			gameboy.canvas.width = gameboy.width = 160;
+			gameboy.canvas.height = gameboy.height = 144;
+		}
 	}
 	else {
-		gameboy.canvas.width = gameboy.width = gameboy.canvas.clientWidth;
-		gameboy.canvas.height = gameboy.height = gameboy.canvas.clientHeight;
+		if (gameboy.width != gameboy.canvas.clientWidth || gameboy.height != gameboy.canvas.clientHeight || gameboy.canvas.width != gameboy.canvas.clientWidth || gameboy.canvas.height != gameboy.canvas.clientHeight) {
+			gameboy.canvas.width = gameboy.width = gameboy.canvas.clientWidth;
+			gameboy.canvas.height = gameboy.height = gameboy.canvas.clientHeight;
+		}
 		gameboy.initLCD();
 	}
 }
