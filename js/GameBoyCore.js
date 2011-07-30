@@ -4755,11 +4755,11 @@ GameBoyCore.prototype.JoyPadEvent = function (key, down) {
 	this.memory[0xFF00] = (this.memory[0xFF00] & 0x30) + ((((this.memory[0xFF00] & 0x20) == 0) ? (this.JoyPad >> 4) : 0xF) & (((this.memory[0xFF00] & 0x10) == 0) ? (this.JoyPad & 0xF) : 0xF));
 }
 GameBoyCore.prototype.GyroEvent = function (x, y) {
-	x *= 100;
+	x *= -100;
 	x += 2047;
 	this.highX = x >> 8;
 	this.lowX = x & 0xFF;
-	y *= 100;
+	y *= -100;
 	y += 2047;
 	this.highY = y >> 8;
 	this.lowY = y & 0xFF;
