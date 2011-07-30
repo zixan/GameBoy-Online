@@ -5288,6 +5288,7 @@ GameBoyCore.prototype.executeIteration = function () {
 	var bitShift = 0;
 	var testbit = 1;
 	var interrupts = 0;
+	var timedTicks = 0;
 	while (this.stopEmulator == 0) {
 		//Reset clocking:
 		this.CPUTicks = 0;
@@ -5337,7 +5338,36 @@ GameBoyCore.prototype.executeIteration = function () {
 		//Execute the OP code instruction:
 		this.OPCODE[op](this);
 		//Timing:
-		this.updateCore();
+		////updateCore function inlining:
+		//Update the clocking for the LCD emulation:
+		this.LCDTicks += this.CPUTicks / this.multiplier;	//LCD Timing
+		this.LCDCONTROL[this.actualScanLine](this);			//Scan Line and STAT Mode Control 
+		//Single-speed relative timing for A/V emulation:
+		timedTicks = this.CPUTicks / this.multiplier;	//CPU clocking can be updated from the LCD handling.
+		this.audioTicks += timedTicks;						//Audio Timing
+		this.emulatorTicks += timedTicks;					//Emulator Timing
+		//CPU Timers:
+		this.DIVTicks += this.CPUTicks;						//DIV Timing
+		if (this.TIMAEnabled) {								//TIMA Timing
+			this.timerTicks += this.CPUTicks;
+			while (this.timerTicks >= this.TACClocker) {
+				this.timerTicks -= this.TACClocker;
+				if (++this.memory[0xFF05] == 0x100) {
+					this.memory[0xFF05] = this.memory[0xFF06];
+					this.interruptsRequested |= 0x4;
+				}
+			}
+		}
+		//End of iteration routine:
+		if (this.emulatorTicks >= this.CPUCyclesPerIteration) {
+			this.audioJIT();	//Make sure we at least output once per iteration.
+			//Update DIV Alignment (Integer overflow safety):
+			this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 6)) & 0xFF;
+			this.DIVTicks &= 0x3F;
+			//Update emulator flags:
+			this.stopEmulator |= 1;			//End current loop.
+			this.emulatorTicks -= this.CPUCyclesPerIteration;
+		}
 	}
 }
 GameBoyCore.prototype.scanLineMode2 = function () {	//OAM Search Period
@@ -5442,12 +5472,9 @@ GameBoyCore.prototype.updateCore = function () {
 		this.timerTicks += this.CPUTicks;
 		while (this.timerTicks >= this.TACClocker) {
 			this.timerTicks -= this.TACClocker;
-			if (this.memory[0xFF05] == 0xFF) {
+			if (++this.memory[0xFF05] == 0x100) {
 				this.memory[0xFF05] = this.memory[0xFF06];
 				this.interruptsRequested |= 0x4;
-			}
-			else {
-				this.memory[0xFF05]++;
 			}
 		}
 	}
