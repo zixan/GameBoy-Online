@@ -2,7 +2,6 @@ CACHE MANIFEST
 CACHE:
 js/other/windowStack.js
 js/other/terminal.js
-js/other/opacity.js
 js/other/gui.js
 js/other/waveAudio.js
 js/other/BMPCanvas.js
