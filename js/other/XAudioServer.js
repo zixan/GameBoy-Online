@@ -17,6 +17,7 @@ function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underR
 	this.underRunCallback = (typeof underRunCallback == "function") ? underRunCallback : function () {};
 	defaultNeutralValue = (defaultValue >= -1 && defaultValue <= 1) ? defaultValue : 0;
 	this.audioType = -1;
+	this.mozAudioTail = [];
 	this.initializeAudio();
 }
 /*Pass your samples into here!
@@ -29,10 +30,10 @@ examples:
 XAudioServer.prototype.writeAudio = function (buffer) {
 	if (this.audioType == 0) {
 		//mozAudio:
-		this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(buffer);
+		this.writeMozAudio(buffer);
 		var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
 		if (samplesRequested > 0) {
-			this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.underRunCallback(samplesRequested));
+			this.writeMozAudio(this.underRunCallback(samplesRequested));
 		}
 	}
 	else if (this.audioType == 1) {
@@ -143,7 +144,7 @@ XAudioServer.prototype.executeCallback = function () {
 		//mozAudio:
 		var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
 		if (samplesRequested > 0) {
-			this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(this.underRunCallback(samplesRequested));
+			this.writeMozAudio(this.underRunCallback(samplesRequested));
 		}
 	}
 	else if (this.audioType == 1) {
@@ -214,7 +215,8 @@ XAudioServer.prototype.initializeAudio = function () {
 				this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(emptySampleFrame);
 			}
 		}
-		this.samplesAlreadyWritten += prebufferAmount + this.audioHandle.mozWriteAudio(getFloat32(webAudioMinBufferSize));
+		this.writeMozAudio(getFloat32(webAudioMinBufferSize));
+		this.samplesAlreadyWritten += prebufferAmount;
 		webAudioMinBufferSize += prebufferAmount << 1;
 		this.audioType = 0;
 	}
@@ -276,6 +278,21 @@ XAudioServer.prototype.initializeAudio = function () {
 				this.sampleCount = 0;
 			}
 		}
+	}
+}
+XAudioServer.prototype.writeMozAudio = function (buffer) {
+	var length = this.mozAudioTail.length;
+	if (length > 0) {
+		var samplesAccepted = this.audioHandle.mozWriteAudio(this.mozAudioTail);
+		this.samplesAlreadyWritten += samplesAccepted;
+		this.mozAudioTail.splice(0, samplesAccepted);
+	}
+	length = Math.min(buffer.length, webAudioMaxBufferSize);
+	var samplesAccepted = this.audioHandle.mozWriteAudio(buffer);
+	this.samplesAlreadyWritten += samplesAccepted;
+	for (var index = 0; length > samplesAccepted; length--) {
+		//Moz Audio wants us saving the tail:
+		this.mozAudioTail.push(buffer[index++]);
 	}
 }
 XAudioServer.prototype.checkFlashInit = function () {
@@ -372,136 +389,129 @@ function audioOutputEvent(event) {
 		index++;
 	}
 }
-function downsampler() {
-	if (webAudioMono) {
-		//MONO:
-		for (samplesFound = 0; samplesFound < resamplingRate && startPosition != bufferEnd;) {
-			sampleBase1 = audioContextSampleBuffer[startPosition++];
+function downsamplerMono() {
+	//MONO:
+	for (samplesFound = 0; samplesFound < resamplingRate && startPosition != bufferEnd;) {
+		sampleBase1 = audioContextSampleBuffer[startPosition++];
+		if (startPosition == bufferEnd) {
+			//Resampling must be clipped here:
+			resampleChannel1Buffer[samplesFound++] = sampleBase1;
+			return;
+		}
+		if (startPosition == webAudioMaxBufferSize) {
+			startPosition = 0;
+		}
+		for (var sampleIndice = 1; sampleIndice < resampleAmountFloor;) {
+			++sampleIndice;
+			sampleBase1 += audioContextSampleBuffer[startPosition++];
 			if (startPosition == bufferEnd) {
 				//Resampling must be clipped here:
-				resampleChannel1Buffer[samplesFound++] = sampleBase1;
+				resampleChannel1Buffer[samplesFound++] = sampleBase1 / sampleIndice;
 				return;
 			}
 			if (startPosition == webAudioMaxBufferSize) {
 				startPosition = 0;
 			}
-			for (var sampleIndice = 1; sampleIndice < resampleAmountFloor;) {
-				++sampleIndice;
-				sampleBase1 += audioContextSampleBuffer[startPosition++];
-				if (startPosition == bufferEnd) {
-					//Resampling must be clipped here:
-					resampleChannel1Buffer[samplesFound++] = sampleBase1 / sampleIndice;
-					return;
-				}
-				if (startPosition == webAudioMaxBufferSize) {
-					startPosition = 0;
-				}
-			}
-			startPositionOverflow += resampleAmountRemainder;
-			if (startPositionOverflow >= 1) {
-				startPositionOverflow--;
-				sampleBase1 += audioContextSampleBuffer[startPosition++];
-				if (startPosition == webAudioMaxBufferSize) {
-					startPosition = 0;
-				}
-				sampleIndice++;
-			}
-			resampleChannel1Buffer[samplesFound++] = sampleBase1 / sampleIndice;
 		}
+		startPositionOverflow += resampleAmountRemainder;
+		if (startPositionOverflow >= 1) {
+			startPositionOverflow--;
+			sampleBase1 += audioContextSampleBuffer[startPosition++];
+			if (startPosition == webAudioMaxBufferSize) {
+				startPosition = 0;
+			}
+			sampleIndice++;
+		}
+		resampleChannel1Buffer[samplesFound++] = sampleBase1 / sampleIndice;
 	}
-	else {
-		//STEREO:
-		for (samplesFound = 0; samplesFound < resamplingRate && startPosition != bufferEnd;) {
-			sampleBase1 = audioContextSampleBuffer[startPosition++];
-			sampleBase2 = audioContextSampleBuffer[startPosition++];
+}
+function downsamplerStereo() {
+	//STEREO:
+	for (samplesFound = 0; samplesFound < resamplingRate && startPosition != bufferEnd;) {
+		sampleBase1 = audioContextSampleBuffer[startPosition++];
+		sampleBase2 = audioContextSampleBuffer[startPosition++];
+		if (startPosition == bufferEnd) {
+			//Resampling must be clipped here:
+			resampleChannel1Buffer[samplesFound] = sampleBase1;
+			resampleChannel2Buffer[samplesFound++] = sampleBase2;
+			return;
+		}
+		if (startPosition == webAudioMaxBufferSize) {
+			startPosition = 0;
+		}
+		for (var sampleIndice = 1; sampleIndice < resampleAmountFloor;) {
+			++sampleIndice;
+			sampleBase1 += audioContextSampleBuffer[startPosition++];
+			sampleBase2 += audioContextSampleBuffer[startPosition++];
 			if (startPosition == bufferEnd) {
 				//Resampling must be clipped here:
-				resampleChannel1Buffer[samplesFound] = sampleBase1;
-				resampleChannel2Buffer[samplesFound++] = sampleBase2;
+				resampleChannel1Buffer[samplesFound] = sampleBase1 / sampleIndice;
+				resampleChannel2Buffer[samplesFound++] = sampleBase2 / sampleIndice;
 				return;
 			}
 			if (startPosition == webAudioMaxBufferSize) {
 				startPosition = 0;
 			}
-			for (var sampleIndice = 1; sampleIndice < resampleAmountFloor;) {
-				++sampleIndice;
-				sampleBase1 += audioContextSampleBuffer[startPosition++];
-				sampleBase2 += audioContextSampleBuffer[startPosition++];
-				if (startPosition == bufferEnd) {
-					//Resampling must be clipped here:
-					resampleChannel1Buffer[samplesFound] = sampleBase1 / sampleIndice;
-					resampleChannel2Buffer[samplesFound++] = sampleBase2 / sampleIndice;
-					return;
-				}
-				if (startPosition == webAudioMaxBufferSize) {
-					startPosition = 0;
-				}
-			}
-			startPositionOverflow += resampleAmountRemainder;
-			if (startPositionOverflow >= 1) {
-				startPositionOverflow--;
-				sampleBase1 += audioContextSampleBuffer[startPosition++];
-				sampleBase2 += audioContextSampleBuffer[startPosition++];
-				if (startPosition == webAudioMaxBufferSize) {
-					startPosition = 0;
-				}
-				sampleIndice++;
-			}
-			resampleChannel1Buffer[samplesFound] = sampleBase1 / sampleIndice;
-			resampleChannel2Buffer[samplesFound++] = sampleBase2 / sampleIndice;
 		}
+		startPositionOverflow += resampleAmountRemainder;
+		if (startPositionOverflow >= 1) {
+			startPositionOverflow--;
+			sampleBase1 += audioContextSampleBuffer[startPosition++];
+			sampleBase2 += audioContextSampleBuffer[startPosition++];
+			if (startPosition == webAudioMaxBufferSize) {
+				startPosition = 0;
+			}
+			sampleIndice++;
+		}
+		resampleChannel1Buffer[samplesFound] = sampleBase1 / sampleIndice;
+		resampleChannel2Buffer[samplesFound++] = sampleBase2 / sampleIndice;
 	}
 }
-function upsampler() {
-	if (webAudioMono) {
-		//MONO:
-		for (samplesFound = 0; samplesFound < resamplingRate && startPosition != bufferEnd;) {
-			resampleChannel1Buffer[samplesFound++] = audioContextSampleBuffer[startPosition];
-			startPositionOverflow += resampleAmount;
-			if (startPositionOverflow >= 1) {
-				--startPositionOverflow;
-				++startPosition;
-				if (startPosition == webAudioMaxBufferSize) {
-					startPosition = 0;
-				}
-			}
-			
-		}
-	}
-	else {
-		//STEREO:
-		for (samplesFound = 0; samplesFound < resamplingRate && startPosition != bufferEnd;) {
-			resampleChannel1Buffer[samplesFound] = audioContextSampleBuffer[startPosition];
-			resampleChannel2Buffer[samplesFound++] = audioContextSampleBuffer[startPosition + 1];
-			startPositionOverflow += resampleAmount;
-			if (startPositionOverflow >= 1) {
-				--startPositionOverflow;
-				startPosition += 2;
-				if (startPosition == webAudioMaxBufferSize) {
-					startPosition = 0;
-				}
-			}
-		}
-	}
-}
-function noresample() {
-	if (webAudioMono) {
-		//MONO:
-		for (samplesFound = 0; samplesFound < resamplingRate && startPosition != bufferEnd;) {
-			resampleChannel1Buffer[samplesFound++] = audioContextSampleBuffer[startPosition++];
+function upsamplerMono() {
+	//MONO:
+	for (samplesFound = 0; samplesFound < resamplingRate && startPosition != bufferEnd;) {
+		resampleChannel1Buffer[samplesFound++] = audioContextSampleBuffer[startPosition];
+		startPositionOverflow += resampleAmount;
+		if (startPositionOverflow >= 1) {
+			--startPositionOverflow;
+			++startPosition;
 			if (startPosition == webAudioMaxBufferSize) {
 				startPosition = 0;
 			}
 		}
 	}
-	else {
-		//STEREO:
-		for (samplesFound = 0; samplesFound < resamplingRate && startPosition != bufferEnd;) {
-			resampleChannel1Buffer[samplesFound] = audioContextSampleBuffer[startPosition++];
-			resampleChannel2Buffer[samplesFound++] = audioContextSampleBuffer[startPosition++];
+}
+function upsamplerStereo() {
+	//STEREO:
+	for (samplesFound = 0; samplesFound < resamplingRate && startPosition != bufferEnd;) {
+		resampleChannel1Buffer[samplesFound] = audioContextSampleBuffer[startPosition];
+		resampleChannel2Buffer[samplesFound++] = audioContextSampleBuffer[startPosition + 1];
+		startPositionOverflow += resampleAmount;
+		if (startPositionOverflow >= 1) {
+			--startPositionOverflow;
+			startPosition += 2;
 			if (startPosition == webAudioMaxBufferSize) {
 				startPosition = 0;
 			}
+		}
+	}
+}
+function noresampleMono() {
+	//MONO:
+	for (samplesFound = 0; samplesFound < resamplingRate && startPosition != bufferEnd;) {
+		resampleChannel1Buffer[samplesFound++] = audioContextSampleBuffer[startPosition++];
+		if (startPosition == webAudioMaxBufferSize) {
+			startPosition = 0;
+		}
+	}
+}
+function noresampleStereo() {
+	//STEREO:
+	for (samplesFound = 0; samplesFound < resamplingRate && startPosition != bufferEnd;) {
+		resampleChannel1Buffer[samplesFound] = audioContextSampleBuffer[startPosition++];
+		resampleChannel2Buffer[samplesFound++] = audioContextSampleBuffer[startPosition++];
+		if (startPosition == webAudioMaxBufferSize) {
+			startPosition = 0;
 		}
 	}
 }
@@ -517,13 +527,13 @@ function resetWebAudioBuffer() {
 		startPosition = 0;
 		bufferEnd = webAudioMinBufferSize;
 		if (webAudioActualSampleRate < XAudioJSSampleRate) {
-			resampler = downsampler;
+			resampler = (webAudioMono) ? downsamplerMono : downsamplerStereo;
 		}
 		else if (webAudioActualSampleRate > XAudioJSSampleRate) {
-			resampler = upsampler;
+			resampler = (webAudioMono) ? upsamplerMono : upsamplerStereo;
 		}
 		else {
-			resampler = noresample;
+			resampler = (webAudioMono) ? noresampleMono : noresampleStereo;
 		}
 	}
 }
