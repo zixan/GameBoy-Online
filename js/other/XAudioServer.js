@@ -117,7 +117,7 @@ XAudioServer.prototype.writeAudio = function (buffer) {
 XAudioServer.prototype.remainingBuffer = function () {
 	if (this.audioType == 0) {
 		//mozAudio:
-		return (this.samplesAlreadyWritten - this.audioHandle.mozCurrentSampleOffset());
+		return this.samplesAlreadyWritten - this.audioHandle.mozCurrentSampleOffset();
 	}
 	else if (this.audioType == 1) {
 		//WebKit Audio:
@@ -287,7 +287,7 @@ XAudioServer.prototype.writeMozAudio = function (buffer) {
 		this.samplesAlreadyWritten += samplesAccepted;
 		this.mozAudioTail.splice(0, samplesAccepted);
 	}
-	length = Math.min(buffer.length, webAudioMaxBufferSize);
+	length = Math.min(buffer.length, webAudioMaxBufferSize - this.samplesAlreadyWritten + this.audioHandle.mozCurrentSampleOffset());
 	var samplesAccepted = this.audioHandle.mozWriteAudio(buffer);
 	this.samplesAlreadyWritten += samplesAccepted;
 	for (var index = 0; length > samplesAccepted; length--) {
