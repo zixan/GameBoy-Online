@@ -4573,6 +4573,15 @@ GameBoyCore.prototype.interpretCartridge = function () {
 				this.cGBC = false;
 				cout("Only GB mode detected.", 0);
 				break;
+			case 0x32:	//Exception to the GBC identifying code:
+				if (!settings[2] && this.name + this.gameCode + this.ROM[0x143] == "Game and Watch 50") {
+					this.cGBC = true;
+					cout("Created a boot exception for Game and Watch Gallery 2 (GBC ID byte is wrong on the cartridge).", 1);
+				}
+				else {
+					this.cGBC = false;
+				}
+				break;
 			case 0x80:	//Both GB + GBC modes
 				this.cGBC = !settings[2];
 				cout("GB and GBC mode detected.", 0);
@@ -8320,6 +8329,11 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			this.memoryHighWriter[0x6C] = this.memoryWriter[0xFF6C] = function (parentObj, address, data) {
 				if (parentObj.inBootstrap) {
 					parentObj.cGBC = ((data & 0x1) == 0);
+					//Exception to the GBC identifying code:
+					if (parentObj.name + parentObj.gameCode + parentObj.ROM[0x143] == "Game and Watch 50") {
+						parentObj.cGBC = true;
+						cout("Created a boot exception for Game and Watch Gallery 2 (GBC ID byte is wrong on the cartridge).", 1);
+					}
 					cout("Booted to GBC Mode: " + parentObj.cGBC, 0);
 				}
 				parentObj.memory[0xFF6C] = data;
