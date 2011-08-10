@@ -6659,32 +6659,32 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 			switch (index) {
 				case 0xFF00:
 					//JOYPAD:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF00] = function (parentObj, address) {
+					this.memoryHighReader[0] = this.memoryReader[0xFF00] = function (parentObj, address) {
 						return 0xC0 | parentObj.memory[0xFF00];	//Top nibble returns as set.
 					}
 					break;
 				case 0xFF01:
 					//SC
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF01] = function (parentObj, address) {
+					this.memoryHighReader[0x01] = this.memoryReader[0xFF01] = function (parentObj, address) {
 						return ((parentObj.memory[0xFF02] & 0x1) == 0x1) ? 0xFF : parentObj.memory[0xFF01];
 					}
 					break;
 				case 0xFF02:
 					//SB
 					if (this.cGBC) {
-						this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF02] = function (parentObj, address) {
+						this.memoryHighReader[0x02] = this.memoryReader[0xFF02] = function (parentObj, address) {
 							return 0x7C | parentObj.memory[0xFF02];
 						}
 					}
 					else {
-						this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF02] = function (parentObj, address) {
+						this.memoryHighReader[0x02] = this.memoryReader[0xFF02] = function (parentObj, address) {
 							return 0x7E | parentObj.memory[0xFF02];
 						}
 					}
 					break;
 				case 0xFF04:
 					//DIV
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF04] = function (parentObj, address) {
+					this.memoryHighReader[0x04] = this.memoryReader[0xFF04] = function (parentObj, address) {
 						parentObj.memory[0xFF04] = (parentObj.memory[0xFF04] + (parentObj.DIVTicks >> 6)) & 0xFF;
 						parentObj.DIVTicks &= 0x3F;
 						return parentObj.memory[0xFF04];
@@ -6692,67 +6692,67 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 					}
 					break;
 				case 0xFF07:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF07] = function (parentObj, address) {
+					this.memoryHighReader[0x07] = this.memoryReader[0xFF07] = function (parentObj, address) {
 						return 0xF8 | parentObj.memory[0xFF07];
 					}
 					break;
 				case 0xFF0F:
 					//IF
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF0F] = function (parentObj, address) {
+					this.memoryHighReader[0x0F] = this.memoryReader[0xFF0F] = function (parentObj, address) {
 						return 0xE0 | parentObj.interruptsRequested;
 					}
 					break;
 				case 0xFF10:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF10] = function (parentObj, address) {
+					this.memoryHighReader[0x10] = this.memoryReader[0xFF10] = function (parentObj, address) {
 						return 0x80 | parentObj.memory[0xFF10];
 					}
 					break;
 				case 0xFF11:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF11] = function (parentObj, address) {
+					this.memoryHighReader[0x11] = this.memoryReader[0xFF11] = function (parentObj, address) {
 						return 0x3F | parentObj.memory[0xFF11];
 					}
 					break;
 				case 0xFF13:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF13] = this.memoryReadBAD;
+					this.memoryHighReader[0x13] = this.memoryReader[0xFF13] = this.memoryReadBAD;
 					break;
 				case 0xFF14:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF14] = function (parentObj, address) {
+					this.memoryHighReader[0x14] = this.memoryReader[0xFF14] = function (parentObj, address) {
 						return 0xBF | parentObj.memory[0xFF14];
 					}
 					break;
 				case 0xFF16:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF16] = function (parentObj, address) {
+					this.memoryHighReader[0x16] = this.memoryReader[0xFF16] = function (parentObj, address) {
 						return 0x3F | parentObj.memory[0xFF16];
 					}
 					break;
 				case 0xFF18:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF18] = this.memoryReadBAD;
+					this.memoryHighReader[0x18] = this.memoryReader[0xFF18] = this.memoryReadBAD;
 					break;
 				case 0xFF19:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF19] = function (parentObj, address) {
+					this.memoryHighReader[0x19] = this.memoryReader[0xFF19] = function (parentObj, address) {
 						return 0xBF | parentObj.memory[0xFF19];
 					}
 					break;
 				case 0xFF1A:
-					this.memoryReader[0xFF1A] = function (parentObj, address) {
+					this.memoryHighReader[0x1A] = this.memoryReader[0xFF1A] = function (parentObj, address) {
 						return 0x7F | parentObj.memory[0xFF1A];
 					}
 					break;
 				case 0xFF1B:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF1B] = this.memoryReadBAD;
+					this.memoryHighReader[0x1B] = this.memoryReader[0xFF1B] = this.memoryReadBAD;
 					break;
 				case 0xFF1C:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF1C] = function (parentObj, address) {
+					this.memoryHighReader[0x1C] = this.memoryReader[0xFF1C] = function (parentObj, address) {
 						return 0x9F | parentObj.memory[0xFF1C];
 					}
 					break;
 				case 0xFF1D:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF1D] = function (parentObj, address) {
+					this.memoryHighReader[0x1D] = this.memoryReader[0xFF1D] = function (parentObj, address) {
 						return 0xFF;
 					}
 					break;
 				case 0xFF1E:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF1E] = function (parentObj, address) {
+					this.memoryHighReader[0x1E] = this.memoryReader[0xFF1E] = function (parentObj, address) {
 						return 0xBF | parentObj.memory[0xFF1E];
 					}
 					break;
@@ -6761,12 +6761,12 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 					this.memoryHighReader[index & 0xFF] = this.memoryReader[index] = this.memoryReadBAD;
 					break;
 				case 0xFF23:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF23] = function (parentObj, address) {
+					this.memoryHighReader[0x23] = this.memoryReader[0xFF23] = function (parentObj, address) {
 						return 0xBF | parentObj.memory[0xFF23];
 					}
 					break;
 				case 0xFF26:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF26] = function (parentObj, address) {
+					this.memoryHighReader[0x26] = this.memoryReader[0xFF26] = function (parentObj, address) {
 						parentObj.audioJIT();
 						return 0x70 | parentObj.memory[0xFF26];
 					}
@@ -6806,23 +6806,23 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 					}
 					break;
 				case 0xFF41:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF41] = function (parentObj, address) {
+					this.memoryHighReader[0x41] = this.memoryReader[0xFF41] = function (parentObj, address) {
 						return 0x80 | parentObj.memory[0xFF41] | parentObj.modeSTAT;
 					}
 					break;
 				case 0xFF44:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF44] = function (parentObj, address) {
+					this.memoryHighReader[0x44] = this.memoryReader[0xFF44] = function (parentObj, address) {
 						return ((parentObj.LCDisOn) ? parentObj.memory[0xFF44] : 0);
 					}
 					break;
 				case 0xFF4F:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF4F] = function (parentObj, address) {
+					this.memoryHighReader[0x4F] = this.memoryReader[0xFF4F] = function (parentObj, address) {
 						return parentObj.currVRAMBank;
 					}
 					break;
 				case 0xFF55:
 					if (this.cGBC) {
-						this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF55] = function (parentObj, address) {
+						this.memoryHighReader[0x55] = this.memoryReader[0xFF55] = function (parentObj, address) {
 							if (!parentObj.LCDisOn && parentObj.hdmaRunning) {	//Undocumented behavior alert: HDMA becomes GDMA when LCD is off (Worms Armageddon Fix).
 								//DMA
 								parentObj.DMAWrite((parentObj.memory[0xFF55] & 0x7F) + 1);
@@ -6839,7 +6839,7 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 					break;
 				case 0xFF56:
 					if (this.cGBC) {
-						this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF56] = function (parentObj, address) {
+						this.memoryHighReader[0x56] = this.memoryReader[0xFF56] = function (parentObj, address) {
 							//Return IR "not connected" status:
 							return 0x3C | ((parentObj.memory[0xFF56] >= 0xC0) ? (0x2 | (parentObj.memory[0xFF56] & 0xC1)) : (parentObj.memory[0xFF56] & 0xC3));
 						}
@@ -6851,27 +6851,27 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 					break;
 				case 0xFF6C:
 					if (this.cGBC) {
-						this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF6C] = function (parentObj, address) {
+						this.memoryHighReader[0x6C] = this.memoryReader[0xFF6C] = function (parentObj, address) {
 							return 0xFE | parentObj.memory[0xFF6C];
 						}
 					}
 					else {
-						this.memoryHighReader[index & 0xFF] = this.memoryReader[index] = this.memoryReadBAD;
+						this.memoryHighReader[0x6C] = this.memoryReader[0xFF6C] = this.memoryReadBAD;
 					}
 					break;
 				case 0xFF70:
 					if (this.cGBC) {
 						//SVBK
-						this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF70] = function (parentObj, address, data) {
+						this.memoryHighReader[0x70] = this.memoryReader[0xFF70] = function (parentObj, address, data) {
 							return 0x40 | parentObj.memory[0xFF70];
 						}
 					}
 					else {
-						this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF70] = this.memoryReadBAD;
+						this.memoryHighReader[0x70] = this.memoryReader[0xFF70] = this.memoryReadBAD;
 					}
 					break;
 				case 0xFF75:
-					this.memoryHighReader[index & 0xFF] = this.memoryReader[0xFF75] = function (parentObj, address) {
+					this.memoryHighReader[0x75] = this.memoryReader[0xFF75] = function (parentObj, address) {
 						return 0x8F | parentObj.memory[0xFF75];
 					}
 					break;
