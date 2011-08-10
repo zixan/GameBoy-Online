@@ -7264,9 +7264,6 @@ GameBoyCore.prototype.HuC3WriteRAMBank = function (parentObj, address, data) {
 GameBoyCore.prototype.cartIgnoreWrite = function (parentObj, address, data) {
 	//We might have encountered illegal RAM writing or such, so just do nothing...
 }
-GameBoyCore.prototype.cartIgnoreWriteLog = function (parentObj, address, data) {
-	cout("address: " + address + "\r\n data: " + data);
-}
 GameBoyCore.prototype.memoryWriteNormal = function (parentObj, address, data) {
 	parentObj.memory[address] = data;
 }
