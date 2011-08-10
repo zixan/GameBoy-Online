@@ -576,7 +576,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//JR n
 	//#0x18:
 	function (parentObj) {
-		parentObj.programCounter = (parentObj.programCounter + parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter)) + 1) & 0xFFFF;
+		parentObj.programCounter = (parentObj.programCounter + ((parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) << 24) >> 24) + 1) & 0xFFFF;
 	},
 	//ADD HL, DE
 	//#0x19:
@@ -634,7 +634,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x20:
 	function (parentObj) {
 		if (!parentObj.FZero) {
-			parentObj.programCounter = (parentObj.programCounter + parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter)) + 1) & 0xFFFF;
+			parentObj.programCounter = (parentObj.programCounter + ((parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) << 24) >> 24) + 1) & 0xFFFF;
 			parentObj.CPUTicks++;
 		}
 		else {
@@ -712,7 +712,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x28:
 	function (parentObj) {
 		if (parentObj.FZero) {
-			parentObj.programCounter = (parentObj.programCounter + parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter)) + 1) & 0xFFFF;
+			parentObj.programCounter = (parentObj.programCounter + ((parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) << 24) >> 24) + 1) & 0xFFFF;
 			parentObj.CPUTicks++;
 		}
 		else {
@@ -772,7 +772,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x30:
 	function (parentObj) {
 		if (!parentObj.FCarry) {
-			parentObj.programCounter = (parentObj.programCounter + parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter)) + 1) & 0xFFFF;
+			parentObj.programCounter = (parentObj.programCounter + ((parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) << 24) >> 24) + 1) & 0xFFFF;
 			parentObj.CPUTicks++;
 		}
 		else {
@@ -830,7 +830,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x38:
 	function (parentObj) {
 		if (parentObj.FCarry) {
-			parentObj.programCounter = (parentObj.programCounter + parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter)) + 1) & 0xFFFF;
+			parentObj.programCounter = (parentObj.programCounter + ((parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) << 24) >> 24) + 1) & 0xFFFF;
 			parentObj.CPUTicks++;
 		}
 		else {
@@ -2220,7 +2220,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//ADD SP, n
 	//#0xE8:
 	function (parentObj) {
-		var signedByte = parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter));
+		var signedByte = (parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) << 24) >> 24;
 		var temp_value = (parentObj.stackPointer + signedByte) & 0xFFFF;
 		parentObj.FCarry = (((parentObj.stackPointer ^ signedByte ^ temp_value) & 0x100) == 0x100);
 		parentObj.FHalfCarry = (((parentObj.stackPointer ^ signedByte ^ temp_value) & 0x10) == 0x10);
@@ -2336,7 +2336,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//LDHL SP, n
 	//#0xF8:
 	function (parentObj) {
-		var signedByte = parentObj.usbtsb(parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter));
+		var signedByte = (parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter) << 24) >> 24;
 		parentObj.registersHL = (parentObj.stackPointer + signedByte) & 0xFFFF;
 		parentObj.FCarry = (((parentObj.stackPointer ^ signedByte ^ parentObj.registersHL) & 0x100) == 0x100);
 		parentObj.FHalfCarry = (((parentObj.stackPointer ^ signedByte ^ parentObj.registersHL) & 0x10) == 0x10);
@@ -8356,10 +8356,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 }
 //Helper Functions
-GameBoyCore.prototype.usbtsb = function (ubyte) {
-	//Unsigned byte to signed byte:
-	return (ubyte & 0x7F) - (ubyte & 0x80);
-}
 GameBoyCore.prototype.toTypedArray = function (baseArray, memtype) {
 	try {
 		if (settings[22]) {
