@@ -14,23 +14,6 @@
  * GNU General Public License for more details.
  *
  */
- /**
- *TODO:
-	- Working On Right Now:
-		- Make I/O bit reading and writing more accurate.
-	- Started already, but far from merging into here:
-		- Serial port link for multiplayer type stuff
-			- Returns default and triggers serial interrupts when requested for now.
-		- IR port
-			- Returns default for now.
-		- GBA (ARM7TDMI CPU Core) support will be coming:
-			- Coming as a separate project called IodineGBA.
-	- Afterwards....
-		- Fix some boogs.
-		- A Bit Later... Byte Later... Which ever comes first :P
-			- Add some more MBC support (I haven't seen any game except one so far that uses an unsupported MBC)
-				- MBC7, TAMA5, HuC1, etc.
- **/
 function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	//Params, etc...
 	this.canvas = canvas;						//Canvas DOM object for drawing out the graphics to.
@@ -161,7 +144,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.IRQEnableDelay = 0;			//Are the interrupts on queue to be enabled?
 	var dateVar = new Date();
 	this.lastIteration = dateVar.getTime();//The last time we iterated the main loop.
-	var dateObj = new Date();
+	dateObj = new Date();
 	this.firstIteration = dateObj.getTime();
 	this.iterations = 0;
 	this.actualScanLine = 0;			//Actual scan line...
@@ -442,7 +425,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//RLCA
 	//#0x07:
 	function (parentObj) {
-		parentObj.FCarry = ((parentObj.registerA & 0x80) == 0x80);
+		parentObj.FCarry = (parentObj.registerA > 0x7F);
 		parentObj.registerA = ((parentObj.registerA << 1) & 0xFF) | (parentObj.registerA >> 7);
 		parentObj.FZero = parentObj.FSubtract = parentObj.FHalfCarry = false;
 	},
@@ -501,8 +484,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//RRCA
 	//#0x0F:
 	function (parentObj) {
-		parentObj.FCarry = ((parentObj.registerA & 1) == 1);
 		parentObj.registerA = (parentObj.registerA >> 1) | ((parentObj.registerA & 1) << 7);
+		parentObj.FCarry = (parentObj.registerA > 0x7F);
 		parentObj.FZero = parentObj.FSubtract = parentObj.FHalfCarry = false;
 	},
 	//STOP
@@ -569,7 +552,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x17:
 	function (parentObj) {
 		var carry_flag = (parentObj.FCarry) ? 1 : 0;
-		parentObj.FCarry = ((parentObj.registerA & 0x80) == 0x80);
+		parentObj.FCarry = (parentObj.registerA > 0x7F);
 		parentObj.registerA = ((parentObj.registerA << 1) & 0xFF) | carry_flag;
 		parentObj.FZero = parentObj.FSubtract = parentObj.FHalfCarry = false;
 	},
@@ -2395,35 +2378,35 @@ GameBoyCore.prototype.OPCODE = new Array(
 GameBoyCore.prototype.CBOPCODE = new Array(
 	//#0x00:
 	function (parentObj) {
-		parentObj.FCarry = ((parentObj.registerB & 0x80) == 0x80);
+		parentObj.FCarry = (parentObj.registerB > 0x7F);
 		parentObj.registerB = ((parentObj.registerB << 1) & 0xFF) | ((parentObj.FCarry) ? 1 : 0);
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
 		parentObj.FZero = (parentObj.registerB == 0);
 	}
 	//#0x01:
 	,function (parentObj) {
-		parentObj.FCarry = ((parentObj.registerC & 0x80) == 0x80);
+		parentObj.FCarry = (parentObj.registerC > 0x7F);
 		parentObj.registerC = ((parentObj.registerC << 1) & 0xFF) | ((parentObj.FCarry) ? 1 : 0);
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
 		parentObj.FZero = (parentObj.registerC == 0);
 	}
 	//#0x02:
 	,function (parentObj) {
-		parentObj.FCarry = ((parentObj.registerD & 0x80) == 0x80);
+		parentObj.FCarry = (parentObj.registerD > 0x7F);
 		parentObj.registerD = ((parentObj.registerD << 1) & 0xFF) | ((parentObj.FCarry) ? 1 : 0);
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
 		parentObj.FZero = (parentObj.registerD == 0);
 	}
 	//#0x03:
 	,function (parentObj) {
-		parentObj.FCarry = ((parentObj.registerE & 0x80) == 0x80);
+		parentObj.FCarry = (parentObj.registerE > 0x7F);
 		parentObj.registerE = ((parentObj.registerE << 1) & 0xFF) | ((parentObj.FCarry) ? 1 : 0);
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
 		parentObj.FZero = (parentObj.registerE == 0);
 	}
 	//#0x04:
 	,function (parentObj) {
-		parentObj.FCarry = ((parentObj.registersHL & 0x8000) == 0x8000);
+		parentObj.FCarry = (parentObj.registersHL > 0x7FFF);
 		parentObj.registersHL = ((parentObj.registersHL << 1) & 0xFE00) | ((parentObj.FCarry) ? 0x100 : 0) | (parentObj.registersHL & 0xFF);
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
 		parentObj.FZero = (parentObj.registersHL <= 0xFF);
@@ -2438,7 +2421,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	//#0x06:
 	,function (parentObj) {
 		var temp_var = parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL);
-		parentObj.FCarry = ((temp_var & 0x80) == 0x80);
+		parentObj.FCarry = (temp_var > 0x7F);
 		temp_var = ((temp_var << 1) & 0xFF) | ((parentObj.FCarry) ? 1 : 0);
 		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, temp_var);
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
@@ -2446,7 +2429,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x07:
 	,function (parentObj) {
-		parentObj.FCarry = ((parentObj.registerA & 0x80) == 0x80);
+		parentObj.FCarry = (parentObj.registerA > 0x7F);
 		parentObj.registerA = ((parentObj.registerA << 1) & 0xFF) | ((parentObj.FCarry) ? 1 : 0);
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
 		parentObj.FZero = (parentObj.registerA == 0x00);
@@ -2511,7 +2494,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x10:
 	,function (parentObj) {
-		var newFCarry = ((parentObj.registerB & 0x80) == 0x80);
+		var newFCarry = (parentObj.registerB > 0x7F);
 		parentObj.registerB = ((parentObj.registerB << 1) & 0xFF) | ((parentObj.FCarry) ? 1 : 0);
 		parentObj.FCarry = newFCarry;
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
@@ -2519,7 +2502,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x11:
 	,function (parentObj) {
-		var newFCarry = ((parentObj.registerC & 0x80) == 0x80);
+		var newFCarry = (parentObj.registerC > 0x7F);
 		parentObj.registerC = ((parentObj.registerC << 1) & 0xFF) | ((parentObj.FCarry) ? 1 : 0);
 		parentObj.FCarry = newFCarry;
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
@@ -2527,7 +2510,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x12:
 	,function (parentObj) {
-		var newFCarry = ((parentObj.registerD & 0x80) == 0x80);
+		var newFCarry = (parentObj.registerD > 0x7F);
 		parentObj.registerD = ((parentObj.registerD << 1) & 0xFF) | ((parentObj.FCarry) ? 1 : 0);
 		parentObj.FCarry = newFCarry;
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
@@ -2535,7 +2518,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x13:
 	,function (parentObj) {
-		var newFCarry = ((parentObj.registerE & 0x80) == 0x80);
+		var newFCarry = (parentObj.registerE > 0x7F);
 		parentObj.registerE = ((parentObj.registerE << 1) & 0xFF) | ((parentObj.FCarry) ? 1 : 0);
 		parentObj.FCarry = newFCarry;
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
@@ -2543,7 +2526,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x14:
 	,function (parentObj) {
-		var newFCarry = ((parentObj.registersHL & 0x8000) == 0x8000);
+		var newFCarry = (parentObj.registersHL > 0x7FFF);
 		parentObj.registersHL = ((parentObj.registersHL << 1) & 0xFE00) | ((parentObj.FCarry) ? 0x100 : 0) | (parentObj.registersHL & 0xFF);
 		parentObj.FCarry = newFCarry;
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
@@ -2560,7 +2543,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	//#0x16:
 	,function (parentObj) {
 		var temp_var = parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL);
-		var newFCarry = ((temp_var & 0x80) == 0x80);
+		var newFCarry = (temp_var > 0x7F);
 		temp_var = ((temp_var << 1) & 0xFF) | ((parentObj.FCarry) ? 1 : 0);
 		parentObj.FCarry = newFCarry;
 		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, temp_var);
@@ -2569,7 +2552,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x17:
 	,function (parentObj) {
-		var newFCarry = ((parentObj.registerA & 0x80) == 0x80);
+		var newFCarry = (parentObj.registerA > 0x7F);
 		parentObj.registerA = ((parentObj.registerA << 1) & 0xFF) | ((parentObj.FCarry) ? 1 : 0);
 		parentObj.FCarry = newFCarry;
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
@@ -2643,35 +2626,35 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x20:
 	,function (parentObj) {
-		parentObj.FCarry = ((parentObj.registerB & 0x80) == 0x80);
+		parentObj.FCarry = (parentObj.registerB > 0x7F);
 		parentObj.registerB = (parentObj.registerB << 1) & 0xFF;
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
 		parentObj.FZero = (parentObj.registerB == 0);
 	}
 	//#0x21:
 	,function (parentObj) {
-		parentObj.FCarry = ((parentObj.registerC & 0x80) == 0x80);
+		parentObj.FCarry = (parentObj.registerC > 0x7F);
 		parentObj.registerC = (parentObj.registerC << 1) & 0xFF;
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
 		parentObj.FZero = (parentObj.registerC == 0);
 	}
 	//#0x22:
 	,function (parentObj) {
-		parentObj.FCarry = ((parentObj.registerD & 0x80) == 0x80);
+		parentObj.FCarry = (parentObj.registerD > 0x7F);
 		parentObj.registerD = (parentObj.registerD << 1) & 0xFF;
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
 		parentObj.FZero = (parentObj.registerD == 0);
 	}
 	//#0x23:
 	,function (parentObj) {
-		parentObj.FCarry = ((parentObj.registerE & 0x80) == 0x80);
+		parentObj.FCarry = (parentObj.registerE > 0x7F);
 		parentObj.registerE = (parentObj.registerE << 1) & 0xFF;
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
 		parentObj.FZero = (parentObj.registerE == 0);
 	}
 	//#0x24:
 	,function (parentObj) {
-		parentObj.FCarry = ((parentObj.registersHL & 0x8000) == 0x8000);
+		parentObj.FCarry = (parentObj.registersHL > 0x7FFF);
 		parentObj.registersHL = ((parentObj.registersHL << 1) & 0xFE00) | (parentObj.registersHL & 0xFF);
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
 		parentObj.FZero = (parentObj.registersHL <= 0xFF);
@@ -2686,7 +2669,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	//#0x26:
 	,function (parentObj) {
 		var temp_var = parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL);
-		parentObj.FCarry = ((temp_var & 0x80) == 0x80);
+		parentObj.FCarry = (temp_var > 0x7F);
 		temp_var = (temp_var << 1) & 0xFF;
 		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, temp_var);
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
@@ -2694,7 +2677,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 	//#0x27:
 	,function (parentObj) {
-		parentObj.FCarry = ((parentObj.registerA & 0x80) == 0x80);
+		parentObj.FCarry = (parentObj.registerA > 0x7F);
 		parentObj.registerA = (parentObj.registerA << 1) & 0xFF;
 		parentObj.FHalfCarry = parentObj.FSubtract = false;
 		parentObj.FZero = (parentObj.registerA == 0x00);
