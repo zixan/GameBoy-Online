@@ -1935,7 +1935,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 		//Increment the program counter to the next instruction:
 		parentObj.programCounter = (parentObj.programCounter + 1) & 0xFFFF;
 		//Get how many CPU cycles the current 0xCBXX op code counts for:
-		parentObj.CPUTicks = parentObj.SecondaryTICKTable[opcode];
+		parentObj.CPUTicks += parentObj.SecondaryTICKTable[opcode];
 		//Execute secondary OP codes for the 0xCB OP code call.
 		parentObj.CBOPCODE[opcode](parentObj);
 	},
@@ -3761,7 +3761,7 @@ GameBoyCore.prototype.TICKTable = new Array(				//Number of machine cycles for e
 	1, 1, 1, 1, 1, 1, 2, 1,		1, 1, 1, 1, 1, 1, 2, 1,  //A
 	1, 1, 1, 1, 1, 1, 2, 1,		1, 1, 1, 1, 1, 1, 2, 1,  //B
 
-	2, 3, 3, 4, 3, 4, 2, 4,		2, 4, 3, 2, 3, 6, 2, 4,  //C
+	2, 3, 3, 4, 3, 4, 2, 4,		2, 4, 3, 0, 3, 6, 2, 4,  //C
 	2, 3, 3, 1, 3, 4, 2, 4,		2, 4, 3, 1, 3, 1, 2, 4,  //D
 	3, 3, 2, 1, 1, 4, 2, 4,		4, 1, 4, 1, 1, 1, 2, 4,  //E
 	3, 3, 2, 1, 1, 4, 2, 4,		3, 2, 4, 1, 0, 1, 2, 4   //F
