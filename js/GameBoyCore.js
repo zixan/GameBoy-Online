@@ -5898,11 +5898,11 @@ GameBoyCore.prototype.updateGBCBGPalette = function (index, data) {
 		this.gbcBGRawPalette[index] = data;
 		if ((index & 0x06) == 0) {
 			//Palette 0 (Special tile Priority stuff)
-			this.BGPalette[index >> 1] = 0x2000000 | this.RGBTint((this.gbcBGRawPalette[index | 1] << 8) | this.gbcBGRawPalette[index & -2]);
+			this.BGPalette[index >> 1] = 0x2000000 | this.RGBTint((this.gbcBGRawPalette[index | 1] << 8) | this.gbcBGRawPalette[index & 0x3E]);
 		}
 		else {
 			//Regular Palettes (No special crap)
-			this.BGPalette[index >> 1] = this.RGBTint((this.gbcBGRawPalette[index | 1] << 8) | this.gbcBGRawPalette[index & -2]);
+			this.BGPalette[index >> 1] = this.RGBTint((this.gbcBGRawPalette[index | 1] << 8) | this.gbcBGRawPalette[index & 0x3E]);
 		}
 	}
 }
@@ -5913,7 +5913,7 @@ GameBoyCore.prototype.updateGBCOBJPalette = function (index, data) {
 		if ((index & 0x06) > 0) {
 			//Regular Palettes (No special crap)
 			this.renderMidScanLine();
-			this.OBJPalette[index >> 1] = 0x1000000 | this.RGBTint((this.gbcOBJRawPalette[index | 1] << 8) | this.gbcOBJRawPalette[index & -2]);
+			this.OBJPalette[index >> 1] = 0x1000000 | this.RGBTint((this.gbcOBJRawPalette[index | 1] << 8) | this.gbcOBJRawPalette[index & 0x3E]);
 		}
 	}
 }
