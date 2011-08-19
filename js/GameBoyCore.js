@@ -5619,9 +5619,6 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 		var canvasData = this.canvasBuffer.data;
 		if (this.cGBC || (this.usedBootROM && settings[17])) {
 			//CGB or DMG-in-CGB colorization:
-			while (index > 0) {
-				this.frameBuffer[--index] = 0xF8F8F8;
-			}
 			while (index2 > 0) {
 				canvasData[index2 -= 4] = 0xF8;
 				canvasData[index2 + 1] = 0xF8;
@@ -5630,9 +5627,6 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 		}
 		else {
 			//Classic DMG colorization:
-			while (index > 0) {
-				this.frameBuffer[--index] = 0xEFFFDE;
-			}
 			while (index2 > 0) {
 				canvasData[index2 -= 4] = 0xEF;
 				canvasData[index2 + 1] = 0xFF;
@@ -5850,23 +5844,27 @@ GameBoyCore.prototype.consoleModeAdjust = function () {
 	this.BGCHRCurrentBank = (this.currVRAMBank > 0 && this.cGBC) ? this.BGCHRBank2 : this.BGCHRBank1;
 	this.LCDCONTROL = (this.LCDisOn) ? this.LINECONTROL : this.DISPLAYOFFCONTROL;
 }
+GameBoyCore.prototype.RGBTint = function (value) {
+	//Adjustment for the GBC's tinting (According to Gambatte):
+	var r = value & 0x1F;
+	var g = (value >> 5) & 0x1F;
+	var b = (value >> 10) & 0x1F;
+	return ((r * 13 + g * 2 + b) >> 1) << 16 | (g * 3 + b) << 9 | (r * 3 + g * 2 + b * 11) >> 1
+}
 GameBoyCore.prototype.getGBCColor = function () {
 	//GBC Colorization of DMG ROMs:
 	//BG
 	for (var counter = 0; counter < 4; counter++) {
 		var adjustedIndex = counter << 1;
 		//BG
-		var value = (this.gbcBGRawPalette[adjustedIndex | 1] << 8) | this.gbcBGRawPalette[adjustedIndex];
-		this.cachedBGPaletteConversion[counter] = ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
+		this.cachedBGPaletteConversion[counter] = this.RGBTint((this.gbcBGRawPalette[adjustedIndex | 1] << 8) | this.gbcBGRawPalette[adjustedIndex]);
 		//OBJ 1
-		value = (this.gbcOBJRawPalette[adjustedIndex | 1] << 8) | this.gbcOBJRawPalette[adjustedIndex];
-		this.cachedOBJPaletteConversion[counter] = ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
+		this.cachedOBJPaletteConversion[counter] = this.RGBTint((this.gbcOBJRawPalette[adjustedIndex | 1] << 8) | this.gbcOBJRawPalette[adjustedIndex]);
 	}
 	//OBJ 2
 	for (counter = 4; counter < 8; counter++) {
 		adjustedIndex = counter << 1;
-		value = (this.gbcOBJRawPalette[adjustedIndex | 1] << 8) | this.gbcOBJRawPalette[adjustedIndex];
-		this.cachedOBJPaletteConversion[counter] = ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
+		this.cachedOBJPaletteConversion[counter] = this.RGBTint((this.gbcOBJRawPalette[adjustedIndex | 1] << 8) | this.gbcOBJRawPalette[adjustedIndex]);
 	}
 }
 GameBoyCore.prototype.updateGBBGPalette = function (data) {
@@ -5898,14 +5896,13 @@ GameBoyCore.prototype.updateGBCBGPalette = function (index, data) {
 		this.renderMidScanLine();
 		//Update the color palette for BG tiles since it changed:
 		this.gbcBGRawPalette[index] = data;
-		var value = (this.gbcBGRawPalette[index | 1] << 8) | this.gbcBGRawPalette[index & -2];
 		if ((index & 0x06) == 0) {
 			//Palette 0 (Special tile Priority stuff)
-			this.BGPalette[index >> 1] = 0x2000000 | ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
+			this.BGPalette[index >> 1] = 0x2000000 | this.RGBTint((this.gbcBGRawPalette[index | 1] << 8) | this.gbcBGRawPalette[index & -2]);
 		}
 		else {
 			//Regular Palettes (No special crap)
-			this.BGPalette[index >> 1] = ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
+			this.BGPalette[index >> 1] = this.RGBTint((this.gbcBGRawPalette[index | 1] << 8) | this.gbcBGRawPalette[index & -2]);
 		}
 	}
 }
@@ -5916,8 +5913,7 @@ GameBoyCore.prototype.updateGBCOBJPalette = function (index, data) {
 		if ((index & 0x06) > 0) {
 			//Regular Palettes (No special crap)
 			this.renderMidScanLine();
-			var value = (this.gbcOBJRawPalette[index | 1] << 8) | this.gbcOBJRawPalette[index & -2];
-			this.OBJPalette[index >> 1] = 0x1000000 | ((value & 0x1F) << 19) | ((value & 0x3E0) << 6) | ((value & 0x7C00) >> 7);
+			this.OBJPalette[index >> 1] = 0x1000000 | this.RGBTint((this.gbcOBJRawPalette[index | 1] << 8) | this.gbcOBJRawPalette[index & -2]);
 		}
 	}
 }
