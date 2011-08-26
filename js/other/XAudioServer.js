@@ -18,28 +18,41 @@ function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underR
 	defaultNeutralValue = (defaultValue >= -1 && defaultValue <= 1) ? defaultValue : 0;
 	this.audioType = -1;
 	this.mozAudioTail = [];
+	this.audioHandleMoz = null;
+	this.audioHandleWAV = null;
+	this.noWave = true;
+	this.flashInitialized = false;
+	this.mozAudioFound = false;
 	this.initializeAudio();
 }
-/*Pass your samples into here!
-Pack your samples as a one-dimenional array
-With the channel samplea packed uniformly.
-examples:
-    mono - [left, left, left, left]
-    stereo - [left, right, left, right, left, right, left, right]
-*/
-XAudioServer.prototype.writeAudio = function (buffer) {
-	if (this.audioType == 0) {
-		//mozAudio:
-		this.writeMozAudio(buffer);
-		var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
-		if (samplesRequested > 0) {
-			this.writeMozAudio(this.underRunCallback(samplesRequested));
+XAudioServer.prototype.MOZwriteAudio = function (buffer) {
+	//mozAudio:
+	this.writeMozAudio(buffer);
+	var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
+	if (samplesRequested > 0) {
+		this.writeMozAudio(this.underRunCallback(samplesRequested));
+	}
+}
+XAudioServer.prototype.WEBAUDIOwriteAudio = function (buffer) {
+	//WebKit Audio:
+	var length = buffer.length;
+	for (var bufferCounter = 0; bufferCounter < length; bufferCounter++) {
+		audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
+		if (bufferEnd == startPosition) {
+			startPosition += this.audioChannels;
+			if (webAudioMaxBufferSize <= startPosition) {
+				startPosition -= webAudioMaxBufferSize;
+			}
+		}
+		else if (bufferEnd == webAudioMaxBufferSize) {
+			bufferEnd = 0;
 		}
 	}
-	else if (this.audioType == 1) {
-		//WebKit Audio:
-		var length = buffer.length;
-		for (var bufferCounter = 0; bufferCounter < length; bufferCounter++) {
+	var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
+	if (samplesRequested > 0) {
+		buffer = this.underRunCallback(samplesRequested);
+		samplesRequested = buffer.length;
+		for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
 			audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
 			if (bufferEnd == startPosition) {
 				startPosition += this.audioChannels;
@@ -51,97 +64,57 @@ XAudioServer.prototype.writeAudio = function (buffer) {
 				bufferEnd = 0;
 			}
 		}
-		var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
-		if (samplesRequested > 0) {
-			buffer = this.underRunCallback(samplesRequested);
-			samplesRequested = buffer.length;
-			for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
-				audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
-				if (bufferEnd == startPosition) {
-					startPosition += this.audioChannels;
-					if (webAudioMaxBufferSize <= startPosition) {
-						startPosition -= webAudioMaxBufferSize;
-					}
-				}
-				else if (bufferEnd == webAudioMaxBufferSize) {
-					bufferEnd = 0;
-				}
-			}
+	}
+}
+XAudioServer.prototype.WAVwriteAudio = function (buffer) {
+	//WAV PCM via Data URI:
+	this.sampleCount += buffer.length;
+	if (this.sampleCount >= webAudioMaxBufferSize) {
+		var silenceLength = Math.round(this.audioChannels * XAudioJSSampleRate / 2);
+		var silenceBuffer = new Array(silenceLength);
+		for (var index = 0; index < silenceLength; index++) {
+			silenceBuffer[index] = defaultNeutralValue;
 		}
+		this.audioHandleWAV.appendBatch(silenceBuffer);	//Try to dampen the unavoidable clicking by padding with the set neutral.
+		this.audioHandleWAV.outputAudio();
+		this.audioHandleWAV = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
+		this.sampleCount -= webAudioMaxBufferSize;
+	}
+	this.audioHandleWAV.appendBatch(buffer);
+}
+/*Pass your samples into here!
+Pack your samples as a one-dimenional array
+With the channel samplea packed uniformly.
+examples:
+    mono - [left, left, left, left]
+    stereo - [left, right, left, right, left, right, left, right]
+*/
+XAudioServer.prototype.writeAudio = function (buffer) {
+	if (this.audioType == 0) {
+		this.MOZwriteAudio(buffer);
+	}
+	else if (this.audioType == 1) {
+		this.WEBAUDIOwriteAudio(buffer);
 	}
 	else if (this.audioType == 2) {
-		//WAV PCM via Data URI:
-		this.sampleCount += buffer.length;
-		if (this.sampleCount >= webAudioMaxBufferSize) {
-			var silenceLength = Math.round(this.audioChannels * XAudioJSSampleRate / 2);
-			var silenceBuffer = new Array(silenceLength);
-			for (var index = 0; index < silenceLength; index++) {
-				silenceBuffer[index] = defaultNeutralValue;
-			}
-			this.audioHandle.appendBatch(silenceBuffer);	//Try to dampen the unavoidable clicking by padding with the set neutral.
-			this.audioHandle.outputAudio();
-			this.audioHandle = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
-			this.sampleCount -= webAudioMaxBufferSize;
-		}
-		this.audioHandle.appendBatch(buffer);
+		this.WAVwriteAudio(buffer);
 	}
 	else if (this.audioType == 3) {
 		//Flash Plugin Audio:
 		if (this.checkFlashInit()) {
 			var samplesRequested = this.writeFlashAudio(buffer);
 			if (samplesRequested > 0) {
-				//samplesRequested = (webAudioMinBufferSize - samplesRequested > 4096) ? 2 : samplesRequested;
 				this.writeFlashAudioNoReturn(this.underRunCallback(samplesRequested));
 			}
 		}
+		else if (this.mozAudioFound) {
+			this.MOZwriteAudio(buffer);
+		}
 		else if (launchedContext) {
-			//Web Audio:
-			var length = buffer.length;
-			for (var bufferCounter = 0; bufferCounter < length; bufferCounter++) {
-				audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
-				if (bufferEnd == startPosition) {
-					startPosition += this.audioChannels;
-					if (webAudioMaxBufferSize <= startPosition) {
-						startPosition -= webAudioMaxBufferSize;
-					}
-				}
-				else if (bufferEnd == webAudioMaxBufferSize) {
-					bufferEnd = 0;
-				}
-			}
-			var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
-			if (samplesRequested > 0) {
-				buffer = this.underRunCallback(samplesRequested);
-				samplesRequested = buffer.length;
-				for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
-					audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
-					if (bufferEnd == startPosition) {
-						startPosition += this.audioChannels;
-						if (webAudioMaxBufferSize <= startPosition) {
-							startPosition -= webAudioMaxBufferSize;
-						}
-					}
-					else if (bufferEnd == webAudioMaxBufferSize) {
-						bufferEnd = 0;
-					}
-				}
-			}
+			this.WEBAUDIOwriteAudio(buffer);
 		}
 		else if (!this.noWave) {
-			//WAV PCM via Data URI:
-			this.sampleCount += buffer.length;
-			if (this.sampleCount >= webAudioMaxBufferSize) {
-				var silenceLength = Math.round(this.audioChannels * XAudioJSSampleRate / 2);
-				var silenceBuffer = new Array(silenceLength);
-				for (var index = 0; index < silenceLength; index++) {
-					silenceBuffer[index] = defaultNeutralValue;
-				}
-				this.audioHandle2.appendBatch(silenceBuffer);	//Try to dampen the unavoidable clicking by padding with the set neutral.
-				this.audioHandle2.outputAudio();
-				this.audioHandle2 = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
-				this.sampleCount -= webAudioMaxBufferSize;
-			}
-			this.audioHandle2.appendBatch(buffer);
+			this.WAVwriteAudio(buffer);
 		}
 	}
 }
@@ -150,7 +123,7 @@ XAudioServer.prototype.writeAudio = function (buffer) {
 XAudioServer.prototype.remainingBuffer = function () {
 	if (this.audioType == 0) {
 		//mozAudio:
-		return this.samplesAlreadyWritten - this.audioHandle.mozCurrentSampleOffset();
+		return this.samplesAlreadyWritten - this.audioHandleMoz.mozCurrentSampleOffset();
 	}
 	else if (this.audioType == 1) {
 		//WebKit Audio:
@@ -160,6 +133,10 @@ XAudioServer.prototype.remainingBuffer = function () {
 		//Flash Plugin Audio:
 		if (this.checkFlashInit()) {
 			return this.audioHandle.remainingSamples();
+		}
+		else if (this.mozAudioFound) {
+			//mozAudio:
+			return this.samplesAlreadyWritten - this.audioHandle.mozCurrentSampleOffset();
 		}
 		else if (launchedContext) {
 			//WebKit Audio:
@@ -175,34 +152,49 @@ XAudioServer.prototype.remainingBuffer = function () {
 		return -1;	//Impossible to do this metric.
 	}
 }
+XAudioServer.prototype.mozExecuteCallback = function () {
+	//mozAudio:
+	var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
+	if (samplesRequested > 0) {
+		this.writeMozAudio(this.underRunCallback(samplesRequested));
+	}
+}
+XAudioServer.prototype.webAudioExecuteCallback = function () {
+	//WebKit Audio:
+	var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
+	if (samplesRequested > 0) {
+		var buffer = this.underRunCallback(samplesRequested);
+		samplesRequested = buffer.length;
+		for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
+			audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
+			if (bufferEnd == startPosition) {
+				startPosition += this.audioChannels;
+				if (webAudioMaxBufferSize <= startPosition) {
+					startPosition -= webAudioMaxBufferSize;
+				}
+			}
+			else if (bufferEnd == webAudioMaxBufferSize) {
+				bufferEnd = 0;
+			}
+		}
+	}
+}
+XAudioServer.prototype.WAVExecuteCallback = function () {
+	//WAV PCM via Data URI:
+	if (this.sampleCount > 0) {
+		//Output the audio immediately, since we can't utilize the callback...
+		this.audioHandleWAV.outputAudio();
+		this.audioHandleWAV = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
+		this.sampleCount = 0;
+	}
+}
 //If you just want your callback called for any possible refill (Execution of callback is still conditional):
 XAudioServer.prototype.executeCallback = function () {
 	if (this.audioType == 0) {
-		//mozAudio:
-		var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
-		if (samplesRequested > 0) {
-			this.writeMozAudio(this.underRunCallback(samplesRequested));
-		}
+		this.mozExecuteCallback();
 	}
 	else if (this.audioType == 1) {
-		//WebKit Audio:
-		var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
-		if (samplesRequested > 0) {
-			var buffer = this.underRunCallback(samplesRequested);
-			samplesRequested = buffer.length;
-			for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
-				audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
-				if (bufferEnd == startPosition) {
-					startPosition += this.audioChannels;
-					if (webAudioMaxBufferSize <= startPosition) {
-						startPosition -= webAudioMaxBufferSize;
-					}
-				}
-				else if (bufferEnd == webAudioMaxBufferSize) {
-					bufferEnd = 0;
-				}
-			}
-		}
+		this.webAudioExecuteCallback();
 	}
 	else if (this.audioType == 3) {
 		//Flash Plugin Audio:
@@ -212,49 +204,28 @@ XAudioServer.prototype.executeCallback = function () {
 				this.writeFlashAudioNoReturn(this.underRunCallback(samplesRequested));
 			}
 		}
-		else if (launchedContext) {
-			//WebKit Audio:
-			var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
-			if (samplesRequested > 0) {
-				var buffer = this.underRunCallback(samplesRequested);
-				samplesRequested = buffer.length;
-				for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
-					audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
-					if (bufferEnd == startPosition) {
-						startPosition += this.audioChannels;
-						if (webAudioMaxBufferSize <= startPosition) {
-							startPosition -= webAudioMaxBufferSize;
-						}
-					}
-					else if (bufferEnd == webAudioMaxBufferSize) {
-						bufferEnd = 0;
-					}
-				}
-			}
+		else if (this.mozAudioFound) {
+			this.mozExecuteCallback();
 		}
-		else {
-			//WAV PCM via Data URI:
-			if (!this.noWave && this.sampleCount > 0) {
-				//Output the audio immediately, since we can't utilize the callback...
-				this.audioHandle2.outputAudio();
-				this.audioHandle2 = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
-				this.sampleCount = 0;
-			}
+		else if (launchedContext) {
+			this.webAudioExecuteCallback();
+		}
+		else if (!this.noWave) {
+			this.WAVExecuteCallback();
 		}
 	}
 	else if (this.audioType == 2) {
-		//WAV PCM via Data URI:
-		if (this.sampleCount > 0) {
-			//Output the audio immediately, since we can't utilize the callback...
-			this.audioHandle.outputAudio();
-			this.audioHandle = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
-			this.sampleCount = 0;
-		}
+		this.WAVExecuteCallback();
 	}
 }
 //DO NOT CALL THIS, the lib calls this internally!
 XAudioServer.prototype.initializeAudio = function () {
 	try {
+		this.preInitializeMozAudio();
+		if (navigator.platform == "Linux i686") {
+			//Block out mozaudio usage for Linux Firefox due to moz bugs:
+			throw(new Error(""));
+		}
 		this.initializeMozAudio();
 	}
 	catch (error) {
@@ -266,33 +237,39 @@ XAudioServer.prototype.initializeAudio = function () {
 				this.initializeFlashAudio();
 			}
 			catch (error) {
-				this.initializeWAVAudio();
+				if (this.noWave) {
+					throw(new Error("Browser does not support real time audio output."));
+				}
 			}
 		}
 	}
 }
-XAudioServer.initializeMozAudio = function () {
+XAudioServer.prototype.preInitializeMozAudio = function () {
 	//mozAudio - Synchronous Audio API
-		this.audioHandle = new Audio();
-		this.audioHandle.mozSetup(this.audioChannels, XAudioJSSampleRate);
-		this.samplesAlreadyWritten = 0;
-		var emptySampleFrame = (this.audioChannels == 2) ? [0, 0] : [0];
-		var prebufferAmount = 0;
-		if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {	//Mac OS X doesn't experience this moz-bug!
-			while (this.audioHandle.mozCurrentSampleOffset() == 0) {
-				//Mozilla Audio Bugginess Workaround (Firefox freaks out if we don't give it a prebuffer under certain OSes):
-				prebufferAmount += this.audioHandle.mozWriteAudio(emptySampleFrame);
-			}
-			var samplesToDoubleBuffer = prebufferAmount / this.audioChannels;
-			//Double the prebuffering for windows:
-			for (var index = 0; index < samplesToDoubleBuffer; index++) {
-				this.samplesAlreadyWritten += this.audioHandle.mozWriteAudio(emptySampleFrame);
-			}
+	this.audioHandleMoz = new Audio();
+	this.audioHandleMoz.mozSetup(this.audioChannels, XAudioJSSampleRate);
+	this.samplesAlreadyWritten = 0;
+	var emptySampleFrame = (this.audioChannels == 2) ? [0, 0] : [0];
+	var prebufferAmount = 0;
+	if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {	//Mac OS X doesn't experience this moz-bug!
+		while (this.audioHandleMoz.mozCurrentSampleOffset() == 0) {
+			//Mozilla Audio Bugginess Workaround (Firefox freaks out if we don't give it a prebuffer under certain OSes):
+			prebufferAmount += this.audioHandleMoz.mozWriteAudio(emptySampleFrame);
 		}
-		this.writeMozAudio(getFloat32(webAudioMinBufferSize));
-		this.samplesAlreadyWritten += prebufferAmount;
-		webAudioMinBufferSize += prebufferAmount << 1;
-		this.audioType = 0;
+		var samplesToDoubleBuffer = prebufferAmount / this.audioChannels;
+		//Double the prebuffering for windows:
+		for (var index = 0; index < samplesToDoubleBuffer; index++) {
+			this.samplesAlreadyWritten += this.audioHandleMoz.mozWriteAudio(emptySampleFrame);
+		}
+	}
+	this.samplesAlreadyWritten += prebufferAmount;
+	webAudioMinBufferSize += this.samplesAlreadyWritten;
+	this.mozAudioFound = true;
+}
+XAudioServer.prototype.initializeMozAudio = function () {
+	//Fill in our own buffering up to the minimum specified:
+	this.writeMozAudio(getFloat32(webAudioMinBufferSize));
+	this.audioType = 0;
 }
 XAudioServer.prototype.initializeWebAudio = function () {
 	if (launchedContext) {
@@ -308,15 +285,7 @@ XAudioServer.prototype.initializeWebAudio = function () {
 	}
 }
 XAudioServer.prototype.initializeFlashAudio = function () {
-	this.noWave = false;
-	this.flashInitialized = false;
-	try {
-		this.audioHandle2 = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
-		this.sampleCount = 0;
-	}
-	catch (error) {
-		this.noWave = true;
-	}
+	this.initializeWAVAudio();
 	var objectNode = document.getElementById("XAudioJS");
 	if (objectNode != null) {
 		this.audioHandle = objectNode;
@@ -351,27 +320,34 @@ XAudioServer.prototype.initializeFlashAudio = function () {
 				thisObj.audioType = 1;
 				resetWebAudioBuffer();
 			}
-			else {
-				thisObj.initializeWAVAudio();
+			else if (thisObj.mozAudioFound) {
+				//If Flash failed and on Linux Firefox, try MozAudio even though it's buggy (Still better than WAV):
+				thisObj.initializeMozAudio();
 			}
 		}
 	);
 	this.audioType = 3;
 }
 XAudioServer.prototype.initializeWAVAudio = function () {
-	this.audioHandle = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
-	this.audioType = 2;
-	this.sampleCount = 0;
+	try {
+		this.audioHandleWAV = new AudioThread(this.audioChannels, XAudioJSSampleRate, 16, false);
+		this.audioType = 2;
+		this.sampleCount = 0;
+		this.noWave = false;
+	}
+	catch (error) {
+		this.noWave = true;
+	}
 }
 XAudioServer.prototype.writeMozAudio = function (buffer) {
 	var length = this.mozAudioTail.length;
 	if (length > 0) {
-		var samplesAccepted = this.audioHandle.mozWriteAudio(this.mozAudioTail);
+		var samplesAccepted = this.audioHandleMoz.mozWriteAudio(this.mozAudioTail);
 		this.samplesAlreadyWritten += samplesAccepted;
 		this.mozAudioTail.splice(0, samplesAccepted);
 	}
-	length = Math.min(buffer.length, webAudioMaxBufferSize - this.samplesAlreadyWritten + this.audioHandle.mozCurrentSampleOffset());
-	var samplesAccepted = this.audioHandle.mozWriteAudio(buffer);
+	length = Math.min(buffer.length, webAudioMaxBufferSize - this.samplesAlreadyWritten + this.audioHandleMoz.mozCurrentSampleOffset());
+	var samplesAccepted = this.audioHandleMoz.mozWriteAudio(buffer);
 	this.samplesAlreadyWritten += samplesAccepted;
 	for (var index = 0; length > samplesAccepted; length--) {
 		//Moz Audio wants us saving the tail:
