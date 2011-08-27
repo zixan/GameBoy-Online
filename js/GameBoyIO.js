@@ -15,7 +15,7 @@ var settings = [						//Some settings.
 	null,								//Extra Setting Slot
 	10,									//Frameskip base factor
 	false,								//Enable the software scaling algorithm to be compiled through JIT.
-	70000,								//Sample Rate
+	256000,								//Sample Rate
 	null,								//Extra Setting Slot
 	true,								//Use the GBC BIOS?
 	true,								//Colorize GB mode?
@@ -24,8 +24,8 @@ var settings = [						//Some settings.
 	16,									//Interval for the emulator loop.
 	false,								//Render nearest-neighbor scaling in javascript?
 	false,								//Disallow typed arrays?
-	7500,								//Audio Buffer Low Limit.
-	25000								//Audio Buffer High Limit
+	25000,								//Audio Buffer Low Limit.
+	75000								//Audio Buffer High Limit
 ];
 function start(canvas, canvasAlt, ROM) {
 	clearLastEmulation();
