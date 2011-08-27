@@ -114,9 +114,10 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.sampleSize = 0;						//Length of the sound buffer for one channel.
 	this.dutyLookup = [0.125, 0.25, 0.5, 0.75];	//Map the duty values given to ones we can work with.
 	this.currentBuffer = [];					//The audio buffer we're working on.
-	this.initializeAudioStartState();
+	this.initializeAudioStartState(true);
 	this.soundMasterEnabled = false;			//As its name implies
 	this.audioType = -1;						//Track what method we're using for audio output.
+	this.channel3PCM = this.getTypedArray(0x60, 0, "float32");	//Channel 3 adjusted sample buffer.
 	//Vin Shit:
 	this.VinLeftChannelMasterVolume = 1;		//Computed post-mixing volume.
 	this.VinRightChannelMasterVolume = 1;		//Computed post-mixing volume.
@@ -126,7 +127,6 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	//Current Samples Being Computed:
 	this.currentSampleLeft = 0;
 	this.currentSampleRight = 0;
-	this.channel3Tracker = 0;
 	//Pre-multipliers to cache some calculations:
 	this.initializeTiming();
 	this.samplesOut = 0;				//Premultiplier for audio samples per instruction.
@@ -4859,58 +4859,62 @@ GameBoyCore.prototype.audioUnderRun = function (samplesRequestedRaw) {
 		return tempBuffer;
 	}
 }
-GameBoyCore.prototype.initializeAudioStartState = function () {
-	this.channel1adjustedFrequencyPrep = 0;
+GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
+	if (resetType) {
+		this.channel1adjustedFrequencyPrep = 0;
+		this.channel1adjustedDuty = 0.5;
+		this.channel1totalLength = 0;
+		this.channel1envelopeVolume = 0;
+		this.channel1currentVolume = 0;
+		this.channel1envelopeType = false;
+		this.channel1envelopeSweeps = 0;
+		this.channel1consecutive = true;
+		this.channel1frequency = 0;
+		this.channel1volumeEnvTime = 0;
+		this.channel1volumeEnvTimeLast = 0;
+		this.channel1lastTotalLength = 0;
+		this.channel1timeSweep = 0;
+		this.channel1lastTimeSweep = 0;
+		this.channel1numSweep = 0;
+		this.channel1frequencySweepDivider = 0;
+		this.channel1decreaseSweep = false;
+		this.channel2adjustedFrequencyPrep = 0;
+		this.channel2adjustedDuty = 0.5;
+		this.channel2totalLength = 0;
+		this.channel2envelopeVolume = 0;
+		this.channel2currentVolume = 0;
+		this.channel2envelopeType = false;
+		this.channel2envelopeSweeps = 0;
+		this.channel2consecutive = true;
+		this.channel2frequency = 0;
+		this.channel2volumeEnvTime = 0;
+		this.channel2volumeEnvTimeLast = 0;
+		this.channel2lastTotalLength = 0;
+		this.channel3canPlay = false;
+		this.channel3totalLength = 0;
+		this.channel3lastTotalLength = 0;
+		this.channel3patternType = -20;
+		this.channel3frequency = 0;
+		this.channel3consecutive = true;
+		this.channel3adjustedFrequencyPrep = 0x20000 / settings[14];
+		this.channel4adjustedFrequencyPrep = 0;
+		this.channel4totalLength = 0;
+		this.channel4envelopeVolume = 0;
+		this.channel4currentVolume = 0;
+		this.channel4envelopeType = false;
+		this.channel4envelopeSweeps = 0;
+		this.channel4consecutive = true;
+		this.channel4volumeEnvTime = 0;
+		this.channel4volumeEnvTimeLast = 0;
+		this.channel4lastTotalLength = 0;
+		this.noiseTableLength = 0x8000;
+	}
 	this.channel1lastSampleLookup = 0;
-	this.channel1adjustedDuty = 0.5;
-	this.channel1totalLength = 0;
-	this.channel1envelopeVolume = 0;
-	this.channel1currentVolume = 0;
-	this.channel1envelopeType = false;
-	this.channel1envelopeSweeps = 0;
-	this.channel1consecutive = true;
-	this.channel1frequency = 0;
-	this.channel1volumeEnvTime = 0;
-	this.channel1volumeEnvTimeLast = 0;
-	this.channel1lastTotalLength = 0;
-	this.channel1timeSweep = 0;
-	this.channel1lastTimeSweep = 0;
-	this.channel1numSweep = 0;
-	this.channel1frequencySweepDivider = 0;
-	this.channel1decreaseSweep = false;
-	this.channel2adjustedFrequencyPrep = 0;
 	this.channel2lastSampleLookup = 0;
-	this.channel2adjustedDuty = 0.5;
-	this.channel2totalLength = 0;
-	this.channel2envelopeVolume = 0;
-	this.channel2currentVolume = 0;
-	this.channel2envelopeType = false;
-	this.channel2envelopeSweeps = 0;
-	this.channel2consecutive = true;
-	this.channel2frequency = 0;
-	this.channel2volumeEnvTime = 0;
-	this.channel2volumeEnvTimeLast = 0;
-	this.channel2lastTotalLength = 0;
-	this.channel3canPlay = false;
-	this.channel3totalLength = 0;
-	this.channel3lastTotalLength = 0;
-	this.channel3patternType = -20;
-	this.channel3frequency = 0;
-	this.channel3consecutive = true;
-	this.channel3PCM = this.getTypedArray(0x60, 0, "float32");
-	this.channel3adjustedFrequencyPrep = 0x20000 / settings[14];
-	this.channel4adjustedFrequencyPrep = 0;
-	this.channel4lastSampleLookup = 0;				//Keeps track of the audio timing.
-	this.channel4totalLength = 0;
-	this.channel4envelopeVolume = 0;
-	this.channel4currentVolume = 0;
-	this.channel4envelopeType = false;
-	this.channel4envelopeSweeps = 0;
-	this.channel4consecutive = true;
-	this.channel4volumeEnvTime = 0;
-	this.channel4volumeEnvTimeLast = 0;
-	this.channel4lastTotalLength = 0;
-	this.noiseTableLength = 0x8000;
+	this.channel3Tracker = 0;
+	this.channel4lastSampleLookup = 0;
+	this.VinLeftChannelMasterVolume = 1;
+	this.VinRightChannelMasterVolume = 1;
 }
 //Below are the audio generation functions timed against the CPU:
 GameBoyCore.prototype.generateAudio = function (numSamples) {
@@ -7771,13 +7775,14 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		parentObj.audioJIT();
 		var soundEnabled = (data & 0x80);
 		parentObj.memory[0xFF26] = soundEnabled | (parentObj.memory[0xFF26] & 0xF);
-		/*if (!parentObj.soundMasterEnabled && (soundEnabled == 0x80)) {
+		if (!parentObj.soundMasterEnabled && (soundEnabled == 0x80)) {
 			parentObj.memory[0xFF26] = 0;
-			parentObj.initializeAudioStartState();
-			for (address = 0xFF30; address < 0xFF40; address++) {
-				parentObj.memory[address] = 0;
-			}
-		}*/
+			parentObj.initializeAudioStartState(true);
+		}
+		else if (parentObj.soundMasterEnabled && (soundEnabled == 0)) {
+			parentObj.memory[0xFF26] = 0;
+			parentObj.initializeAudioStartState(false);
+		}
 		parentObj.soundMasterEnabled = (soundEnabled == 0x80);
 	}
 	//0xFF27 to 0xFF2F don't do anything...
