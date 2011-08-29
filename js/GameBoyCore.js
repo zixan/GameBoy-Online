@@ -1170,15 +1170,15 @@ GameBoyCore.prototype.OPCODE = new Array(
 			var originalHaltClock = 0;
 		}
 		//Prepare the short-circuit directly to the next IRQ event:
-		var maximumClocks = (parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks) * parentObj.multiplier;
-		var currentClocks = maximumClocks + 1;
+		var maximumClocks = parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks;
+		var currentClocks = maximumClocks + 4;
 		if (parentObj.LCDisOn) {
 			if ((parentObj.interruptsEnabled & 0x1) == 0x1) {
 				currentClocks = Math.min(((456 * (((parentObj.modeSTAT == 1) ? 298 : 144) - parentObj.actualScanLine)) - parentObj.LCDTicks) * parentObj.multiplier, currentClocks);
 			}
 			if ((parentObj.interruptsEnabled & 0x2) == 0x2) {
 				if (parentObj.mode0TriggerSTAT) {
-					currentClocks = Math.min(parentObj.clocksUntilMode0(), currentClocks);
+					currentClocks = Math.min(parentObj.clocksUntilMode0() * parentObj.multiplier, currentClocks);
 				}
 				if (parentObj.mode1TriggerSTAT && (parentObj.interruptsEnabled & 0x1) == 0) {
 					currentClocks = Math.min(((456 * (((parentObj.modeSTAT == 1) ? 298 : 144) - parentObj.actualScanLine)) - parentObj.LCDTicks) * parentObj.multiplier, currentClocks);
@@ -1187,14 +1187,14 @@ GameBoyCore.prototype.OPCODE = new Array(
 					currentClocks = Math.min((((parentObj.actualScanLine >= 143) ? (456 * (154 - parentObj.actualScanLine)) : 456) - parentObj.LCDTicks) * parentObj.multiplier, currentClocks);
 				}
 				if (parentObj.LYCMatchTriggerSTAT && parentObj.memory[0xFF45] <= 153) {
-					currentClocks = Math.min(parentObj.clocksUntilLYCMatch(), currentClocks);
+					currentClocks = Math.min(parentObj.clocksUntilLYCMatch() * parentObj.multiplier, currentClocks);
 				}
 			}
 		}
 		if (parentObj.TIMAEnabled && (parentObj.interruptsEnabled & 0x4) == 0x4) {
 			currentClocks = Math.min(((0x100 - parentObj.memory[0xFF05]) * parentObj.TACClocker) - parentObj.timerTicks, currentClocks);
 		}
-		if (currentClocks < (maximumClocks + 1)) {
+		if (currentClocks < (maximumClocks + 4)) {
 			//Exit out of HALT normally:
 			parentObj.CPUTicks = Math.max(currentClocks, originalHaltClock);
 			parentObj.updateCore();
@@ -5342,10 +5342,10 @@ GameBoyCore.prototype.executeIteration = function () {
 		//Timing:
 		////updateCore function inlining:
 		//Update the clocking for the LCD emulation:
-		this.LCDTicks += this.CPUTicks >> this.doubleSpeedDivider;		//LCD Timing
+		this.LCDTicks += this.CPUTicks / this.multiplier;				//LCD Timing
 		this.LCDCONTROL[this.actualScanLine](this);						//Scan Line and STAT Mode Control 
 		//Single-speed relative timing for A/V emulation:
-		timedTicks = this.CPUTicks >> this.doubleSpeedDivider;			//CPU clocking can be updated from the LCD handling.
+		timedTicks = this.CPUTicks / this.multiplier;					//CPU clocking can be updated from the LCD handling.
 		this.audioTicks += timedTicks;									//Audio Timing
 		this.emulatorTicks += timedTicks;								//Emulator Timing
 		//CPU Timers:
@@ -5411,28 +5411,28 @@ GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 GameBoyCore.prototype.clocksUntilLYCMatch = function () {
 	if (this.memory[0xFF45] != 0) {
 		if (this.memory[0xFF45] > this.actualScanLine) {
-			return ((456 * (this.memory[0xFF45] - this.actualScanLine)) - this.LCDTicks) * this.multiplier;
+			return ((456 * (this.memory[0xFF45] - this.actualScanLine)) - this.LCDTicks);
 		}
-		return ((456 * (154 - this.actualScanLine + this.memory[0xFF45])) - this.LCDTicks) * this.multiplier;
+		return ((456 * (154 - this.actualScanLine + this.memory[0xFF45])) - this.LCDTicks);
 	}
-	return ((456 * ((this.actualScanLine == 153 && this.memory[0xFF44] == 0) ? 154 : (153 - this.actualScanLine))) + 8 - this.LCDTicks) * this.multiplier;
+	return ((456 * ((this.actualScanLine == 153 && this.memory[0xFF44] == 0) ? 154 : (153 - this.actualScanLine))) + 8 - this.LCDTicks);
 }
 GameBoyCore.prototype.clocksUntilMode0 = function () {
 	switch (this.modeSTAT) {
 		case 0:
 			if (this.actualScanLine == 143) {
 				this.updateSpriteCount(0);
-				return (this.spriteCount + 5016 - this.LCDTicks) * this.multiplier;
+				return (this.spriteCount + 5016 - this.LCDTicks);
 			}
 			this.updateSpriteCount(this.actualScanLine + 1);
-			return (this.spriteCount + 456 - this.LCDTicks) * this.multiplier;
+			return (this.spriteCount + 456 - this.LCDTicks);
 		case 2:
 		case 3:
 			this.updateSpriteCount(this.actualScanLine);
-			return (this.spriteCount - this.LCDTicks) * this.multiplier;
+			return (this.spriteCount - this.LCDTicks);
 		case 1:
 			this.updateSpriteCount(0);
-			return (this.spriteCount + (456 * (154 - this.actualScanLine)) - this.LCDTicks) * this.multiplier;
+			return (this.spriteCount + (456 * (154 - this.actualScanLine)) - this.LCDTicks);
 	}
 }
 GameBoyCore.prototype.updateSpriteCount = function (line) {
@@ -5462,10 +5462,10 @@ GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
 }
 GameBoyCore.prototype.updateCore = function () {
 	//Update the clocking for the LCD emulation:
-	this.LCDTicks += this.CPUTicks >> this.doubleSpeedDivider;	//LCD Timing
+	this.LCDTicks += this.CPUTicks / this.multiplier;			//LCD Timing
 	this.LCDCONTROL[this.actualScanLine](this);					//Scan Line and STAT Mode Control 
 	//Single-speed relative timing for A/V emulation:
-	var timedTicks = this.CPUTicks >> this.doubleSpeedDivider;	//CPU clocking can be updated from the LCD handling.
+	var timedTicks = this.CPUTicks / this.multiplier;			//CPU clocking can be updated from the LCD handling.
 	this.audioTicks += timedTicks;								//Audio Timing
 	this.emulatorTicks += timedTicks;							//Emulator Timing
 	//CPU Timers:
