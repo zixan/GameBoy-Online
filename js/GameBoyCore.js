@@ -3748,7 +3748,7 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	}
 );
 GameBoyCore.prototype.TICKTable = new Array(				//Number of machine cycles for each instruction:
-/*	0, 1, 2, 3, 4, 5, 6, 7,		8, 9, A, B, C, D, E, F*/
+/*	 0,  1,  2,  3,  4,  5,  6,  7,		 8,  9,  A, B,  C,  D, E,  F*/
 	 4, 12,  8,  8,  4,  4,  8,  4,		20,  8,  8, 8,  4,  4, 8,  4,  //0
 	 4, 12,  8,  8,  4,  4,  8,  4,		12,  8,  8, 8,  4,  4, 8,  4,  //1
 	 8, 12,  8,  8,  4,  4,  8,  4,		 8,  8,  8, 8,  4,  4, 8,  4,  //2
@@ -3770,7 +3770,7 @@ GameBoyCore.prototype.TICKTable = new Array(				//Number of machine cycles for e
 	12, 12,  8,  4,  4, 16,  8, 16,		12,  8, 16, 4,  0,  4, 8, 16   //F
 );
 GameBoyCore.prototype.SecondaryTICKTable = new Array(		//Number of machine cycles for each 0xCBXX instruction:
-/*	0, 1, 2, 3, 4, 5, 6, 7,		8, 9, A, B, C, D, E, F*/
+/*	0, 1, 2, 3, 4, 5,  6, 7,		8, 9, A, B, C, D,  E, F*/
 	8, 8, 8, 8, 8, 8, 16, 8,		8, 8, 8, 8, 8, 8, 16, 8,  //0
 	8, 8, 8, 8, 8, 8, 16, 8,		8, 8, 8, 8, 8, 8, 16, 8,  //1
 	8, 8, 8, 8, 8, 8, 16, 8,		8, 8, 8, 8, 8, 8, 16, 8,  //2
