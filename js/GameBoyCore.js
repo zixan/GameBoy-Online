@@ -1170,7 +1170,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 			var originalHaltClock = 0;
 		}
 		//Prepare the short-circuit directly to the next IRQ event:
-		var maximumClocks = parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks;
+		var maximumClocks = (parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks) * parentObj.multiplier;
 		var currentClocks = maximumClocks + 4;
 		if (parentObj.LCDisOn) {
 			if ((parentObj.interruptsEnabled & 0x1) == 0x1) {
