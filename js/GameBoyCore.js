@@ -3614,182 +3614,215 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	,function (parentObj) {
 		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x08);
 	}
+	//OR A, 0x08:
 	//#0xDF:
 	,function (parentObj) {
 		parentObj.registerA |= 0x08;
 	}
+	//OR B, 0x10:
 	//#0xE0:
 	,function (parentObj) {
 		parentObj.registerB |= 0x10;
 	}
+	//OR C, 0x10:
 	//#0xE1:
 	,function (parentObj) {
 		parentObj.registerC |= 0x10;
 	}
+	//OR D, 0x10:
 	//#0xE2:
 	,function (parentObj) {
 		parentObj.registerD |= 0x10;
 	}
+	//OR E, 0x10:
 	//#0xE3:
 	,function (parentObj) {
 		parentObj.registerE |= 0x10;
 	}
+	//OR H, 0x10:
 	//#0xE4:
 	,function (parentObj) {
 		parentObj.registersHL |= 0x1000;
 	}
+	//OR L, 0x10:
 	//#0xE5:
 	,function (parentObj) {
 		parentObj.registersHL |= 0x10;
 	}
+	//OR (HL), 0x10:
 	//#0xE6:
 	,function (parentObj) {
 		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x10);
 	}
+	//OR A, 0x10:
 	//#0xE7:
 	,function (parentObj) {
 		parentObj.registerA |= 0x10;
 	}
+	//OR B, 0x20:
 	//#0xE8:
 	,function (parentObj) {
 		parentObj.registerB |= 0x20;
 	}
+	//OR C, 0x20:
 	//#0xE9:
 	,function (parentObj) {
 		parentObj.registerC |= 0x20;
 	}
+	//OR D, 0x20:
 	//#0xEA:
 	,function (parentObj) {
 		parentObj.registerD |= 0x20;
 	}
+	//OR E, 0x20:
 	//#0xEB:
 	,function (parentObj) {
 		parentObj.registerE |= 0x20;
 	}
+	//OR H, 0x20:
 	//#0xEC:
 	,function (parentObj) {
 		parentObj.registersHL |= 0x2000;
 	}
+	//OR L, 0x20:
 	//#0xED:
 	,function (parentObj) {
 		parentObj.registersHL |= 0x20;
 	}
+	//OR (HL), 0x20:
 	//#0xEE:
 	,function (parentObj) {
 		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x20);
 	}
+	//OR A, 0x20:
 	//#0xEF:
 	,function (parentObj) {
 		parentObj.registerA |= 0x20;
 	}
+	//OR B, 0x40:
 	//#0xF0:
 	,function (parentObj) {
 		parentObj.registerB |= 0x40;
 	}
+	//OR C, 0x40:
 	//#0xF1:
 	,function (parentObj) {
 		parentObj.registerC |= 0x40;
 	}
+	//OR D, 0x40:
 	//#0xF2:
 	,function (parentObj) {
 		parentObj.registerD |= 0x40;
 	}
+	//OR E, 0x40:
 	//#0xF3:
 	,function (parentObj) {
 		parentObj.registerE |= 0x40;
 	}
+	//OR H, 0x40:
 	//#0xF4:
 	,function (parentObj) {
 		parentObj.registersHL |= 0x4000;
 	}
+	//OR L, 0x40:
 	//#0xF5:
 	,function (parentObj) {
 		parentObj.registersHL |= 0x40;
 	}
+	//OR (HL), 0x40:
 	//#0xF6:
 	,function (parentObj) {
 		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x40);
 	}
+	//OR A, 0x40:
 	//#0xF7:
 	,function (parentObj) {
 		parentObj.registerA |= 0x40;
 	}
+	//OR B, 0x80:
 	//#0xF8:
 	,function (parentObj) {
 		parentObj.registerB |= 0x80;
 	}
+	//OR C, 0x80:
 	//#0xF9:
 	,function (parentObj) {
 		parentObj.registerC |= 0x80;
 	}
+	//OR D, 0x80:
 	//#0xFA:
 	,function (parentObj) {
 		parentObj.registerD |= 0x80;
 	}
+	//OR E, 0x80:
 	//#0xFB:
 	,function (parentObj) {
 		parentObj.registerE |= 0x80;
 	}
+	//OR H, 0x80:
 	//#0xFC:
 	,function (parentObj) {
 		parentObj.registersHL |= 0x8000;
 	}
+	//OR L, 0x80:
 	//#0xFD:
 	,function (parentObj) {
 		parentObj.registersHL |= 0x80;
 	}
+	//OR (HL), 0x80:
 	//#0xFE:
 	,function (parentObj) {
 		parentObj.memoryWriter[parentObj.registersHL](parentObj, parentObj.registersHL, parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL) | 0x80);
 	}
+	//OR A, 0x80:
 	//#0xFF:
 	,function (parentObj) {
 		parentObj.registerA |= 0x80;
 	}
 );
 GameBoyCore.prototype.TICKTable = new Array(				//Number of machine cycles for each instruction:
-/*	 0,  1,  2,  3,  4,  5,  6,  7,		 8,  9,  A, B,  C,  D, E,  F*/
-	 4, 12,  8,  8,  4,  4,  8,  4,		20,  8,  8, 8,  4,  4, 8,  4,  //0
-	 4, 12,  8,  8,  4,  4,  8,  4,		12,  8,  8, 8,  4,  4, 8,  4,  //1
-	 8, 12,  8,  8,  4,  4,  8,  4,		 8,  8,  8, 8,  4,  4, 8,  4,  //2
-	 8, 12,  8,  8, 12, 12, 12,  4,		 8,  8,  8, 8,  4,  4, 8,  4,  //3
+/*   0,  1,  2,  3,  4,  5,  6,  7,      8,  9,  A, B,  C,  D, E,  F*/
+     4, 12,  8,  8,  4,  4,  8,  4,     20,  8,  8, 8,  4,  4, 8,  4,  //0
+     4, 12,  8,  8,  4,  4,  8,  4,     12,  8,  8, 8,  4,  4, 8,  4,  //1
+     8, 12,  8,  8,  4,  4,  8,  4,      8,  8,  8, 8,  4,  4, 8,  4,  //2
+     8, 12,  8,  8, 12, 12, 12,  4,      8,  8,  8, 8,  4,  4, 8,  4,  //3
 
-	 4,  4,  4,  4,  4,  4,  8,  4,		 4,  4,  4, 4,  4,  4, 8,  4,  //4
-	 4,  4,  4,  4,  4,  4,  8,  4,		 4,  4,  4, 4,  4,  4, 8,  4,  //5
-	 4,  4,  4,  4,  4,  4,  8,  4,		 4,  4,  4, 4,  4,  4, 8,  4,  //6
-	 8,  8,  8,  8,  8,  8,  4,  8,		 4,  4,  4, 4,  4,  4, 8,  4,  //7
+     4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //4
+     4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //5
+     4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //6
+     8,  8,  8,  8,  8,  8,  4,  8,      4,  4,  4, 4,  4,  4, 8,  4,  //7
 
-	 4,  4,  4,  4,  4,  4,  8,  4,		 4,  4,  4, 4,  4,  4, 8,  4,  //8
-	 4,  4,  4,  4,  4,  4,  8,  4,		 4,  4,  4, 4,  4,  4, 8,  4,  //9
-	 4,  4,  4,  4,  4,  4,  8,  4,		 4,  4,  4, 4,  4,  4, 8,  4,  //A
-	 4,  4,  4,  4,  4,  4,  8,  4,		 4,  4,  4, 4,  4,  4, 8,  4,  //B
+     4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //8
+     4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //9
+     4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //A
+     4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //B
 
-	 8, 12, 12, 16, 12, 16,  8, 16,		 8, 16, 12, 0, 12, 24, 8, 16,  //C
-	 8, 12, 12,  4, 12, 16,  8, 16,		 8, 16, 12, 4, 12,  4, 8, 16,  //D
-	12, 12,  8,  4,  4, 16,  8, 16,		16,  4, 16, 4,  4,  4, 8, 16,  //E
-	12, 12,  8,  4,  4, 16,  8, 16,		12,  8, 16, 4,  0,  4, 8, 16   //F
+     8, 12, 12, 16, 12, 16,  8, 16,      8, 16, 12, 0, 12, 24, 8, 16,  //C
+     8, 12, 12,  4, 12, 16,  8, 16,      8, 16, 12, 4, 12,  4, 8, 16,  //D
+    12, 12,  8,  4,  4, 16,  8, 16,     16,  4, 16, 4,  4,  4, 8, 16,  //E
+    12, 12,  8,  4,  4, 16,  8, 16,     12,  8, 16, 4,  0,  4, 8, 16   //F
 );
 GameBoyCore.prototype.SecondaryTICKTable = new Array(		//Number of machine cycles for each 0xCBXX instruction:
-/*	0, 1, 2, 3, 4, 5,  6, 7,		8, 9, A, B, C, D,  E, F*/
-	8, 8, 8, 8, 8, 8, 16, 8,		8, 8, 8, 8, 8, 8, 16, 8,  //0
-	8, 8, 8, 8, 8, 8, 16, 8,		8, 8, 8, 8, 8, 8, 16, 8,  //1
-	8, 8, 8, 8, 8, 8, 16, 8,		8, 8, 8, 8, 8, 8, 16, 8,  //2
-	8, 8, 8, 8, 8, 8, 16, 8,		8, 8, 8, 8, 8, 8, 16, 8,  //3
+/*  0, 1, 2, 3, 4, 5,  6, 7,        8, 9, A, B, C, D,  E, F*/
+    8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8,  //0
+    8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8,  //1
+    8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8,  //2
+    8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8,  //3
 
-	8, 8, 8, 8, 8, 8, 12, 8,		8, 8, 8, 8, 8, 8, 12, 8,  //4
-	8, 8, 8, 8, 8, 8, 12, 8,		8, 8, 8, 8, 8, 8, 12, 8,  //5
-	8, 8, 8, 8, 8, 8, 12, 8,		8, 8, 8, 8, 8, 8, 12, 8,  //6
-	8, 8, 8, 8, 8, 8, 12, 8,		8, 8, 8, 8, 8, 8, 12, 8,  //7
+    8, 8, 8, 8, 8, 8, 12, 8,        8, 8, 8, 8, 8, 8, 12, 8,  //4
+    8, 8, 8, 8, 8, 8, 12, 8,        8, 8, 8, 8, 8, 8, 12, 8,  //5
+    8, 8, 8, 8, 8, 8, 12, 8,        8, 8, 8, 8, 8, 8, 12, 8,  //6
+    8, 8, 8, 8, 8, 8, 12, 8,        8, 8, 8, 8, 8, 8, 12, 8,  //7
 
-	8, 8, 8, 8, 8, 8, 16, 8,		8, 8, 8, 8, 8, 8, 16, 8,  //8
-	8, 8, 8, 8, 8, 8, 16, 8,		8, 8, 8, 8, 8, 8, 16, 8,  //9
-	8, 8, 8, 8, 8, 8, 16, 8,		8, 8, 8, 8, 8, 8, 16, 8,  //A
-	8, 8, 8, 8, 8, 8, 16, 8,		8, 8, 8, 8, 8, 8, 16, 8,  //B
+    8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8,  //8
+    8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8,  //9
+    8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8,  //A
+    8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8,  //B
 
-	8, 8, 8, 8, 8, 8, 16, 8,		8, 8, 8, 8, 8, 8, 16, 8,  //C
-	8, 8, 8, 8, 8, 8, 16, 8,		8, 8, 8, 8, 8, 8, 16, 8,  //D
-	8, 8, 8, 8, 8, 8, 16, 8,		8, 8, 8, 8, 8, 8, 16, 8,  //E
-	8, 8, 8, 8, 8, 8, 16, 8,		8, 8, 8, 8, 8, 8, 16, 8   //F
+    8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8,  //C
+    8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8,  //D
+    8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8,  //E
+    8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8   //F
 );
 GameBoyCore.prototype.saveSRAMState = function () {
 	if (!this.cBATT || this.MBCRam.length == 0) {
@@ -6802,6 +6835,12 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 						return ((parentObj.LCDisOn) ? parentObj.memory[0xFF44] : 0);
 					}
 					break;
+				case 0xFF4A:
+					//WY
+					this.memoryHighReader[0x4A] = this.memoryReader[0xFF4A] = function (parentObj, address) {
+						return parentObj.windowY;
+					}
+					break;
 				case 0xFF4F:
 					this.memoryHighReader[0x4F] = this.memoryReader[0xFF4F] = function (parentObj, address) {
 						return parentObj.currVRAMBank;
@@ -6849,7 +6888,7 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 				case 0xFF70:
 					if (this.cGBC) {
 						//SVBK
-						this.memoryHighReader[0x70] = this.memoryReader[0xFF70] = function (parentObj, address, data) {
+						this.memoryHighReader[0x70] = this.memoryReader[0xFF70] = function (parentObj, address) {
 							return 0x40 | parentObj.memory[0xFF70];
 						}
 					}
@@ -8031,8 +8070,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x4A] = this.memoryWriter[0xFF4A] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF4A] != data) {
 			parentObj.renderMidScanLine();
-			parentObj.memory[0xFF4A] = data;
-			parentObj.windowY = (data > 159) ? 159 : data;
+			parentObj.windowY = data;
 		}
 	}
 	//WX
@@ -8040,14 +8078,15 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if (parentObj.memory[0xFF4B] != data) {
 			parentObj.renderMidScanLine();
 			parentObj.memory[0xFF4B] = data;
-			data -= 7;
-			if (data < 0) {
+			if (data < 7) {
 				data = 0;
 			}
-			else if (data > 159) {
+			else if (data > 166) {
 				data = 160;
 			}
-			parentObj.windowX = data;
+			else {
+				parentObj.windowX = data - 7;
+			}
 		}
 	}
 	this.memoryHighWriter[0x72] = this.memoryWriter[0xFF72] = function (parentObj, address, data) {
