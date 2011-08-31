@@ -8068,7 +8068,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	//WY
 	this.memoryHighWriter[0x4A] = this.memoryWriter[0xFF4A] = function (parentObj, address, data) {
-		if (parentObj.memory[0xFF4A] != data) {
+		if (parentObj.windowY != data) {
 			parentObj.renderMidScanLine();
 			parentObj.windowY = data;
 		}
