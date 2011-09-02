@@ -4818,6 +4818,15 @@ GameBoyCore.prototype.initSound = function () {
 			settings[0] = false;
 		}
 	}
+	else {
+		//Neutralize the audio output:
+		try {
+			this.audioHandle = new XAudioServer(1, 1000, 5000, 20000, function (sampleCount) {
+				return [];
+			}, 0);
+		}
+		catch (error) { }
+	}
 }
 GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioTicks = this.audioIndex = 0;
