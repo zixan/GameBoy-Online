@@ -4846,7 +4846,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	//as the emulator truncates reading of the array for 7-bit to achieve the same effect.
 	for (var index = 0; index < 0x8000; index++) {
 		//Normalize the last LSFR value for usage:
-		randomFactor = (LSFR << 31) >> 31;
+		randomFactor = 1 - (LSFR & 1);	//Docs say it's the inverse.
 		//Cache the different volume level results:
 		noiseSampleTable[0x08000 | index] = randomFactor * 0x1 / 0x1E;
 		noiseSampleTable[0x10000 | index] = randomFactor * 0x2 / 0x1E;
