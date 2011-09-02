@@ -170,6 +170,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.ROMBanks[0x52] = 72;
 	this.ROMBanks[0x53] = 80;
 	this.ROMBanks[0x54] = 96;
+	this.numRAMBanksRequested = 0;
 	this.numRAMBanks = 0;					//How many RAM banks were actually allocated?
 	////Graphics Variables
 	this.currVRAMBank = 0;					//Current VRAM bank for GBC.
@@ -4572,15 +4573,19 @@ GameBoyCore.prototype.interpretCartridge = function () {
 	cout(this.numROMBanks + " ROM banks.", 0);
 	switch (this.RAMBanks[this.ROM[0x149]]) {
 		case 0:
+			this.numRAMBanksRequested = 0;
 			cout("No RAM banking requested for allocation or MBC is of type 2.", 0);
 			break;
 		case 2:
+			this.numRAMBanksRequested = 0x01;
 			cout("1 RAM bank requested for allocation.", 0);
 			break;
 		case 3:
+			this.numRAMBanksRequested = 0x04;
 			cout("4 RAM banks requested for allocation.", 0);
 			break;
 		case 4:
+			this.numRAMBanksRequested = 0x10;
 			cout("16 RAM banks requested for allocation.", 0);
 			break;
 		default:
@@ -4675,15 +4680,15 @@ GameBoyCore.prototype.setAudioSpeed = function (speed) {
 	this.audioTotalLengthMultiplier = settings[14] / 0x100 / speed;
 }
 GameBoyCore.prototype.setupRAM = function () {
-	//Setup the auxilliary/switchable RAM to their maximum possible size (Bad headers can lie).
+	//Setup the auxilliary/switchable RAM:
 	if (this.cMBC2) {
 		this.numRAMBanks = 1 / 16;
 	}
 	else if (this.cMBC1 || this.cRUMBLE || this.cMBC3 || this.cHuC3) {
-		this.numRAMBanks = 4;
+		this.numRAMBanks = Math.min(4, this.numRAMBanksRequested);
 	}
 	else if (this.cMBC5) {
-		this.numRAMBanks = 16;
+		this.numRAMBanks = Math.min(16, this.numRAMBanksRequested);
 	}
 	else if (this.cSRAM) {
 		this.numRAMBanks = 1;
@@ -4797,10 +4802,11 @@ GameBoyCore.prototype.GyroEvent = function (x, y) {
 }
 GameBoyCore.prototype.initSound = function () {
 	this.soundChannelsAllocated = (!settings[1]) ? 2 : 1;
+	this.soundFrameShifter = this.soundChannelsAllocated - 1;
 	if (settings[0]) {
 		try {
 			var parentObj = this;
-			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], settings[23] << (this.soundChannelsAllocated - 1), settings[24] << (this.soundChannelsAllocated - 1), function (sampleCount) {
+			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], settings[23] << this.soundFrameShifter, settings[24] << this.soundFrameShifter, function (sampleCount) {
 				return parentObj.audioUnderRun(sampleCount);
 			}, -1);
 		}
@@ -4830,7 +4836,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	cout("...Samples per interpreter loop iteration (Per Channel): " + this.sampleSize, 0);
 	this.samplesOut = this.sampleSize / this.CPUCyclesPerIteration;
 	cout("...Samples per clock cycle (Per Channel): " + this.samplesOut, 0);
-	this.numSamplesTotal = this.sampleSize << (this.soundChannelsAllocated - 1);
+	this.numSamplesTotal = this.sampleSize << this.soundFrameShifter;
 	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, -1, "float32");
 	//Noise Sample Table:
 	var noiseSampleTable = this.getTypedArray(0x80000, 0, "float32");
@@ -4870,15 +4876,7 @@ GameBoyCore.prototype.audioUnderRun = function (samplesRequestedRaw) {
 			samplesRequestedRaw -= this.audioIndex;
 			this.audioIndex = 0;
 		}
-		while (samplesRequestedRaw > 0) {
-			this.generateAudioSafe(Math.min(samplesRequestedRaw, this.numSamplesTotal - this.soundChannelsAllocated) / this.soundChannelsAllocated);
-			for (var index = 0; index < this.audioIndex; index++) {
-				tempBuffer.push(this.currentBuffer[index]);
-			}
-			samplesRequestedRaw -= this.audioIndex;
-			this.audioIndex = 0;
-		}
-		return tempBuffer;
+		return (samplesRequestedRaw > 0) ? this.generateAudioSafe(tempBuffer, samplesRequestedRaw >> this.soundFrameShifter) : tempBuffer;
 	}
 	else if (neededSamples == 0) {
 		//Use the overflow buffer's existing samples:
@@ -5184,54 +5182,41 @@ GameBoyCore.prototype.channel4Compute = function () {
 	}
 }
 //Below are the buffer-underrun protection audio refill functions:
-GameBoyCore.prototype.generateAudioSafe = function (numSamples) {
-	if (settings[0]) {
-		if (this.soundMasterEnabled) {
-			if (settings[1]) {						//Split Mono & Stereo into two, to avoid this if statement every iteration of the loop.
-				while (--numSamples >= 0) {
-					//MONO
-					this.audioChannelsComputeSafe();
-					this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
-					if (this.audioIndex == this.numSamplesTotal) {
-						this.audioIndex = 0;
-					}
-				}
-			}
-			else {
-				while (--numSamples >= 0) {
-					//STEREO
-					this.audioChannelsComputeSafe();
-					this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1;
-					this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
-					if (this.audioIndex == this.numSamplesTotal) {
-						this.audioIndex = 0;
-					}
-				}
+GameBoyCore.prototype.generateAudioSafe = function (tempBuffer, numSamples) {
+	if (this.soundMasterEnabled) {
+		if (settings[1]) {						//Split Mono & Stereo into two, to avoid this if statement every iteration of the loop.
+			while (--numSamples >= 0) {
+				//MONO
+				this.audioChannelsComputeSafe();
+				tempBuffer.push(this.currentSampleRight * this.VinRightChannelMasterVolume - 1);
 			}
 		}
 		else {
-			//SILENT OUTPUT:
-			if (settings[1]) {
-				while (--numSamples >= 0) {
-					//MONO
-					this.currentBuffer[this.audioIndex++] = -1;
-					if (this.audioIndex == this.numSamplesTotal) {
-						this.audioIndex = 0;
-					}
-				}
-			}
-			else {
-				while (--numSamples >= 0) {
-					//STEREO
-					this.currentBuffer[this.audioIndex++] = -1;
-					this.currentBuffer[this.audioIndex++] = -1;
-					if (this.audioIndex == this.numSamplesTotal) {
-						this.audioIndex = 0;
-					}
-				}
+			while (--numSamples >= 0) {
+				//STEREO
+				this.audioChannelsComputeSafe();
+				tempBuffer.push(this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1);
+				tempBuffer.push(this.currentSampleRight * this.VinRightChannelMasterVolume - 1);
 			}
 		}
 	}
+	else {
+		//SILENT OUTPUT:
+		if (settings[1]) {
+			while (--numSamples >= 0) {
+				//MONO
+				tempBuffer.push(-1);
+			}
+		}
+		else {
+			while (--numSamples >= 0) {
+				//STEREO
+				tempBuffer.push(-1);
+				tempBuffer.push(-1);
+			}
+		}
+	}
+	return tempBuffer;
 }
 GameBoyCore.prototype.audioChannelsComputeSafe = function () {
 	//channel 1:
@@ -7039,23 +7024,23 @@ GameBoyCore.prototype.setCurrentMBC1ROMBank = function () {
 		default:
 			this.currentROMBank = (this.ROMBank1offs - 1) << 14;
 	}
-	while (this.currentROMBank + 0x4000 >= this.ROM.length) {
-		this.currentROMBank -= this.ROM.length;
+	if (this.currentROMBank + 0x4000 >= this.ROM.length) {
+		this.currentROMBank = ((this.currentROMBank + 0x4000) % this.ROM.length) - 0x4000;
 	}
 }
 GameBoyCore.prototype.setCurrentMBC2AND3ROMBank = function () {
 	//Read the cartridge ROM data from RAM memory:
 	//Only map bank 0 to bank 1 here (MBC2 is like MBC1, but can only do 16 banks, so only the bank 0 quirk appears for MBC2):
 	this.currentROMBank = Math.max(this.ROMBank1offs - 1, 0) << 14;
-	while (this.currentROMBank + 0x4000 >= this.ROM.length) {
-		this.currentROMBank -= this.ROM.length;
+	if (this.currentROMBank + 0x4000 >= this.ROM.length) {
+		this.currentROMBank = ((this.currentROMBank + 0x4000) % this.ROM.length) - 0x4000;
 	}
 }
 GameBoyCore.prototype.setCurrentMBC5ROMBank = function () {
 	//Read the cartridge ROM data from RAM memory:
 	this.currentROMBank = (this.ROMBank1offs - 1) << 14;
-	while (this.currentROMBank + 0x4000 >= this.ROM.length) {
-		this.currentROMBank -= this.ROM.length;
+	if (this.currentROMBank + 0x4000 >= this.ROM.length) {
+		this.currentROMBank = ((this.currentROMBank + 0x4000) % this.ROM.length) - 0x4000;
 	}
 }
 //Memory Writing:
