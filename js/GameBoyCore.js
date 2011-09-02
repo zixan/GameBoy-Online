@@ -4868,9 +4868,8 @@ GameBoyCore.prototype.audioUnderRun = function (samplesRequestedRaw) {
 			//Use any existing samples and then create some:
 			var tempBuffer = [];
 			if (this.audioIndex > 0) {
-				var tempBuffer2 = this.audioBufferSlice(this.audioIndex);
 				for (var index = 0; index < this.audioIndex; index++) {
-					tempBuffer.push(tempBuffer2[index]);
+					tempBuffer.push(this.currentBuffer[index]);
 				}
 				samplesRequestedRaw -= this.audioIndex;
 				this.audioIndex = 0;
@@ -8469,8 +8468,12 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 }
 GameBoyCore.prototype.audioBufferSlice = function (length) {
 	if (typeof this.currentBuffer.subarray == "function") {
-		//"I am disappoint" I had to change this one day later from subset:
-		return this.currentBuffer.subarray(0, length);
+		//Return an array copy for the typed array version:
+		var tempBuffer = [];
+		for (var index = 0; index < length; index++) {
+			tempBuffer[index] = this.currentBuffer[index];
+		}
+		return tempBuffer;
 	}
 	else {
 		return this.currentBuffer.slice(0, length);
