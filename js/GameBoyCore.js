@@ -4843,7 +4843,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	var LSFR = 0x7FFF;
 	for (var index = 0; index < 0x8000; index++) {
 		//15-bit pseudo-random value:
-		randomFactor = 1 - (LSFR & 0x1);
+		randomFactor = (1 - (LSFR & 0x1)) / 2;
 		LSFR = (LSFR >> 1) | ((((LSFR >> 1) ^ LSFR) & 0x1) << 14);
 		noiseSampleTable[0x08000 | index] = randomFactor * 0x1 / 0xF;
 		noiseSampleTable[0x10000 | index] = randomFactor * 0x2 / 0xF;
