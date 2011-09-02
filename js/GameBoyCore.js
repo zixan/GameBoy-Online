@@ -4863,8 +4863,8 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 GameBoyCore.prototype.audioUnderRun = function (samplesRequestedRaw) {
 	if (settings[0]) {
 		//We need more audio samples since we went below our set low limit:
-		var neededSamples = samplesRequestedRaw - this.audioIndex;
-		if (neededSamples > 0) {
+		var neededSamples = this.audioIndex - samplesRequestedRaw;
+		if (neededSamples < 0) {
 			//Use any existing samples and then create some:
 			var tempBuffer = [];
 			if (this.audioIndex > 0) {
@@ -4885,7 +4885,7 @@ GameBoyCore.prototype.audioUnderRun = function (samplesRequestedRaw) {
 		else {
 			//Use the overflow buffer's existing samples:
 			var tempBuffer = this.audioBufferSlice(samplesRequestedRaw);
-			this.audioIndex = neededSamples = this.audioIndex - samplesRequestedRaw;
+			this.audioIndex = neededSamples;
 			while (--neededSamples >= 0) {
 				//Move over the remaining samples to their new positions:
 				this.currentBuffer[neededSamples] = this.currentBuffer[samplesRequestedRaw + neededSamples];
