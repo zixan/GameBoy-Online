@@ -4841,25 +4841,31 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.noiseSampleTable = noiseSampleTable;
 	var randomFactor = 1;
 	var LSFR = 0x7FFF;
+	var LSFRShifted = 0x3FFF;
+	//This loop below covers both the 7 and 15 bit LSFR variations,
+	//as the emulator truncates reading of the array for 7-bit to achieve the same effect.
 	for (var index = 0; index < 0x8000; index++) {
-		//15-bit pseudo-random value:
-		randomFactor = (1 - (LSFR & 0x1)) / 2;
-		LSFR = (LSFR >> 1) | ((((LSFR >> 1) ^ LSFR) & 0x1) << 14);
-		noiseSampleTable[0x08000 | index] = randomFactor * 0x1 / 0xF;
-		noiseSampleTable[0x10000 | index] = randomFactor * 0x2 / 0xF;
-		noiseSampleTable[0x18000 | index] = randomFactor * 0x3 / 0xF;
-		noiseSampleTable[0x20000 | index] = randomFactor * 0x4 / 0xF;
-		noiseSampleTable[0x28000 | index] = randomFactor * 0x5 / 0xF;
-		noiseSampleTable[0x30000 | index] = randomFactor * 0x6 / 0xF;
-		noiseSampleTable[0x38000 | index] = randomFactor * 0x7 / 0xF;
-		noiseSampleTable[0x40000 | index] = randomFactor * 0x8 / 0xF;
-		noiseSampleTable[0x48000 | index] = randomFactor * 0x9 / 0xF;
-		noiseSampleTable[0x50000 | index] = randomFactor * 0xA / 0xF;
-		noiseSampleTable[0x58000 | index] = randomFactor * 0xB / 0xF;
-		noiseSampleTable[0x60000 | index] = randomFactor * 0xC / 0xF;
-		noiseSampleTable[0x68000 | index] = randomFactor * 0xD / 0xF;
-		noiseSampleTable[0x70000 | index] = randomFactor * 0xE / 0xF;
-		noiseSampleTable[0x78000 | index] = randomFactor;
+		//Normalize the last LSFR value for usage:
+		randomFactor = (LSFR << 31) >> 31;
+		//Cache the different volume level results:
+		noiseSampleTable[0x08000 | index] = randomFactor * 0x1 / 0x1E;
+		noiseSampleTable[0x10000 | index] = randomFactor * 0x2 / 0x1E;
+		noiseSampleTable[0x18000 | index] = randomFactor * 0x3 / 0x1E;
+		noiseSampleTable[0x20000 | index] = randomFactor * 0x4 / 0x1E;
+		noiseSampleTable[0x28000 | index] = randomFactor * 0x5 / 0x1E;
+		noiseSampleTable[0x30000 | index] = randomFactor * 0x6 / 0x1E;
+		noiseSampleTable[0x38000 | index] = randomFactor * 0x7 / 0x1E;
+		noiseSampleTable[0x40000 | index] = randomFactor * 0x8 / 0x1E;
+		noiseSampleTable[0x48000 | index] = randomFactor * 0x9 / 0x1E;
+		noiseSampleTable[0x50000 | index] = randomFactor * 0xA / 0x1E;
+		noiseSampleTable[0x58000 | index] = randomFactor * 0xB / 0x1E;
+		noiseSampleTable[0x60000 | index] = randomFactor * 0xC / 0x1E;
+		noiseSampleTable[0x68000 | index] = randomFactor * 0xD / 0x1E;
+		noiseSampleTable[0x70000 | index] = randomFactor * 0xE / 0x1E;
+		noiseSampleTable[0x78000 | index] = randomFactor / 2;
+		//Recompute the LSFR algorithm:
+		LSFRShifted = LSFR >> 1;
+		LSFR = LSFRShifted | (((LSFRShifted ^ LSFR) & 0x1) << 14);	//Note that we're using a 15-bit algorithm to regenerate the 7-bit as well (Emulator does a caching trick to get the same effect).
 	}
 }
 GameBoyCore.prototype.audioUnderRun = function (samplesRequestedRaw) {
