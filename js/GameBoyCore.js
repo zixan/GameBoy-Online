@@ -4801,9 +4801,9 @@ GameBoyCore.prototype.GyroEvent = function (x, y) {
 	this.lowY = y & 0xFF;
 }
 GameBoyCore.prototype.initSound = function () {
-	this.soundChannelsAllocated = (!settings[1]) ? 2 : 1;
-	this.soundFrameShifter = this.soundChannelsAllocated - 1;
 	if (settings[0]) {
+		this.soundChannelsAllocated = (!settings[1]) ? 2 : 1;
+		this.soundFrameShifter = this.soundChannelsAllocated - 1;
 		try {
 			var parentObj = this;
 			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], settings[23] << this.soundFrameShifter, settings[24] << this.soundFrameShifter, function (sampleCount) {
@@ -4819,15 +4819,6 @@ GameBoyCore.prototype.initSound = function () {
 			cout("...Sample Rate: " + settings[14], 0);
 			this.initAudioBuffer();
 		}
-	}
-	else {
-		//Dummy reset the audio (Just in case we turned it off while running and web audio is enabled):
-		try {
-			this.audioHandle = new XAudioServer(1, 1000, 5000, 20000, function (sampleCount) {
-				return [];
-			}, 0);
-		}
-		catch (error) { }
 	}
 }
 GameBoyCore.prototype.initAudioBuffer = function () {
@@ -4863,35 +4854,41 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	}
 }
 GameBoyCore.prototype.audioUnderRun = function (samplesRequestedRaw) {
-	//We need more audio samples since we went below our set low limit:
-	var neededSamples = samplesRequestedRaw - this.audioIndex;
-	if (neededSamples > 0) {
-		//Use any existing samples and then create some:
-		var tempBuffer = [];
-		if (this.audioIndex > 0) {
-			var tempBuffer2 = this.audioBufferSlice(this.audioIndex);
-			for (var index = 0; index < this.audioIndex; index++) {
-				tempBuffer.push(tempBuffer2[index]);
+	if (settings[0]) {
+		//We need more audio samples since we went below our set low limit:
+		var neededSamples = samplesRequestedRaw - this.audioIndex;
+		if (neededSamples > 0) {
+			//Use any existing samples and then create some:
+			var tempBuffer = [];
+			if (this.audioIndex > 0) {
+				var tempBuffer2 = this.audioBufferSlice(this.audioIndex);
+				for (var index = 0; index < this.audioIndex; index++) {
+					tempBuffer.push(tempBuffer2[index]);
+				}
+				samplesRequestedRaw -= this.audioIndex;
+				this.audioIndex = 0;
 			}
-			samplesRequestedRaw -= this.audioIndex;
-			this.audioIndex = 0;
+			return (samplesRequestedRaw > 0) ? this.generateAudioSafe(tempBuffer, samplesRequestedRaw >> this.soundFrameShifter) : tempBuffer;
 		}
-		return (samplesRequestedRaw > 0) ? this.generateAudioSafe(tempBuffer, samplesRequestedRaw >> this.soundFrameShifter) : tempBuffer;
-	}
-	else if (neededSamples == 0) {
-		//Use the overflow buffer's existing samples:
-		this.audioIndex = 0;
-		return this.currentBuffer;
+		else if (neededSamples == 0) {
+			//Use the overflow buffer's existing samples:
+			this.audioIndex = 0;
+			return this.currentBuffer;
+		}
+		else {
+			//Use the overflow buffer's existing samples:
+			var tempBuffer = this.audioBufferSlice(samplesRequestedRaw);
+			this.audioIndex = neededSamples = this.audioIndex - samplesRequestedRaw;
+			while (--neededSamples >= 0) {
+				//Move over the remaining samples to their new positions:
+				this.currentBuffer[neededSamples] = this.currentBuffer[samplesRequestedRaw + neededSamples];
+			}
+			return tempBuffer;
+		}
 	}
 	else {
-		//Use the overflow buffer's existing samples:
-		var tempBuffer = this.audioBufferSlice(samplesRequestedRaw);
-		this.audioIndex = neededSamples = this.audioIndex - samplesRequestedRaw;
-		while (--neededSamples >= 0) {
-			//Move over the remaining samples to their new positions:
-			this.currentBuffer[neededSamples] = this.currentBuffer[samplesRequestedRaw + neededSamples];
-		}
-		return tempBuffer;
+		//Return nothing just in case the callback is still hooked:
+		return [];
 	}
 }
 GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
