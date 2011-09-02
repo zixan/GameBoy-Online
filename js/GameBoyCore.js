@@ -4809,15 +4809,13 @@ GameBoyCore.prototype.initSound = function () {
 			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], settings[23] << this.soundFrameShifter, settings[24] << this.soundFrameShifter, function (sampleCount) {
 				return parentObj.audioUnderRun(sampleCount);
 			}, -1);
+			cout("...Audio Channels: " + this.soundChannelsAllocated, 0);
+			cout("...Sample Rate: " + settings[14], 0);
+			this.initAudioBuffer();
 		}
 		catch (error) {
 			cout("Audio system cannot run: " + error.message, 2);
 			settings[0] = false;
-		}
-		if (settings[0]) {
-			cout("...Audio Channels: " + this.soundChannelsAllocated, 0);
-			cout("...Sample Rate: " + settings[14], 0);
-			this.initAudioBuffer();
 		}
 	}
 }
