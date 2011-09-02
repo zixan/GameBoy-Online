@@ -8069,10 +8069,10 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.renderMidScanLine();
 			parentObj.memory[0xFF4B] = data;
 			if (data < 7) {
-				data = 0;
+				parentObj.windowX = 0;
 			}
 			else if (data > 166) {
-				data = 160;
+				parentObj.windowX = 160;
 			}
 			else {
 				parentObj.windowX = data - 7;
