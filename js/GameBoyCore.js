@@ -4839,10 +4839,12 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	//Noise Sample Table:
 	var noiseSampleTable = this.getTypedArray(0x80000, 0, "float32");
 	this.noiseSampleTable = noiseSampleTable;
-	var randomFactor = 0;
+	var randomFactor = 1;
+	var LSFR = 0x7FFF;
 	for (var index = 0; index < 0x8000; index++) {
 		//15-bit pseudo-random value:
-		randomFactor = Math.round(Math.random() * 0x7FFF) / 0xFFFE;	//Get the pseudo-random value.
+		randomFactor = 1 - (LSFR & 0x1);
+		LSFR = (LSFR >> 1) | ((((LSFR >> 1) ^ LSFR) & 0x1) << 14);
 		noiseSampleTable[0x08000 | index] = randomFactor * 0x1 / 0xF;
 		noiseSampleTable[0x10000 | index] = randomFactor * 0x2 / 0xF;
 		noiseSampleTable[0x18000 | index] = randomFactor * 0x3 / 0xF;
