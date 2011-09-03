@@ -1151,6 +1151,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 			}
 			//See if we're taking an interrupt already:
 			if ((parentObj.interruptsEnabled & parentObj.interruptsRequested & 0x1F) > 0) {
+				parentObj.CPUTicks += 4;
 				//If an IRQ is already going to launch:
 				if (!parentObj.IME) {
 					if (!parentObj.cGBC && !parentObj.usedBootROM) {
