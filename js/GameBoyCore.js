@@ -5029,8 +5029,8 @@ GameBoyCore.prototype.audioJIT = function () {
 		var actual = amount | 0;
 		this.rollover += amount - actual;
 		if (this.rollover >= 1) {
-			this.rollover--;
-			actual++;
+			--this.rollover;
+			++actual;
 		}
 		this.generateAudio(actual);
 	}
