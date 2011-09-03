@@ -115,6 +115,9 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.sampleSize = 0;						//Length of the sound buffer for one channel.
 	this.dutyLookup = [0.125, 0.25, 0.5, 0.75];	//Map the duty values given to ones we can work with.
 	this.currentBuffer = [];					//The audio buffer we're working on.
+	this.LSFR15Table = null;
+	this.LSFR7Table = null;
+	this.noiseSampleTable = null;
 	this.initializeAudioStartState(true);
 	this.soundMasterEnabled = false;			//As its name implies
 	this.audioType = -1;						//Track what method we're using for audio output.
@@ -4006,6 +4009,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.channel4volumeEnvTime,
 		this.channel4volumeEnvTimeLast,
 		this.channel4lastTotalLength,
+		this.noiseTableLength,
 		this.soundMasterEnabled,
 		this.VinLeftChannelMasterVolume,
 		this.VinRightChannelMasterVolume,
@@ -4175,6 +4179,9 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel4volumeEnvTime = state[index++];
 	this.channel4volumeEnvTimeLast = state[index++];
 	this.channel4lastTotalLength = state[index++];
+	this.noiseTableLength = state[index++];
+	this.noiseSampleTable = (this.noiseTableLength == 0x8000) ? this.LSFR15Table : this.LSFR7Table;
+	this.channel4VolumeShifter = (this.noiseTableLength == 0x8000) ? 15 : 7;
 	this.soundMasterEnabled = state[index++];
 	this.VinLeftChannelMasterVolume = state[index++];
 	this.VinRightChannelMasterVolume = state[index++];
@@ -4865,36 +4872,63 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	cout("...Samples per clock cycle (Per Channel): " + this.samplesOut, 0);
 	this.numSamplesTotal = this.sampleSize << this.soundFrameShifter;
 	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, -1, "float32");
-	//Noise Sample Table:
-	var noiseSampleTable = this.getTypedArray(0x80000, 0, "float32");
-	this.noiseSampleTable = noiseSampleTable;
+	this.intializeWhiteNoise();
+}
+GameBoyCore.prototype.intializeWhiteNoise = function () {
+	//Noise Sample Tables:
 	var randomFactor = 1;
-	var LSFR = 0x7FFF;
+	//15-bit LSFR Cache Generation:
+	this.LSFR15Table = this.getTypedArray(0x80000, 0, "float32");
+	var LSFR = 0x7FFF;	//Seed value has all its bits set.
 	var LSFRShifted = 0x3FFF;
-	//This loop below covers both the 7 and 15 bit LSFR variations,
-	//as the emulator truncates reading of the array for 7-bit to achieve the same effect.
 	for (var index = 0; index < 0x8000; index++) {
 		//Normalize the last LSFR value for usage:
 		randomFactor = 1 - (LSFR & 1);	//Docs say it's the inverse.
 		//Cache the different volume level results:
-		noiseSampleTable[0x08000 | index] = randomFactor * 0x1 / 0x1E;
-		noiseSampleTable[0x10000 | index] = randomFactor * 0x2 / 0x1E;
-		noiseSampleTable[0x18000 | index] = randomFactor * 0x3 / 0x1E;
-		noiseSampleTable[0x20000 | index] = randomFactor * 0x4 / 0x1E;
-		noiseSampleTable[0x28000 | index] = randomFactor * 0x5 / 0x1E;
-		noiseSampleTable[0x30000 | index] = randomFactor * 0x6 / 0x1E;
-		noiseSampleTable[0x38000 | index] = randomFactor * 0x7 / 0x1E;
-		noiseSampleTable[0x40000 | index] = randomFactor * 0x8 / 0x1E;
-		noiseSampleTable[0x48000 | index] = randomFactor * 0x9 / 0x1E;
-		noiseSampleTable[0x50000 | index] = randomFactor * 0xA / 0x1E;
-		noiseSampleTable[0x58000 | index] = randomFactor * 0xB / 0x1E;
-		noiseSampleTable[0x60000 | index] = randomFactor * 0xC / 0x1E;
-		noiseSampleTable[0x68000 | index] = randomFactor * 0xD / 0x1E;
-		noiseSampleTable[0x70000 | index] = randomFactor * 0xE / 0x1E;
-		noiseSampleTable[0x78000 | index] = randomFactor / 2;
+		this.LSFR15Table[0x08000 | index] = randomFactor * 0x1 / 0x1E;
+		this.LSFR15Table[0x10000 | index] = randomFactor * 0x2 / 0x1E;
+		this.LSFR15Table[0x18000 | index] = randomFactor * 0x3 / 0x1E;
+		this.LSFR15Table[0x20000 | index] = randomFactor * 0x4 / 0x1E;
+		this.LSFR15Table[0x28000 | index] = randomFactor * 0x5 / 0x1E;
+		this.LSFR15Table[0x30000 | index] = randomFactor * 0x6 / 0x1E;
+		this.LSFR15Table[0x38000 | index] = randomFactor * 0x7 / 0x1E;
+		this.LSFR15Table[0x40000 | index] = randomFactor * 0x8 / 0x1E;
+		this.LSFR15Table[0x48000 | index] = randomFactor * 0x9 / 0x1E;
+		this.LSFR15Table[0x50000 | index] = randomFactor * 0xA / 0x1E;
+		this.LSFR15Table[0x58000 | index] = randomFactor * 0xB / 0x1E;
+		this.LSFR15Table[0x60000 | index] = randomFactor * 0xC / 0x1E;
+		this.LSFR15Table[0x68000 | index] = randomFactor * 0xD / 0x1E;
+		this.LSFR15Table[0x70000 | index] = randomFactor * 0xE / 0x1E;
+		this.LSFR15Table[0x78000 | index] = randomFactor / 2;
 		//Recompute the LSFR algorithm:
 		LSFRShifted = LSFR >> 1;
-		LSFR = LSFRShifted | (((LSFRShifted ^ LSFR) & 0x1) << 14);	//Note that we're using a 15-bit algorithm to regenerate the 7-bit as well (Emulator does a caching trick to get the same effect).
+		LSFR = LSFRShifted | (((LSFRShifted ^ LSFR) & 0x1) << 14);
+	}
+	//7-bit LSFR Cache Generation:
+	this.LSFR7Table = this.getTypedArray(0x800, 0, "float32");
+	LSFR = 0x7F;	//Seed value has all its bits set.
+	for (index = 0; index < 0x80; index++) {
+		//Normalize the last LSFR value for usage:
+		randomFactor = 1 - (LSFR & 1);	//Docs say it's the inverse.
+		//Cache the different volume level results:
+		this.LSFR7Table[0x080 | index] = randomFactor * 0x1 / 0x1E;
+		this.LSFR7Table[0x100 | index] = randomFactor * 0x2 / 0x1E;
+		this.LSFR7Table[0x180 | index] = randomFactor * 0x3 / 0x1E;
+		this.LSFR7Table[0x200 | index] = randomFactor * 0x4 / 0x1E;
+		this.LSFR7Table[0x280 | index] = randomFactor * 0x5 / 0x1E;
+		this.LSFR7Table[0x300 | index] = randomFactor * 0x6 / 0x1E;
+		this.LSFR7Table[0x380 | index] = randomFactor * 0x7 / 0x1E;
+		this.LSFR7Table[0x400 | index] = randomFactor * 0x8 / 0x1E;
+		this.LSFR7Table[0x480 | index] = randomFactor * 0x9 / 0x1E;
+		this.LSFR7Table[0x500 | index] = randomFactor * 0xA / 0x1E;
+		this.LSFR7Table[0x580 | index] = randomFactor * 0xB / 0x1E;
+		this.LSFR7Table[0x600 | index] = randomFactor * 0xC / 0x1E;
+		this.LSFR7Table[0x680 | index] = randomFactor * 0xD / 0x1E;
+		this.LSFR7Table[0x700 | index] = randomFactor * 0xE / 0x1E;
+		this.LSFR7Table[0x780 | index] = randomFactor / 2;
+		//Recompute the LSFR algorithm:
+		LSFRShifted = LSFR >> 1;
+		LSFR = LSFRShifted | (((LSFRShifted ^ LSFR) & 0x1) << 6);
 	}
 }
 GameBoyCore.prototype.audioUnderRun = function (samplesRequestedRaw) {
@@ -4984,6 +5018,8 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 		this.channel4volumeEnvTimeLast = 0;
 		this.channel4lastTotalLength = 0;
 		this.noiseTableLength = 0x8000;
+		this.noiseSampleTable = this.LSFR15Table;
+		this.channel4VolumeShifter = 15;
 	}
 	this.channel1lastSampleLookup = 0;
 	this.channel2lastSampleLookup = 0;
@@ -5203,12 +5239,12 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 			else {
 				if (!this.channel4envelopeType) {
 					if (this.channel4envelopeVolume > 0) {
-						this.channel4currentVolume = --this.channel4envelopeVolume << 15;
+						this.channel4currentVolume = --this.channel4envelopeVolume << this.channel4VolumeShifter;
 						this.channel4volumeEnvTime = this.channel4volumeEnvTimeLast;
 					}
 				}
 				else if (this.channel4envelopeVolume < 0xF) {
-					this.channel4currentVolume = ++this.channel4envelopeVolume << 15;
+					this.channel4currentVolume = ++this.channel4envelopeVolume << this.channel4VolumeShifter;
 					this.channel4volumeEnvTime = this.channel4volumeEnvTimeLast;
 				}
 			}
@@ -5343,12 +5379,12 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 			else {
 				if (!this.channel4envelopeType) {
 					if (this.channel4envelopeVolume > 0) {
-						this.channel4currentVolume = --this.channel4envelopeVolume << 15;
+						this.channel4currentVolume = --this.channel4envelopeVolume << this.channel4VolumeShifter;
 						this.channel4volumeEnvTime = this.channel4volumeEnvTimeLast;
 					}
 				}
 				else if (this.channel4envelopeVolume < 0xF) {
-					this.channel4currentVolume = ++this.channel4envelopeVolume << 15;
+					this.channel4currentVolume = ++this.channel4envelopeVolume << this.channel4VolumeShifter;
 					this.channel4volumeEnvTime = this.channel4volumeEnvTimeLast;
 				}
 			}
@@ -7995,7 +8031,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x21] = this.memoryWriter[0xFF21] = function (parentObj, address, data) {
 		parentObj.audioJIT();
 		parentObj.channel4envelopeVolume = data >> 4;
-		parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << 15;
+		parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
 		parentObj.channel4envelopeType = ((data & 0x08) == 0x08);
 		parentObj.channel4envelopeSweeps = data & 0x7;
 		parentObj.channel4volumeEnvTime = parentObj.channel4volumeEnvTimeLast = parentObj.channel4envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
@@ -8008,6 +8044,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if ((bitWidth == 0x8 && parentObj.noiseTableLength == 0x8000) || (bitWidth == 0 && parentObj.noiseTableLength == 0x80)) {
 			parentObj.channel4lastSampleLookup = 0;
 			parentObj.noiseTableLength = (bitWidth == 0x8) ? 0x80 : 0x8000;
+			parentObj.channel4VolumeShifter = (bitWidth == 0x8) ? 7 : 15;
+			parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
+			parentObj.noiseSampleTable = (bitWidth == 0x8) ? parentObj.LSFR7Table : parentObj.LSFR15Table;
 		}
 		parentObj.memory[0xFF22] = data;
 	}
@@ -8018,7 +8057,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if (data > 0x7F) {
 			parentObj.channel4lastSampleLookup = 0;
 			parentObj.channel4envelopeVolume = parentObj.memory[0xFF21] >> 4;
-			parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << 15;
+			parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
 			parentObj.channel4volumeEnvTime = parentObj.channel4volumeEnvTimeLast;
 			parentObj.channel4totalLength = parentObj.channel4lastTotalLength;
 			if ((data & 0x40) == 0x40) {
