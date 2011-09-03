@@ -5074,10 +5074,10 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 			if (--this.channel1timeSweep == 0) {
 				this.channel1numSweep--;
 				if (this.channel1decreaseSweep) {
-					this.channel1frequency -= this.channel1frequency / this.channel1frequencySweepDivider;
+					this.channel1frequency -= this.channel1frequency >> this.channel1frequencySweepDivider;
 				}
 				else {
-					this.channel1frequency += this.channel1frequency / this.channel1frequencySweepDivider;
+					this.channel1frequency += this.channel1frequency >> this.channel1frequencySweepDivider;
 					if (this.channel1frequency > 0x7FF) {
 						this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
 					}
@@ -5229,10 +5229,10 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 			if (--this.channel1timeSweep == 0) {
 				this.channel1numSweep--;
 				if (this.channel1decreaseSweep) {
-					this.channel1frequency -= this.channel1frequency / this.channel1frequencySweepDivider;
+					this.channel1frequency -= this.channel1frequency >> this.channel1frequencySweepDivider;
 				}
 				else {
-					this.channel1frequency += this.channel1frequency / this.channel1frequencySweepDivider;
+					this.channel1frequency += this.channel1frequency >> this.channel1frequencySweepDivider;
 					if (this.channel1frequency > 0x7FF) {
 						this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
 					}
@@ -7844,7 +7844,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		parentObj.audioJIT();
 		parentObj.channel1lastTimeSweep = parentObj.channel1timeSweep = (((data & 0x70) >> 4) * parentObj.channel1TimeSweepPreMultiplier) | 0;
 		parentObj.channel1numSweep = data & 0x07;
-		parentObj.channel1frequencySweepDivider = 1 << parentObj.channel1numSweep;
+		parentObj.channel1frequencySweepDivider = parentObj.channel1numSweep;
 		parentObj.channel1decreaseSweep = ((data & 0x08) == 0x08);
 		parentObj.memory[0xFF10] = data;
 	}
@@ -7883,7 +7883,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.channel1totalLength = parentObj.channel1lastTotalLength;
 			parentObj.channel1timeSweep = parentObj.channel1lastTimeSweep;
 			parentObj.channel1numSweep = parentObj.memory[0xFF10] & 0x07;
-			parentObj.channel1frequencySweepDivider = 1 << parentObj.channel1numSweep;
+			parentObj.channel1frequencySweepDivider = parentObj.channel1numSweep;
 			if ((data & 0x40) == 0x40) {
 				parentObj.memory[0xFF26] |= 0x1;
 			}
