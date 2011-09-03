@@ -1220,7 +1220,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 				currentClocks = temp_var;
 			}
 		}
-		if (parentObj.halt) {
+		if (!parentObj.halt) {
 			//Exit out of HALT normally:
 			parentObj.CPUTicks = (currentClocks > originalHaltClock) ? currentClocks : originalHaltClock;
 			parentObj.updateCore();
