@@ -4973,10 +4973,11 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 //Below are the audio generation functions timed against the CPU:
 GameBoyCore.prototype.generateAudio = function (numSamples) {
 	if (this.soundMasterEnabled) {
-		if (settings[1]) {						//Split Mono & Stereo into two, to avoid this if statement every iteration of the loop.
+		if (!settings[1]) {						//Split Mono & Stereo into two, to avoid this if statement every iteration of the loop.
 			while (--numSamples >= 0) {
-				//MONO
-				this.audioChannelsCompute();
+				//STEREO
+				this.audioChannelsComputeStereo();
+				this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume;
 				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
@@ -4986,9 +4987,8 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 		}
 		else {
 			while (--numSamples >= 0) {
-				//STEREO
-				this.audioChannelsCompute();
-				this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume;
+				//MONO
+				this.audioChannelsComputeMono();
 				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
@@ -4999,9 +4999,10 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 	}
 	else {
 		//SILENT OUTPUT:
-		if (settings[1]) {
+		if (!settings[1]) {
 			while (--numSamples >= 0) {
-				//MONO
+				//STEREO
+				this.currentBuffer[this.audioIndex++] = -1;
 				this.currentBuffer[this.audioIndex++] = -1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
@@ -5011,8 +5012,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 		}
 		else {
 			while (--numSamples >= 0) {
-				//STEREO
-				this.currentBuffer[this.audioIndex++] = -1;
+				//MONO
 				this.currentBuffer[this.audioIndex++] = -1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
@@ -5036,7 +5036,7 @@ GameBoyCore.prototype.audioJIT = function () {
 	}
 	this.audioTicks = 0;
 }
-GameBoyCore.prototype.audioChannelsCompute = function () {
+GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 	//Channel 1:
 	if ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1frequency <= 0x7FF) {
 		if (this.channel1lastSampleLookup <= this.channel1adjustedDuty) {
@@ -5198,44 +5198,183 @@ GameBoyCore.prototype.audioChannelsCompute = function () {
 		}
 	}
 }
+GameBoyCore.prototype.audioChannelsComputeMono = function () {
+	//Channel 1:
+	if ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1frequency <= 0x7FF) {
+		this.currentSampleRight = (this.channel1lastSampleLookup <= this.channel1adjustedDuty && this.rightChannel[0]) ? this.channel1currentRightVolume : this.neutralRightOffset;
+		if (this.channel1numSweep > 0) {
+			if (--this.channel1timeSweep == 0) {
+				this.channel1numSweep--;
+				if (this.channel1decreaseSweep) {
+					this.channel1frequency -= this.channel1frequency / this.channel1frequencySweepDivider;
+				}
+				else {
+					this.channel1frequency += this.channel1frequency / this.channel1frequencySweepDivider;
+					if (this.channel1frequency > 0x7FF) {
+						this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
+					}
+				}
+				this.channel1timeSweep = this.channel1lastTimeSweep;
+				//Pre-calculate the frequency computation outside the waveform generator for speed:
+				this.channel1adjustedFrequencyPrep = this.preChewedAudioComputationMultiplier / (0x800 - this.channel1frequency);
+			}
+		}
+		if (this.channel1envelopeSweeps > 0) {
+			if (this.channel1volumeEnvTime > 0) {
+				this.channel1volumeEnvTime--;
+			}
+			else {
+				if (!this.channel1envelopeType) {
+					if (this.channel1envelopeVolume > 0) {
+						this.channel1currentVolume = --this.channel1envelopeVolume / 0x1E;
+						this.channel1currentLeftVolume = this.channel1currentVolume + this.neutralLeftOffset;
+						this.channel1currentRightVolume = this.channel1currentVolume + this.neutralRightOffset;
+						this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
+					}
+				}
+				else if (this.channel1envelopeVolume < 0xF) {
+					this.channel1currentVolume = ++this.channel1envelopeVolume / 0x1E;
+					this.channel1currentLeftVolume = this.channel1currentVolume + this.neutralLeftOffset;
+					this.channel1currentRightVolume = this.channel1currentVolume + this.neutralRightOffset;
+					this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
+				}
+			}
+		}
+		if (this.channel1totalLength > 0) {
+			this.channel1totalLength--;
+			if (this.channel1totalLength <= 0) {
+				this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
+			}
+		}
+		this.channel1lastSampleLookup += this.channel1adjustedFrequencyPrep;
+		while (this.channel1lastSampleLookup >= 1) {
+			this.channel1lastSampleLookup -= 1;
+		}
+	}
+	else {
+		this.currentSampleRight = this.neutralRightOffset;
+	}
+	//Channel 2:
+	if (this.channel2consecutive || this.channel2totalLength > 0) {
+		if (this.channel2lastSampleLookup <= this.channel2adjustedDuty && this.rightChannel[1]) {
+			this.currentSampleRight += this.channel2currentVolume;
+		}
+		if (this.channel2envelopeSweeps > 0) {
+			if (this.channel2volumeEnvTime > 0) {
+				this.channel2volumeEnvTime--;
+			}
+			else {
+				if (!this.channel2envelopeType) {
+					if (this.channel2envelopeVolume > 0) {
+						this.channel2currentVolume = --this.channel2envelopeVolume / 0x1E;
+						this.channel2volumeEnvTime = this.channel2volumeEnvTimeLast;
+					}
+				}
+				else if (this.channel2envelopeVolume < 0xF) {
+					this.channel2currentVolume = ++this.channel2envelopeVolume / 0x1E;
+					this.channel2volumeEnvTime = this.channel2volumeEnvTimeLast;
+				}
+			}
+		}
+		if (this.channel2totalLength > 0) {
+			this.channel2totalLength--;
+			if (this.channel2totalLength <= 0) {
+				this.memory[0xFF26] &= 0xFD;	//Channel #2 On Flag Off
+			}
+		}
+		this.channel2lastSampleLookup += this.channel2adjustedFrequencyPrep;
+		while (this.channel2lastSampleLookup >= 1) {
+			this.channel2lastSampleLookup -= 1;
+		}
+	}
+	//Channel 3:
+	if (this.channel3canPlay && (this.channel3consecutive || this.channel3totalLength > 0)) {
+		if (this.channel3patternType > -20 && this.rightChannel[2]) {
+			this.currentSampleRight += this.channel3PCM[this.channel3Tracker | this.channel3patternType];
+		}
+		this.channel3Tracker += this.channel3adjustedFrequencyPrep;
+		if (this.channel3Tracker >= 0x20) {
+			this.channel3Tracker -= 0x20;
+		}
+		if (this.channel3totalLength > 0) {
+			this.channel3totalLength--;
+			if (this.channel3totalLength <= 0) {
+				this.memory[0xFF26] &= 0xFB;	//Channel #3 On Flag Off
+			}
+		}
+	}
+	//Channel 4:
+	if (this.channel4consecutive || this.channel4totalLength > 0) {
+		if (this.rightChannel[3]) {
+			this.currentSampleRight += this.noiseSampleTable[this.channel4currentVolume | this.channel4lastSampleLookup];
+		}
+		if (this.channel4envelopeSweeps > 0) {
+			if (this.channel4volumeEnvTime > 0) {
+				this.channel4volumeEnvTime--;
+			}
+			else {
+				if (!this.channel4envelopeType) {
+					if (this.channel4envelopeVolume > 0) {
+						this.channel4currentVolume = --this.channel4envelopeVolume << 15;
+						this.channel4volumeEnvTime = this.channel4volumeEnvTimeLast;
+					}
+				}
+				else if (this.channel4envelopeVolume < 0xF) {
+					this.channel4currentVolume = ++this.channel4envelopeVolume << 15;
+					this.channel4volumeEnvTime = this.channel4volumeEnvTimeLast;
+				}
+			}
+		}
+		if (this.channel4totalLength > 0) {
+			this.channel4totalLength--;
+			if (this.channel4totalLength <= 0) {
+				this.memory[0xFF26] &= 0xF7;	//Channel #4 On Flag Off
+			}
+		}
+		this.channel4lastSampleLookup += this.channel4adjustedFrequencyPrep;
+		if (this.channel4lastSampleLookup >= this.noiseTableLength) {
+			this.channel4lastSampleLookup -= this.noiseTableLength;
+		}
+	}
+}
 //Below are the buffer-underrun protection audio refill functions:
 GameBoyCore.prototype.generateAudioSafe = function (tempBuffer, numSamples) {
 	if (this.soundMasterEnabled) {
-		if (settings[1]) {						//Split Mono & Stereo into two, to avoid this if statement every iteration of the loop.
+		if (!settings[1]) {						//Split Mono & Stereo into two, to avoid this if statement every iteration of the loop.
 			while (--numSamples >= 0) {
-				//MONO
-				this.audioChannelsComputeSafe();
+				//STEREO
+				this.audioChannelsComputeStereoSafe();
+				tempBuffer.push(this.currentSampleLeft * this.VinLeftChannelMasterVolume);
 				tempBuffer.push(this.currentSampleRight * this.VinRightChannelMasterVolume);
 			}
 		}
 		else {
 			while (--numSamples >= 0) {
-				//STEREO
-				this.audioChannelsComputeSafe();
-				tempBuffer.push(this.currentSampleLeft * this.VinLeftChannelMasterVolume);
+				//MONO
+				this.audioChannelsComputeMonoSafe();
 				tempBuffer.push(this.currentSampleRight * this.VinRightChannelMasterVolume);
 			}
 		}
 	}
 	else {
 		//SILENT OUTPUT:
-		if (settings[1]) {
-			while (--numSamples >= 0) {
-				//MONO
-				tempBuffer.push(-1);
-			}
-		}
-		else {
+		if (!settings[1]) {
 			while (--numSamples >= 0) {
 				//STEREO
 				tempBuffer.push(-1);
 				tempBuffer.push(-1);
 			}
 		}
+		else {
+			while (--numSamples >= 0) {
+				//MONO
+				tempBuffer.push(-1);
+			}
+		}
 	}
 	return tempBuffer;
 }
-GameBoyCore.prototype.audioChannelsComputeSafe = function () {
+GameBoyCore.prototype.audioChannelsComputeStereoSafe = function () {
 	//channel 1:
 	if ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1frequency <= 0x7FF) {
 		if (this.channel1lastSampleLookup <= this.channel1adjustedDuty) {
@@ -5294,6 +5433,54 @@ GameBoyCore.prototype.audioChannelsComputeSafe = function () {
 		}
 		if (this.rightChannel[3]) {
 			this.currentSampleRight += duty;
+		}
+		this.channel4lastSampleLookup += this.channel4adjustedFrequencyPrep;
+		if (this.channel4lastSampleLookup >= this.noiseTableLength) {
+			this.channel4lastSampleLookup -= this.noiseTableLength;
+		}
+	}
+}
+GameBoyCore.prototype.audioChannelsComputeMonoSafe = function () {
+	//channel 1:
+	if ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1frequency <= 0x7FF) {
+		if (this.channel1lastSampleLookup <= this.channel1adjustedDuty) {
+			this.currentSampleRight = (this.rightChannel[0]) ? this.channel1currentRightVolume : this.neutralRightOffset;
+		}
+		else {
+			this.currentSampleRight = this.neutralRightOffset;
+		}
+		this.channel1lastSampleLookup += this.channel1adjustedFrequencyPrep;
+		while (this.channel1lastSampleLookup >= 1) {
+			this.channel1lastSampleLookup -= 1;
+		}
+	}
+	else {
+		this.currentSampleRight = this.neutralRightOffset;
+	}
+	//Channel 2:
+	if (this.channel2consecutive || this.channel2totalLength > 0) {
+		if (this.channel2lastSampleLookup <= this.channel2adjustedDuty && this.rightChannel[1]) {
+			this.currentSampleRight += this.channel2currentVolume;
+		}
+		this.channel2lastSampleLookup += this.channel2adjustedFrequencyPrep;
+		while (this.channel2lastSampleLookup >= 1) {
+			this.channel2lastSampleLookup -= 1;
+		}
+	}
+	//Channel 3:
+	if (this.channel3canPlay && (this.channel3consecutive || this.channel3totalLength > 0)) {
+		if (this.channel3patternType > -20 && this.rightChannel[2]) {
+			this.currentSampleRight += this.channel3PCM[this.channel3Tracker | this.channel3patternType];
+		}
+		this.channel3Tracker += this.channel3adjustedFrequencyPrep;
+		if (this.channel3Tracker >= 0x20) {
+			this.channel3Tracker -= 0x20;
+		}
+	}
+	//Channel 4:
+	if (this.channel4consecutive || this.channel4totalLength > 0) {
+		if (this.rightChannel[3]) {
+			this.currentSampleRight += this.noiseSampleTable[this.channel4currentVolume | this.channel4lastSampleLookup];
 		}
 		this.channel4lastSampleLookup += this.channel4adjustedFrequencyPrep;
 		if (this.channel4lastSampleLookup >= this.noiseTableLength) {
