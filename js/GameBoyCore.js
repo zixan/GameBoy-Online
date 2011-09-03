@@ -3965,6 +3965,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.channel1envelopeSweeps,
 		this.channel1consecutive,
 		this.channel1frequency,
+		this.channel1ShadowFrequency,
 		this.channel1volumeEnvTime,
 		this.channel1volumeEnvTimeLast,
 		this.channel1lastTotalLength,
@@ -4133,6 +4134,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel1envelopeSweeps = state[index++];
 	this.channel1consecutive = state[index++];
 	this.channel1frequency = state[index++];
+	this.channel1ShadowFrequency = state[index++];
 	this.channel1volumeEnvTime = state[index++];
 	this.channel1volumeEnvTimeLast = state[index++];
 	this.channel1lastTotalLength = state[index++];
@@ -4943,6 +4945,7 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 		this.channel1envelopeSweeps = 0;
 		this.channel1consecutive = true;
 		this.channel1frequency = 0;
+		this.channel1ShadowFrequency = -1;
 		this.channel1volumeEnvTime = 0;
 		this.channel1volumeEnvTimeLast = 0;
 		this.channel1lastTotalLength = 0;
@@ -5073,6 +5076,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 		if (this.channel1numSweep > 0) {
 			if (--this.channel1timeSweep == 0) {
 				this.channel1numSweep--;
+				this.channel1frequency = (this.channel1ShadowFrequency > -1) ? this.channel1ShadowFrequency : this.channel1frequency;
 				if (this.channel1decreaseSweep) {
 					this.channel1frequency -= this.channel1frequency >> this.channel1frequencySweepDivider;
 				}
@@ -5228,6 +5232,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 		if (this.channel1numSweep > 0) {
 			if (--this.channel1timeSweep == 0) {
 				this.channel1numSweep--;
+				this.channel1frequency = (this.channel1ShadowFrequency > -1) ? this.channel1ShadowFrequency : this.channel1frequency;
 				if (this.channel1decreaseSweep) {
 					this.channel1frequency -= this.channel1frequency >> this.channel1frequencySweepDivider;
 				}
@@ -7843,8 +7848,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x10] = this.memoryWriter[0xFF10] = function (parentObj, address, data) {
 		parentObj.audioJIT();
 		parentObj.channel1lastTimeSweep = parentObj.channel1timeSweep = (((data & 0x70) >> 4) * parentObj.channel1TimeSweepPreMultiplier) | 0;
-		parentObj.channel1numSweep = data & 0x07;
-		parentObj.channel1frequencySweepDivider = parentObj.channel1numSweep;
+		parentObj.channel1frequencySweepDivider = parentObj.channel1numSweep = data & 0x07;
 		parentObj.channel1decreaseSweep = ((data & 0x08) == 0x08);
 		parentObj.memory[0xFF10] = data;
 	}
@@ -7867,6 +7871,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryHighWriter[0x13] = this.memoryWriter[0xFF13] = function (parentObj, address, data) {
 		parentObj.audioJIT();
+		if ((parentObj.channel1consecutive || parentObj.channel1totalLength > 0) && parentObj.channel1frequency <= 0x7FF) {
+			parentObj.channel1ShadowFrequency = parentObj.channel1frequency;
+		}
 		parentObj.channel1frequency = (parentObj.channel1frequency & 0x700) | data;
 		//Pre-calculate the frequency computation outside the waveform generator for speed:
 		parentObj.channel1adjustedFrequencyPrep = parentObj.preChewedAudioComputationMultiplier / (0x800 - parentObj.channel1frequency);
@@ -7882,11 +7889,14 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.channel1volumeEnvTime = parentObj.channel1volumeEnvTimeLast;
 			parentObj.channel1totalLength = parentObj.channel1lastTotalLength;
 			parentObj.channel1timeSweep = parentObj.channel1lastTimeSweep;
-			parentObj.channel1numSweep = parentObj.memory[0xFF10] & 0x07;
-			parentObj.channel1frequencySweepDivider = parentObj.channel1numSweep;
+			parentObj.channel1frequencySweepDivider = parentObj.channel1numSweep = parentObj.memory[0xFF10] & 0x07;
 			if ((data & 0x40) == 0x40) {
 				parentObj.memory[0xFF26] |= 0x1;
 			}
+			parentObj.channel1ShadowFrequency = -1;
+		}
+		else if ((parentObj.channel1consecutive || parentObj.channel1totalLength > 0) && parentObj.channel1frequency <= 0x7FF) {
+			parentObj.channel1ShadowFrequency = parentObj.channel1frequency;
 		}
 		parentObj.channel1consecutive = ((data & 0x40) == 0x0);
 		parentObj.channel1frequency = ((data & 0x7) << 8) | (parentObj.channel1frequency & 0xFF);
