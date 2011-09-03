@@ -1145,6 +1145,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x76:
 	function (parentObj) {
 		if (!parentObj.halt) {
+			parentObj.halt = true;
 			if (parentObj.cGBC) {
 				parentObj.CPUTicks += 4;	//CGB adds a hidden NOP.
 			}
@@ -1171,41 +1172,63 @@ GameBoyCore.prototype.OPCODE = new Array(
 			var originalHaltClock = 0;
 		}
 		//Prepare the short-circuit directly to the next IRQ event:
-		var maximumClocks = (parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks) * parentObj.multiplier;
-		var currentClocks = maximumClocks + 4;
+		var currentClocks = (parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks) * parentObj.multiplier;
+		var temp_var = 0;
 		if (parentObj.LCDisOn) {
 			if ((parentObj.interruptsEnabled & 0x1) == 0x1) {
-				currentClocks = Math.min(((456 * (((parentObj.modeSTAT == 1) ? 298 : 144) - parentObj.actualScanLine)) - parentObj.LCDTicks) * parentObj.multiplier, currentClocks);
+				temp_var = ((456 * (((parentObj.modeSTAT == 1) ? 298 : 144) - parentObj.actualScanLine)) - parentObj.LCDTicks) * parentObj.multiplier;
+				if (temp_var <= currentClocks) {
+					parentObj.halt = false;
+					currentClocks = temp_var;
+				}
 			}
 			if ((parentObj.interruptsEnabled & 0x2) == 0x2) {
 				if (parentObj.mode0TriggerSTAT) {
-					currentClocks = Math.min(parentObj.clocksUntilMode0() * parentObj.multiplier, currentClocks);
+					temp_var = (parentObj.clocksUntilMode0() - parentObj.LCDTicks) * parentObj.multiplier;
+					if (temp_var <= currentClocks) {
+						parentObj.halt = false;
+						currentClocks = temp_var;
+					}
 				}
 				if (parentObj.mode1TriggerSTAT && (parentObj.interruptsEnabled & 0x1) == 0) {
-					currentClocks = Math.min(((456 * (((parentObj.modeSTAT == 1) ? 298 : 144) - parentObj.actualScanLine)) - parentObj.LCDTicks) * parentObj.multiplier, currentClocks);
+					temp_var = ((456 * (((parentObj.modeSTAT == 1) ? 298 : 144) - parentObj.actualScanLine)) - parentObj.LCDTicks) * parentObj.multiplier;
+					if (temp_var <= currentClocks) {
+						parentObj.halt = false;
+						currentClocks = temp_var;
+					}
 				}
 				if (parentObj.mode2TriggerSTAT) {
-					currentClocks = Math.min((((parentObj.actualScanLine >= 143) ? (456 * (154 - parentObj.actualScanLine)) : 456) - parentObj.LCDTicks) * parentObj.multiplier, currentClocks);
+					temp_var = (((parentObj.actualScanLine >= 143) ? (456 * (154 - parentObj.actualScanLine)) : 456) - parentObj.LCDTicks) * parentObj.multiplier;
+					if (temp_var <= currentClocks) {
+						parentObj.halt = false;
+						currentClocks = temp_var;
+					}
 				}
 				if (parentObj.LYCMatchTriggerSTAT && parentObj.memory[0xFF45] <= 153) {
-					currentClocks = Math.min(parentObj.clocksUntilLYCMatch() * parentObj.multiplier, currentClocks);
+					temp_var = (parentObj.clocksUntilLYCMatch() - parentObj.LCDTicks) * parentObj.multiplier;
+					if (temp_var <= currentClocks) {
+						parentObj.halt = false;
+						currentClocks = temp_var;
+					}
 				}
 			}
 		}
 		if (parentObj.TIMAEnabled && (parentObj.interruptsEnabled & 0x4) == 0x4) {
-			currentClocks = Math.min(((0x100 - parentObj.memory[0xFF05]) * parentObj.TACClocker) - parentObj.timerTicks, currentClocks);
+			temp_var = ((0x100 - parentObj.memory[0xFF05]) * parentObj.TACClocker) - parentObj.timerTicks;
+			if (temp_var <= currentClocks) {
+				parentObj.halt = false;
+				currentClocks = temp_var;
+			}
 		}
-		if (currentClocks < (maximumClocks + 4)) {
+		if (parentObj.halt) {
 			//Exit out of HALT normally:
 			parentObj.CPUTicks = Math.max(currentClocks, originalHaltClock);
 			parentObj.updateCore();
 			parentObj.CPUTicks = parentObj.haltPostClocks;
-			parentObj.halt = false;
 		}
 		else {
 			//We have to bail out of HALT since the clocking is so large:
-			parentObj.CPUTicks = maximumClocks;
-			parentObj.halt = true;	//Flags that we will jump back to HALT on the next iteration.
+			parentObj.CPUTicks = currentClocks;
 		}
 	},
 	//LD (HL), A
@@ -5635,28 +5658,28 @@ GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 GameBoyCore.prototype.clocksUntilLYCMatch = function () {
 	if (this.memory[0xFF45] != 0) {
 		if (this.memory[0xFF45] > this.actualScanLine) {
-			return ((456 * (this.memory[0xFF45] - this.actualScanLine)) - this.LCDTicks);
+			return (456 * (this.memory[0xFF45] - this.actualScanLine));
 		}
-		return ((456 * (154 - this.actualScanLine + this.memory[0xFF45])) - this.LCDTicks);
+		return (456 * (154 - this.actualScanLine + this.memory[0xFF45]));
 	}
-	return ((456 * ((this.actualScanLine == 153 && this.memory[0xFF44] == 0) ? 154 : (153 - this.actualScanLine))) + 8 - this.LCDTicks);
+	return ((456 * ((this.actualScanLine == 153 && this.memory[0xFF44] == 0) ? 154 : (153 - this.actualScanLine))) + 8);
 }
 GameBoyCore.prototype.clocksUntilMode0 = function () {
 	switch (this.modeSTAT) {
 		case 0:
 			if (this.actualScanLine == 143) {
 				this.updateSpriteCount(0);
-				return (this.spriteCount + 5016 - this.LCDTicks);
+				return (this.spriteCount + 5016);
 			}
 			this.updateSpriteCount(this.actualScanLine + 1);
-			return (this.spriteCount + 456 - this.LCDTicks);
+			return (this.spriteCount + 456);
 		case 2:
 		case 3:
 			this.updateSpriteCount(this.actualScanLine);
-			return (this.spriteCount - this.LCDTicks);
+			return this.spriteCount;
 		case 1:
 			this.updateSpriteCount(0);
-			return (this.spriteCount + (456 * (154 - this.actualScanLine)) - this.LCDTicks);
+			return (this.spriteCount + (456 * (154 - this.actualScanLine)));
 	}
 }
 GameBoyCore.prototype.updateSpriteCount = function (line) {
