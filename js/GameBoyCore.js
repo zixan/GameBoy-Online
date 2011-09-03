@@ -1164,7 +1164,6 @@ GameBoyCore.prototype.OPCODE = new Array(
 				return;
 			}
 			//Make sure we minimally clock 1:
-			parentObj.CPUTicks -= 4;
 			parentObj.haltPostClocks = parentObj.CPUTicks;
 			var originalHaltClock = 4;
 		}
@@ -1222,7 +1221,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 		}
 		if (parentObj.halt) {
 			//Exit out of HALT normally:
-			parentObj.CPUTicks = Math.max(currentClocks, originalHaltClock);
+			parentObj.CPUTicks = (currentClocks > originalHaltClock) ? currentClocks : originalHaltClock;
 			parentObj.updateCore();
 			parentObj.CPUTicks = parentObj.haltPostClocks;
 		}
@@ -3814,7 +3813,7 @@ GameBoyCore.prototype.TICKTable = new Array(				//Number of machine cycles for e
      4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //4
      4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //5
      4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //6
-     8,  8,  8,  8,  8,  8,  4,  8,      4,  4,  4, 4,  4,  4, 8,  4,  //7
+     8,  8,  8,  8,  8,  8,  0,  8,      4,  4,  4, 4,  4,  4, 8,  4,  //7
 
      4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //8
      4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //9
