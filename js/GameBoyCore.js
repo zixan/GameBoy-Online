@@ -173,7 +173,6 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.ROMBanks[0x52] = 72;
 	this.ROMBanks[0x53] = 80;
 	this.ROMBanks[0x54] = 96;
-	this.numRAMBanksRequested = 0;
 	this.numRAMBanks = 0;					//How many RAM banks were actually allocated?
 	////Graphics Variables
 	this.currVRAMBank = 0;					//Current VRAM bank for GBC.
@@ -4609,19 +4608,15 @@ GameBoyCore.prototype.interpretCartridge = function () {
 	cout(this.numROMBanks + " ROM banks.", 0);
 	switch (this.RAMBanks[this.ROM[0x149]]) {
 		case 0:
-			this.numRAMBanksRequested = 0;
 			cout("No RAM banking requested for allocation or MBC is of type 2.", 0);
 			break;
 		case 2:
-			this.numRAMBanksRequested = 0x01;
 			cout("1 RAM bank requested for allocation.", 0);
 			break;
 		case 3:
-			this.numRAMBanksRequested = 0x04;
 			cout("4 RAM banks requested for allocation.", 0);
 			break;
 		case 4:
-			this.numRAMBanksRequested = 0x10;
 			cout("16 RAM banks requested for allocation.", 0);
 			break;
 		default:
@@ -4721,10 +4716,10 @@ GameBoyCore.prototype.setupRAM = function () {
 		this.numRAMBanks = 1 / 16;
 	}
 	else if (this.cMBC1 || this.cRUMBLE || this.cMBC3 || this.cHuC3) {
-		this.numRAMBanks = Math.min(4, this.numRAMBanksRequested);
+		this.numRAMBanks = 4;
 	}
 	else if (this.cMBC5) {
-		this.numRAMBanks = Math.min(16, this.numRAMBanksRequested);
+		this.numRAMBanks = 16;
 	}
 	else if (this.cSRAM) {
 		this.numRAMBanks = 1;
