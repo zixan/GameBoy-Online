@@ -5115,7 +5115,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 				this.channel1adjustedFrequencyPrep = this.preChewedAudioComputationMultiplier / (0x800 - this.channel1frequency);
 			}
 		}
-		if (this.channel1envelopeSweeps > 0) {
+		if (this.channel1volumeEnvTimeLast > 0) {
 			if (this.channel1volumeEnvTime > 0) {
 				this.channel1volumeEnvTime--;
 			}
@@ -5133,6 +5133,9 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 					this.channel1currentLeftVolume = this.channel1currentVolume + this.neutralLeftOffset;
 					this.channel1currentRightVolume = this.channel1currentVolume + this.neutralRightOffset;
 					this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
+				}
+				else {
+					this.channel1volumeEnvTimeLast = 0;
 				}
 			}
 		}
@@ -5161,7 +5164,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 				this.currentSampleRight += this.channel2currentVolume;
 			}
 		}
-		if (this.channel2envelopeSweeps > 0) {
+		if (this.channel2volumeEnvTimeLast > 0) {
 			if (this.channel2volumeEnvTime > 0) {
 				this.channel2volumeEnvTime--;
 			}
@@ -5175,6 +5178,9 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 				else if (this.channel2envelopeVolume < 0xF) {
 					this.channel2currentVolume = ++this.channel2envelopeVolume / 0x1E;
 					this.channel2volumeEnvTime = this.channel2volumeEnvTimeLast;
+				}
+				else {
+					this.channel2volumeEnvTimeLast = 0;
 				}
 			}
 		}
@@ -5220,7 +5226,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 		if (this.rightChannel[3]) {
 			this.currentSampleRight += duty;
 		}
-		if (this.channel4envelopeSweeps > 0) {
+		if (this.channel4volumeEnvTimeLast > 0) {
 			if (this.channel4volumeEnvTime > 0) {
 				this.channel4volumeEnvTime--;
 			}
@@ -5234,6 +5240,9 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 				else if (this.channel4envelopeVolume < 0xF) {
 					this.channel4currentVolume = ++this.channel4envelopeVolume << this.channel4VolumeShifter;
 					this.channel4volumeEnvTime = this.channel4volumeEnvTimeLast;
+				}
+				else {
+					this.channel4volumeEnvTimeLast = 0;
 				}
 			}
 		}
@@ -5271,7 +5280,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 				this.channel1adjustedFrequencyPrep = this.preChewedAudioComputationMultiplier / (0x800 - this.channel1frequency);
 			}
 		}
-		if (this.channel1envelopeSweeps > 0) {
+		if (this.channel1volumeEnvTimeLast > 0) {
 			if (this.channel1volumeEnvTime > 0) {
 				this.channel1volumeEnvTime--;
 			}
@@ -5289,6 +5298,9 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 					this.channel1currentLeftVolume = this.channel1currentVolume + this.neutralLeftOffset;
 					this.channel1currentRightVolume = this.channel1currentVolume + this.neutralRightOffset;
 					this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
+				}
+				else {
+					this.channel1volumeEnvTimeLast = 0;
 				}
 			}
 		}
@@ -5311,7 +5323,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 		if (this.channel2lastSampleLookup <= this.channel2adjustedDuty && this.rightChannel[1]) {
 			this.currentSampleRight += this.channel2currentVolume;
 		}
-		if (this.channel2envelopeSweeps > 0) {
+		if (this.channel2volumeEnvTimeLast > 0) {
 			if (this.channel2volumeEnvTime > 0) {
 				this.channel2volumeEnvTime--;
 			}
@@ -5325,6 +5337,9 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 				else if (this.channel2envelopeVolume < 0xF) {
 					this.channel2currentVolume = ++this.channel2envelopeVolume / 0x1E;
 					this.channel2volumeEnvTime = this.channel2volumeEnvTimeLast;
+				}
+				else {
+					this.channel2volumeEnvTimeLast = 0;
 				}
 			}
 		}
@@ -5360,7 +5375,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 		if (this.rightChannel[3]) {
 			this.currentSampleRight += this.noiseSampleTable[this.channel4currentVolume | this.channel4lastSampleLookup];
 		}
-		if (this.channel4envelopeSweeps > 0) {
+		if (this.channel4volumeEnvTimeLast > 0) {
 			if (this.channel4volumeEnvTime > 0) {
 				this.channel4volumeEnvTime--;
 			}
@@ -5374,6 +5389,9 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 				else if (this.channel4envelopeVolume < 0xF) {
 					this.channel4currentVolume = ++this.channel4envelopeVolume << this.channel4VolumeShifter;
 					this.channel4volumeEnvTime = this.channel4volumeEnvTimeLast;
+				}
+				else {
+					this.channel4volumeEnvTimeLast = 0;
 				}
 			}
 		}
@@ -7963,8 +7981,11 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 	}
 	this.memoryHighWriter[0x11] = this.memoryWriter[0xFF11] = function (parentObj, address, data) {
-		if (parentObj.soundMasterEnabled) {
+		if (parentObj.soundMasterEnabled || !parentObj.cGBC) {
 			parentObj.audioJIT();
+			if (!parentObj.soundMasterEnabled) {
+				data &= 0x3F;
+			}
 			parentObj.channel1adjustedDuty = parentObj.dutyLookup[data >> 6];
 			parentObj.channel1totalLength = (0x40 - (data & 0x3F)) * parentObj.audioTotalLengthMultiplier;
 			parentObj.memory[0xFF11] = data & 0xC0;
@@ -7972,21 +7993,23 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryHighWriter[0x12] = this.memoryWriter[0xFF12] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
-			if (parentObj.channel1envelopeSweeps == 0) {
+			//Zombie Volume PAPU Bug:
+			if (parentObj.channel1volumeEnvTimeLast != 0) {
 				parentObj.audioJIT();
-				//Zombie Volume PAPU Bug:
-				/*if (((data ^ parentObj.memory[0xFF12]) & 0x8) == 0x8 && (data & 0x8) != ((parentObj.channel1envelopeType) ? 0x8 : 0)) {
+				if (((parentObj.memory[0xFF12] ^ data) & 0x8) == 0x8) {
+					if ((parentObj.memory[0xFF12] & 0x8) == 0) {
+						if ((parentObj.memory[0xFF12] & 0x7) == 0x7) {
+							parentObj.channel1envelopeVolume += 2;
+						}
+						else {
+							++parentObj.channel1envelopeVolume;
+						}
+					}
 					parentObj.channel1envelopeVolume = (16 - parentObj.channel1envelopeVolume) & 0xF;
 				}
-				else */if (!parentObj.channel1envelopeType) {
-					parentObj.channel1envelopeVolume = (2 + parentObj.channel1envelopeVolume) & 0xF;
-				}
-				else {
+				else if ((parentObj.memory[0xFF12] & 0xF) == 0x8) {
 					parentObj.channel1envelopeVolume = (1 + parentObj.channel1envelopeVolume) & 0xF;
 				}
-				parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
-				parentObj.channel1currentLeftVolume = parentObj.channel1currentVolume + parentObj.neutralLeftOffset;
-				parentObj.channel1currentRightVolume = parentObj.channel1currentVolume + parentObj.neutralRightOffset;
 			}
 			parentObj.memory[0xFF12] = data;
 		}
@@ -8041,8 +8064,11 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 	}
 	this.memoryHighWriter[0x16] = this.memoryWriter[0xFF16] = function (parentObj, address, data) {
-		if (parentObj.soundMasterEnabled) {
+		if (parentObj.soundMasterEnabled || !parentObj.cGBC) {
 			parentObj.audioJIT();
+			if (!parentObj.soundMasterEnabled) {
+				data &= 0x3F;
+			}
 			parentObj.channel2adjustedDuty = parentObj.dutyLookup[data >> 6];
 			parentObj.channel2totalLength = (0x40 - (data & 0x3F)) * parentObj.audioTotalLengthMultiplier;
 			parentObj.memory[0xFF16] = data & 0xC0;
@@ -8050,19 +8076,23 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryHighWriter[0x17] = this.memoryWriter[0xFF17] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
-			if (parentObj.channel2envelopeSweeps == 0) {
+			//Zombie Volume PAPU Bug:
+			if (parentObj.channel2volumeEnvTimeLast != 0) {
 				parentObj.audioJIT();
-				//Zombie Volume PAPU Bug:
-				/*if (((data ^ parentObj.memory[0xFF17]) & 0x8) == 0x8 && (data & 0x8) != ((parentObj.channel2envelopeType) ? 0x8 : 0)) {
+				if (((parentObj.memory[0xFF17] ^ data) & 0x8) == 0x8) {
+					if ((parentObj.memory[0xFF17] & 0x8) == 0) {
+						if ((parentObj.memory[0xFF17] & 0x7) == 0x7) {
+							parentObj.channel2envelopeVolume += 2;
+						}
+						else {
+							++parentObj.channel2envelopeVolume;
+						}
+					}
 					parentObj.channel2envelopeVolume = (16 - parentObj.channel2envelopeVolume) & 0xF;
 				}
-				else */if (!parentObj.channel2envelopeType) {
-					parentObj.channel2envelopeVolume = (2 + parentObj.channel2envelopeVolume) & 0xF;
-				}
-				else {
+				else if ((parentObj.memory[0xFF17] & 0xF) == 0x8) {
 					parentObj.channel2envelopeVolume = (1 + parentObj.channel2envelopeVolume) & 0xF;
 				}
-				parentObj.channel2currentVolume = parentObj.channel2envelopeVolume / 0x1E;
 			}
 			parentObj.memory[0xFF17] = data;
 		}
@@ -8115,7 +8145,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 	}
 	this.memoryHighWriter[0x1B] = this.memoryWriter[0xFF1B] = function (parentObj, address, data) {
-		if (parentObj.soundMasterEnabled) {
+		if (parentObj.soundMasterEnabled || !parentObj.cGBC) {
 			parentObj.audioJIT();
 			parentObj.channel3totalLength = (0x100 - data) * parentObj.audioTotalLengthMultiplier;
 			parentObj.memory[0xFF1B] = data;
@@ -8155,7 +8185,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 	}
 	this.memoryHighWriter[0x20] = this.memoryWriter[0xFF20] = function (parentObj, address, data) {
-		if (parentObj.soundMasterEnabled) {
+		if (parentObj.soundMasterEnabled || !parentObj.cGBC) {
 			parentObj.audioJIT();
 			parentObj.channel4totalLength = (0x40 - (data & 0x3F)) * parentObj.audioTotalLengthMultiplier;
 			parentObj.memory[0xFF20] = data | 0xC0;
@@ -8163,19 +8193,23 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryHighWriter[0x21] = this.memoryWriter[0xFF21] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
-			if (parentObj.channel4envelopeSweeps == 0) {
+			//Zombie Volume PAPU Bug:
+			if (parentObj.channel4volumeEnvTimeLast != 0) {
 				parentObj.audioJIT();
-				//Zombie Volume PAPU Bug:
-				/*if (((data ^ parentObj.memory[0xFF21]) & 0x8) == 0x8 && (data & 0x8) != ((parentObj.channel4envelopeType) ? 0x8 : 0)) {
+				if (((parentObj.memory[0xFF21] ^ data) & 0x8) == 0x8) {
+					if ((parentObj.memory[0xFF21] & 0x8) == 0) {
+						if ((parentObj.memory[0xFF21] & 0x7) == 0x7) {
+							parentObj.channel4envelopeVolume += 2;
+						}
+						else {
+							++parentObj.channel4envelopeVolume;
+						}
+					}
 					parentObj.channel4envelopeVolume = (16 - parentObj.channel4envelopeVolume) & 0xF;
 				}
-				else */if (!parentObj.channel4envelopeType) {
-					parentObj.channel4envelopeVolume = (2 + parentObj.channel4envelopeVolume) & 0xF;
-				}
-				else {
+				else if ((parentObj.memory[0xFF21] & 0xF) == 0x8) {
 					parentObj.channel4envelopeVolume = (1 + parentObj.channel4envelopeVolume) & 0xF;
 				}
-				parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
 			}
 			parentObj.memory[0xFF21] = data;
 		}
