@@ -7950,8 +7950,8 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryHighWriter[0x10] = this.memoryWriter[0xFF10] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
-			parentObj.audioJIT();
-			/*parentObj.channel1lastTimeSweep = parentObj.channel1timeSweep = (((data & 0x70) >> 4) * parentObj.channel1TimeSweepPreMultiplier) | 0;
+			/*parentObj.audioJIT();
+			parentObj.channel1lastTimeSweep = parentObj.channel1timeSweep = (((data & 0x70) >> 4) * parentObj.channel1TimeSweepPreMultiplier) | 0;
 			parentObj.channel1frequencySweepDivider = parentObj.channel1numSweep = data & 0x07;
 			parentObj.channel1decreaseSweep = ((data & 0x08) == 0x08);*/
 			parentObj.memory[0xFF10] = data;
@@ -7967,8 +7967,8 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryHighWriter[0x12] = this.memoryWriter[0xFF12] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
-			parentObj.audioJIT();
-			/*parentObj.channel1envelopeVolume = data >> 4;
+			/*parentObj.audioJIT();
+			parentObj.channel1envelopeVolume = data >> 4;
 			parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
 			parentObj.channel1currentLeftVolume = parentObj.channel1currentVolume + parentObj.neutralLeftOffset;
 			parentObj.channel1currentRightVolume = parentObj.channel1currentVolume + parentObj.neutralRightOffset;
@@ -8059,11 +8059,11 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.audioJIT();
 			if (data > 0x7F) {
 				//Reload 0xFF17:
-				var nr16 = parentObj.memory[0xFF17];
-				parentObj.channel2envelopeVolume = nr16 >> 4;
+				var nr22 = parentObj.memory[0xFF17];
+				parentObj.channel2envelopeVolume = nr22 >> 4;
 				parentObj.channel2currentVolume = parentObj.channel2envelopeVolume / 0x1E;
-				parentObj.channel2envelopeType = ((nr16 & 0x08) == 0x08);
-				parentObj.channel2envelopeSweeps = nr16 & 0x7;
+				parentObj.channel2envelopeType = ((nr22 & 0x08) == 0x08);
+				parentObj.channel2envelopeSweeps = nr22 & 0x7;
 				parentObj.channel2volumeEnvTime = parentObj.channel2volumeEnvTimeLast = parentObj.channel2envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
 				if (parentObj.channel2totalLength == 0) {
 					parentObj.channel2totalLength = 64 * parentObj.audioTotalLengthMultiplier
@@ -8141,12 +8141,12 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryHighWriter[0x21] = this.memoryWriter[0xFF21] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
-			parentObj.audioJIT();
+			/*parentObj.audioJIT();
 			parentObj.channel4envelopeVolume = data >> 4;
 			parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
 			parentObj.channel4envelopeType = ((data & 0x08) == 0x08);
 			parentObj.channel4envelopeSweeps = data & 0x7;
-			parentObj.channel4volumeEnvTime = parentObj.channel4volumeEnvTimeLast = parentObj.channel4envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
+			parentObj.channel4volumeEnvTime = parentObj.channel4volumeEnvTimeLast = parentObj.channel4envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;*/
 			parentObj.memory[0xFF21] = data;
 		}
 	}
@@ -8171,10 +8171,13 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.memory[0xFF23] = data;
 			parentObj.channel4consecutive = ((data & 0x40) == 0x0);
 			if (data > 0x7F) {
-				parentObj.channel4lastSampleLookup = 0;
-				parentObj.channel4envelopeVolume = parentObj.memory[0xFF21] >> 4;
+				var nr42 = parentObj.memory[0xFF21];
+				parentObj.channel4envelopeVolume = nr42 >> 4;
 				parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
-				parentObj.channel4volumeEnvTime = parentObj.channel4volumeEnvTimeLast;
+				parentObj.channel4envelopeType = ((nr42 & 0x08) == 0x08);
+				parentObj.channel4envelopeSweeps = nr42 & 0x7;
+				parentObj.channel4volumeEnvTime = parentObj.channel4volumeEnvTimeLast = parentObj.channel4envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
+				
 				if (parentObj.channel4totalLength == 0) {
 					parentObj.channel4totalLength = 64 * parentObj.audioTotalLengthMultiplier
 				}
