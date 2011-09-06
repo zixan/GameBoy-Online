@@ -6481,10 +6481,10 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					if (yoffset > -1 && yoffset < 8) {
 						xcoord = xCounter = onXCoord - 8;
 						xCounter = Math.max(xCounter, 0);
-						attrCode = this.memory[OAMAddress | 3] & 0xF0;
+						attrCode = this.memory[OAMAddress | 3];
 						palette = (attrCode & 0x10) >> 2;
 						tileNumber = ((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2];
-						tile = (this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
+						tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBOAMTile(attrCode, tileNumber))[yoffset];
 						for (currentPixel = this.pixelStart + xCounter; xCounter < onXCoord; xCounter++, currentPixel++) {
 							if (this.frameBuffer[currentPixel] >= 0x2000000) {
 								data = tile[xCounter - xcoord];
@@ -6510,10 +6510,10 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					OAMAddress = currentColumn[spriteCount];
 					yoffset = lineAdjusted - this.memory[OAMAddress];
 					if (yoffset > -1 && yoffset < 8) {
-						attrCode = this.memory[OAMAddress | 3] & 0xF0;
+						attrCode = this.memory[OAMAddress | 3];
 						palette = (attrCode & 0x10) >> 2;
 						tileNumber = ((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2];
-						tile = (this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
+						tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBOAMTile(attrCode, tileNumber))[yoffset];
 						for (currentPixel = this.pixelStart + onXCoord - 8, xcoord = 0; xcoord < 8; currentPixel++, xcoord++) {
 							if (this.frameBuffer[currentPixel] >= 0x2000000) {
 								data = tile[xcoord];
@@ -6540,10 +6540,10 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					yoffset = lineAdjusted - this.memory[OAMAddress];
 					if (yoffset > -1 && yoffset < 8) {
 						xCounter = onXCoord - 8;
-						attrCode = this.memory[OAMAddress | 3] & 0xF0;
+						attrCode = this.memory[OAMAddress | 3];
 						palette = (attrCode & 0x10) >> 2;
 						tileNumber = ((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2];
-						tile = (this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
+						tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBOAMTile(attrCode, tileNumber))[yoffset];
 						for (currentPixel = this.pixelStart + xCounter, xcoord = 0; xCounter < 160; xCounter++, currentPixel++, xcoord++) {
 							if (this.frameBuffer[currentPixel] >= 0x2000000) {
 								data = tile[xcoord];
@@ -6581,17 +6581,15 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					if (yoffset > -1 && yoffset < 0x10) {
 						xcoord = xCounter = onXCoord - 8;
 						xCounter = Math.max(xCounter, 0);
-						attrCode = this.memory[OAMAddress | 0x3] & 0xF0;
+						attrCode = this.memory[OAMAddress | 0x3];
 						palette = (attrCode & 0x10) >> 2;
-						tileNumber = ((attrCode & 0x60) << 4) | (this.memory[OAMAddress | 0x2] & 0xFE);
-						if (yoffset < 8) {
-							tileNumber |= (((attrCode & 0x40) == 0x40) ? 1 : 0);
+						if ((attrCode & 0x40) == (0x40 & (yoffset << 3))) {
+							tileNumber = ((attrCode & 0x60) << 4) | (this.memory[OAMAddress | 0x2] & 0xFE);
 						}
 						else {
-							yoffset -= 8;
-							tileNumber |= (((attrCode & 0x40) == 0x40) ? 0 : 1);
+							tileNumber = ((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2] | 1;
 						}
-						tile = (this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
+						tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBOAMTile(attrCode, tileNumber))[yoffset & 0x7];
 						for (currentPixel = this.pixelStart + xCounter; xCounter < onXCoord; xCounter++, currentPixel++) {
 							if (this.frameBuffer[currentPixel] >= 0x2000000) {
 								data = tile[xCounter - xcoord];
@@ -6617,17 +6615,15 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					OAMAddress = currentColumn[spriteCount];
 					yoffset = lineAdjusted - this.memory[OAMAddress];
 					if (yoffset > -1 && yoffset < 0x10) {
-						attrCode = this.memory[OAMAddress | 0x3] & 0xF0;
+						attrCode = this.memory[OAMAddress | 0x3];
 						palette = (attrCode & 0x10) >> 2;
-						tileNumber = ((attrCode & 0x60) << 4) | (this.memory[OAMAddress | 0x2] & 0xFE);
-						if (yoffset < 8) {
-							tileNumber |= (((attrCode & 0x40) == 0x40) ? 1 : 0);
+						if ((attrCode & 0x40) == (0x40 & (yoffset << 3))) {
+							tileNumber = ((attrCode & 0x60) << 4) | (this.memory[OAMAddress | 0x2] & 0xFE);
 						}
 						else {
-							yoffset -= 8;
-							tileNumber |= (((attrCode & 0x40) == 0x40) ? 0 : 1);
+							tileNumber = ((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2] | 1;
 						}
-						tile = (this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
+						tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBOAMTile(attrCode, tileNumber))[yoffset & 0x7];
 						for (currentPixel = this.pixelStart + onXCoord - 8, xcoord = 0; xcoord < 8; currentPixel++, xcoord++) {
 							if (this.frameBuffer[currentPixel] >= 0x2000000) {
 								data = tile[xcoord];
@@ -6654,17 +6650,15 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					yoffset = lineAdjusted - this.memory[OAMAddress];
 					if (yoffset > -1 && yoffset < 0x10) {
 						xCounter = onXCoord - 8;
-						attrCode = this.memory[OAMAddress | 0x3] & 0xF0;
+						attrCode = this.memory[OAMAddress | 0x3];
 						palette = (attrCode & 0x10) >> 2;
-						tileNumber = ((attrCode & 0x60) << 4) | (this.memory[OAMAddress | 0x2] & 0xFE);
-						if (yoffset < 8) {
-							tileNumber |= (((attrCode & 0x40) == 0x40) ? 1 : 0);
+						if ((attrCode & 0x40) == (0x40 & (yoffset << 3))) {
+							tileNumber = ((attrCode & 0x60) << 4) | (this.memory[OAMAddress | 0x2] & 0xFE);
 						}
 						else {
-							yoffset -= 8;
-							tileNumber |= (((attrCode & 0x40) == 0x40) ? 0 : 1);
+							tileNumber = ((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2] | 1;
 						}
-						tile = (this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
+						tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBOAMTile(attrCode, tileNumber))[yoffset & 0x7];
 						for (currentPixel = this.pixelStart + xCounter, xcoord = 0; xCounter < 160; xCounter++, currentPixel++, xcoord++) {
 							if (this.frameBuffer[currentPixel] >= 0x2000000) {
 								data = tile[xcoord];
@@ -6708,7 +6702,7 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 					attrCode = this.memory[OAMAddress | 3];
 					palette = (attrCode & 7) << 2;
 					tileNumber = ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5) | this.memory[OAMAddress | 2];
-					tile = (this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
+					tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBCTile(attrCode, tileNumber))[yoffset];
 					for (xCounter = Math.max(xcoord, 0), currentPixel = this.pixelStart + xCounter; xCounter < endX; xCounter++, currentPixel++) {
 						if (this.frameBuffer[currentPixel] >= 0x2000000) {
 							data = tile[xCounter - xcoord];
@@ -6735,15 +6729,13 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 					endX = Math.min(160, xcoord + 8);
 					attrCode = this.memory[OAMAddress | 3];
 					palette = (attrCode & 7) << 2;
-					tileNumber = ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5) | (this.memory[OAMAddress | 2] & 0xFE);
-					if (yoffset < 8) {
-						tileNumber |= (((attrCode & 0x40) == 0x40) ? 1 : 0);
+					if ((attrCode & 0x40) == (0x40 & (yoffset << 3))) {
+						tileNumber = ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5) | (this.memory[OAMAddress | 0x2] & 0xFE);
 					}
 					else {
-						yoffset -= 8;
-						tileNumber |= (((attrCode & 0x40) == 0x40) ? 0 : 1);
+						tileNumber = ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5) | this.memory[OAMAddress | 0x2] | 1;
 					}
-					tile = (this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber][yoffset] : (this.generateGBCTile(attrCode, tileNumber))[yoffset];
+					tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBCTile(attrCode, tileNumber))[yoffset & 0x7];
 					for (xCounter = Math.max(xcoord, 0), currentPixel = this.pixelStart + xCounter; xCounter < endX; xCounter++, currentPixel++) {
 						if (this.frameBuffer[currentPixel] >= 0x2000000) {
 							data = tile[xCounter - xcoord];
@@ -6793,7 +6785,7 @@ GameBoyCore.prototype.generateGBTile = function (tile) {
 	//Return the obtained tile to the rendering path:
 	return tileBlock;
 }
-//Generate a tile for the tile cache for DMG's sprites and all CGB graphics planes:
+//Generate a tile for the tile cache for all CGB graphics planes:
 GameBoyCore.prototype.generateGBCTile = function (map, tile) {
 	var address = (tile & 0x1FF) << 4;		//Start address of the tile.
 	var tileBlock = this.tileCache[tile];	//Reference to the 8x8 tile.
@@ -6846,6 +6838,64 @@ GameBoyCore.prototype.generateGBCTile = function (map, tile) {
 			//Get a reference to the tile line:
 			tileLine = tileBlock[y];
 			tileRawLine = tileLineWord[lineIndex];
+			//Each pixel is composed of two bits: MSB is in the second byte, while the LSB is in the first byte.
+			tileLine[0] = ((tileRawLine & 0x100) >> 7) | (tileRawLine & 0x1);
+			tileLine[1] = ((tileRawLine & 0x200) >> 8) | ((tileRawLine & 0x2) >> 1);
+			tileLine[2] = ((tileRawLine & 0x400) >> 9) | ((tileRawLine & 0x4) >> 2);
+			tileLine[3] = ((tileRawLine & 0x800) >> 10) | ((tileRawLine & 0x8) >> 3);
+			tileLine[4] = ((tileRawLine & 0x1000) >> 11) | ((tileRawLine & 0x10) >> 4);
+			tileLine[5] = ((tileRawLine & 0x2000) >> 12) | ((tileRawLine & 0x20) >> 5);
+			tileLine[6] = ((tileRawLine & 0x4000) >> 13) | ((tileRawLine & 0x40) >> 6);
+			tileLine[7] = ((tileRawLine & 0x8000) >> 14) | ((tileRawLine & 0x80) >> 7);
+		}
+	}
+	//Set flag for the tile in the cache to valid:
+	this.tileCacheValid[tile] = 1;
+	//Return the obtained tile to the rendering path:
+	return tileBlock;
+}
+//Generate a tile for the tile cache for DMG's sprites:
+GameBoyCore.prototype.generateGBOAMTile = function (map, tile) {
+	var address = 0x8000 | ((tile & 0x1FF) << 4);	//Start address of the tile.
+	var tileBlock = this.tileCache[tile];			//Reference to the 8x8 tile.
+	var tileLine = null;							//Reference to a line of the cached tile.
+	var tileLineWord = this.tileDataCopier;			//Unconverted line data array reference.
+	var tileRawLine = 0;							//Unconverted line data.
+	if ((map & 0x40) == 0x40) {
+		//Normal Y:
+		var y = 7;
+		var yINC = -1;
+	}
+	else {
+		//Flipped Y:
+		var y = 0;
+		var yINC = 1;
+	}
+	if ((map & 0x20) == 0) {
+		//Normal X:
+		for (var lineIndex = 0; lineIndex < 8; lineIndex++, y += yINC) {
+			//Get a reference to the tile line:
+			tileLine = tileBlock[y];
+			//Copy data from bank 0:
+			tileRawLine = (this.memory[address | (lineIndex << 1) | 1] << 8) | this.memory[address | (lineIndex << 1)];
+			//Each pixel is composed of two bits: MSB is in the second byte, while the LSB is in the first byte.
+			tileLine[7] = ((tileRawLine & 0x100) >> 7) | (tileRawLine & 0x1);
+			tileLine[6] = ((tileRawLine & 0x200) >> 8) | ((tileRawLine & 0x2) >> 1);
+			tileLine[5] = ((tileRawLine & 0x400) >> 9) | ((tileRawLine & 0x4) >> 2);
+			tileLine[4] = ((tileRawLine & 0x800) >> 10) | ((tileRawLine & 0x8) >> 3);
+			tileLine[3] = ((tileRawLine & 0x1000) >> 11) | ((tileRawLine & 0x10) >> 4);
+			tileLine[2] = ((tileRawLine & 0x2000) >> 12) | ((tileRawLine & 0x20) >> 5);
+			tileLine[1] = ((tileRawLine & 0x4000) >> 13) | ((tileRawLine & 0x40) >> 6);
+			tileLine[0] = ((tileRawLine & 0x8000) >> 14) | ((tileRawLine & 0x80) >> 7);
+		}
+	}
+	else {
+		//Flipped X:
+		for (var lineIndex = 0; lineIndex < 8; lineIndex++, y += yINC) {
+			//Get a reference to the tile line:
+			tileLine = tileBlock[y];
+			//Copy data from bank 0:
+			tileRawLine = (this.memory[address | (lineIndex << 1) | 1] << 8) | this.memory[address | (lineIndex << 1)];
 			//Each pixel is composed of two bits: MSB is in the second byte, while the LSB is in the first byte.
 			tileLine[0] = ((tileRawLine & 0x100) >> 7) | (tileRawLine & 0x1);
 			tileLine[1] = ((tileRawLine & 0x200) >> 8) | ((tileRawLine & 0x2) >> 1);
