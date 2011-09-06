@@ -3972,7 +3972,6 @@ GameBoyCore.prototype.saveState = function () {
 		this.channel1ShadowFrequency,
 		this.channel1volumeEnvTime,
 		this.channel1volumeEnvTimeLast,
-		this.channel1lastTotalLength,
 		this.channel1timeSweep,
 		this.channel1lastTimeSweep,
 		this.channel1numSweep,
@@ -3990,10 +3989,8 @@ GameBoyCore.prototype.saveState = function () {
 		this.channel2frequency,
 		this.channel2volumeEnvTime,
 		this.channel2volumeEnvTimeLast,
-		this.channel2lastTotalLength,
 		this.channel3canPlay,
 		this.channel3totalLength,
-		this.channel3lastTotalLength,
 		this.channel3patternType,
 		this.channel3frequency,
 		this.channel3consecutive,
@@ -4009,7 +4006,6 @@ GameBoyCore.prototype.saveState = function () {
 		this.channel4consecutive,
 		this.channel4volumeEnvTime,
 		this.channel4volumeEnvTimeLast,
-		this.channel4lastTotalLength,
 		this.noiseTableLength,
 		this.soundMasterEnabled,
 		this.VinLeftChannelMasterVolume,
@@ -4142,7 +4138,6 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel1ShadowFrequency = state[index++];
 	this.channel1volumeEnvTime = state[index++];
 	this.channel1volumeEnvTimeLast = state[index++];
-	this.channel1lastTotalLength = state[index++];
 	this.channel1timeSweep = state[index++];
 	this.channel1lastTimeSweep = state[index++];
 	this.channel1numSweep = state[index++];
@@ -4160,10 +4155,8 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel2frequency = state[index++];
 	this.channel2volumeEnvTime = state[index++];
 	this.channel2volumeEnvTimeLast = state[index++];
-	this.channel2lastTotalLength = state[index++];
 	this.channel3canPlay = state[index++];
 	this.channel3totalLength = state[index++];
-	this.channel3lastTotalLength = state[index++];
 	this.channel3patternType = state[index++];
 	this.channel3frequency = state[index++];
 	this.channel3consecutive = state[index++];
@@ -4179,7 +4172,6 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel4consecutive = state[index++];
 	this.channel4volumeEnvTime = state[index++];
 	this.channel4volumeEnvTimeLast = state[index++];
-	this.channel4lastTotalLength = state[index++];
 	this.noiseTableLength = state[index++];
 	this.noiseSampleTable = (this.noiseTableLength == 0x8000) ? this.LSFR15Table : this.LSFR7Table;
 	this.channel4VolumeShifter = (this.noiseTableLength == 0x8000) ? 15 : 7;
@@ -4979,7 +4971,6 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 		this.channel1ShadowFrequency = -1;
 		this.channel1volumeEnvTime = 0;
 		this.channel1volumeEnvTimeLast = 0;
-		this.channel1lastTotalLength = 0;
 		this.channel1timeSweep = 0;
 		this.channel1lastTimeSweep = 0;
 		this.channel1numSweep = 0;
@@ -4996,10 +4987,8 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 		this.channel2frequency = 0;
 		this.channel2volumeEnvTime = 0;
 		this.channel2volumeEnvTimeLast = 0;
-		this.channel2lastTotalLength = 0;
 		this.channel3canPlay = false;
 		this.channel3totalLength = 0;
-		this.channel3lastTotalLength = 0;
 		this.channel3patternType = -20;
 		this.channel3frequency = 0;
 		this.channel3consecutive = true;
@@ -5013,7 +5002,6 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 		this.channel4consecutive = true;
 		this.channel4volumeEnvTime = 0;
 		this.channel4volumeEnvTimeLast = 0;
-		this.channel4lastTotalLength = 0;
 		this.noiseTableLength = 0x8000;
 		this.noiseSampleTable = this.LSFR15Table;
 		this.channel4VolumeShifter = 15;
@@ -7961,191 +7949,243 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		parentObj.interruptsRequested = data;
 	}
 	this.memoryHighWriter[0x10] = this.memoryWriter[0xFF10] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		parentObj.channel1lastTimeSweep = parentObj.channel1timeSweep = (((data & 0x70) >> 4) * parentObj.channel1TimeSweepPreMultiplier) | 0;
-		parentObj.channel1frequencySweepDivider = parentObj.channel1numSweep = data & 0x07;
-		parentObj.channel1decreaseSweep = ((data & 0x08) == 0x08);
-		parentObj.memory[0xFF10] = data;
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			/*parentObj.channel1lastTimeSweep = parentObj.channel1timeSweep = (((data & 0x70) >> 4) * parentObj.channel1TimeSweepPreMultiplier) | 0;
+			parentObj.channel1frequencySweepDivider = parentObj.channel1numSweep = data & 0x07;
+			parentObj.channel1decreaseSweep = ((data & 0x08) == 0x08);*/
+			parentObj.memory[0xFF10] = data;
+		}
 	}
 	this.memoryHighWriter[0x11] = this.memoryWriter[0xFF11] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		parentObj.channel1adjustedDuty = parentObj.dutyLookup[data >> 6];
-		parentObj.channel1lastTotalLength = parentObj.channel1totalLength = (0x40 - (data & 0x3F)) * parentObj.audioTotalLengthMultiplier;
-		parentObj.memory[0xFF11] = data & 0xC0;
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			parentObj.channel1adjustedDuty = parentObj.dutyLookup[data >> 6];
+			parentObj.channel1totalLength = (0x40 - (data & 0x3F)) * parentObj.audioTotalLengthMultiplier;
+			parentObj.memory[0xFF11] = data & 0xC0;
+		}
 	}
 	this.memoryHighWriter[0x12] = this.memoryWriter[0xFF12] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		parentObj.channel1envelopeVolume = data >> 4;
-		parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
-		parentObj.channel1currentLeftVolume = parentObj.channel1currentVolume + parentObj.neutralLeftOffset;
-		parentObj.channel1currentRightVolume = parentObj.channel1currentVolume + parentObj.neutralRightOffset;
-		parentObj.channel1envelopeType = ((data & 0x08) == 0x08);
-		parentObj.channel1envelopeSweeps = data & 0x7;
-		parentObj.channel1volumeEnvTime = parentObj.channel1volumeEnvTimeLast = parentObj.channel1envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
-		parentObj.memory[0xFF12] = data;
-	}
-	this.memoryHighWriter[0x13] = this.memoryWriter[0xFF13] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		if ((parentObj.channel1consecutive || parentObj.channel1totalLength > 0) && parentObj.channel1frequency <= 0x7FF) {
-			parentObj.channel1ShadowFrequency = parentObj.channel1frequency;
-		}
-		parentObj.channel1frequency = (parentObj.channel1frequency & 0x700) | data;
-		//Pre-calculate the frequency computation outside the waveform generator for speed:
-		parentObj.channel1adjustedFrequencyPrep = parentObj.preChewedAudioComputationMultiplier / (0x800 - parentObj.channel1frequency);
-		parentObj.memory[0xFF13] = data;
-	}
-	this.memoryHighWriter[0x14] = this.memoryWriter[0xFF14] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		if (data > 0x7F) {
-			parentObj.channel1envelopeVolume = parentObj.memory[0xFF12] >> 4;
-			parentObj.channel1currentVolume = (parentObj.channel1envelopeVolume / 0x1E);
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			/*parentObj.channel1envelopeVolume = data >> 4;
+			parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
 			parentObj.channel1currentLeftVolume = parentObj.channel1currentVolume + parentObj.neutralLeftOffset;
 			parentObj.channel1currentRightVolume = parentObj.channel1currentVolume + parentObj.neutralRightOffset;
-			parentObj.channel1volumeEnvTime = parentObj.channel1volumeEnvTimeLast;
-			parentObj.channel1totalLength = parentObj.channel1lastTotalLength;
-			parentObj.channel1timeSweep = parentObj.channel1lastTimeSweep;
-			parentObj.channel1frequencySweepDivider = parentObj.channel1numSweep = parentObj.memory[0xFF10] & 0x07;
-			if ((data & 0x40) == 0x40) {
-				parentObj.memory[0xFF26] |= 0x1;
+			parentObj.channel1envelopeType = ((data & 0x08) == 0x08);
+			parentObj.channel1envelopeSweeps = data & 0x7;
+			parentObj.channel1volumeEnvTime = parentObj.channel1volumeEnvTimeLast = parentObj.channel1envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;*/
+			parentObj.memory[0xFF12] = data;
+		}
+	}
+	this.memoryHighWriter[0x13] = this.memoryWriter[0xFF13] = function (parentObj, address, data) {
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			if ((parentObj.channel1consecutive || parentObj.channel1totalLength > 0) && parentObj.channel1frequency <= 0x7FF) {
+				parentObj.channel1ShadowFrequency = parentObj.channel1frequency;
 			}
-			parentObj.channel1ShadowFrequency = -1;
+			parentObj.channel1frequency = (parentObj.channel1frequency & 0x700) | data;
+			//Pre-calculate the frequency computation outside the waveform generator for speed:
+			parentObj.channel1adjustedFrequencyPrep = parentObj.preChewedAudioComputationMultiplier / (0x800 - parentObj.channel1frequency);
+			parentObj.memory[0xFF13] = data;
 		}
-		else if ((parentObj.channel1consecutive || parentObj.channel1totalLength > 0) && parentObj.channel1frequency <= 0x7FF) {
-			parentObj.channel1ShadowFrequency = parentObj.channel1frequency;
+	}
+	this.memoryHighWriter[0x14] = this.memoryWriter[0xFF14] = function (parentObj, address, data) {
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			if (data > 0x7F) {
+				//Reload 0xFF10:
+				var nr10 = parentObj.memory[0xFF10];
+				parentObj.channel1lastTimeSweep = parentObj.channel1timeSweep = (((nr10 & 0x70) >> 4) * parentObj.channel1TimeSweepPreMultiplier) | 0;
+				parentObj.channel1frequencySweepDivider = parentObj.channel1numSweep = nr10 & 0x07;
+				parentObj.channel1decreaseSweep = ((nr10 & 0x08) == 0x08);
+				//Reload 0xFF12:
+				var nr12 = parentObj.memory[0xFF12];
+				parentObj.channel1envelopeVolume = nr12 >> 4;
+				parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
+				parentObj.channel1currentLeftVolume = parentObj.channel1currentVolume + parentObj.neutralLeftOffset;
+				parentObj.channel1currentRightVolume = parentObj.channel1currentVolume + parentObj.neutralRightOffset;
+				parentObj.channel1envelopeType = ((nr12 & 0x08) == 0x08);
+				parentObj.channel1envelopeSweeps = nr12 & 0x7;
+				parentObj.channel1volumeEnvTime = parentObj.channel1volumeEnvTimeLast = parentObj.channel1envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
+				if (parentObj.channel1totalLength == 0) {
+					parentObj.channel1totalLength = 64 * parentObj.audioTotalLengthMultiplier
+				}
+				if ((data & 0x40) == 0x40) {
+					parentObj.memory[0xFF26] |= 0x1;
+				}
+				parentObj.channel1ShadowFrequency = -1;
+			}
+			else if ((parentObj.channel1consecutive || parentObj.channel1totalLength > 0) && parentObj.channel1frequency <= 0x7FF) {
+				parentObj.channel1ShadowFrequency = parentObj.channel1frequency;
+			}
+			parentObj.channel1consecutive = ((data & 0x40) == 0x0);
+			parentObj.channel1frequency = ((data & 0x7) << 8) | (parentObj.channel1frequency & 0xFF);
+			//Pre-calculate the frequency computation outside the waveform generator for speed:
+			parentObj.channel1adjustedFrequencyPrep = parentObj.preChewedAudioComputationMultiplier / (0x800 - parentObj.channel1frequency);
+			parentObj.memory[0xFF14] = data & 0x40;
 		}
-		parentObj.channel1consecutive = ((data & 0x40) == 0x0);
-		parentObj.channel1frequency = ((data & 0x7) << 8) | (parentObj.channel1frequency & 0xFF);
-		//Pre-calculate the frequency computation outside the waveform generator for speed:
-		parentObj.channel1adjustedFrequencyPrep = parentObj.preChewedAudioComputationMultiplier / (0x800 - parentObj.channel1frequency);
-		parentObj.memory[0xFF14] = data & 0x40;
 	}
 	this.memoryHighWriter[0x16] = this.memoryWriter[0xFF16] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		parentObj.channel2adjustedDuty = parentObj.dutyLookup[data >> 6];
-		parentObj.channel2lastTotalLength = parentObj.channel2totalLength = (0x40 - (data & 0x3F)) * parentObj.audioTotalLengthMultiplier;
-		parentObj.memory[0xFF16] = data & 0xC0;
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			parentObj.channel2adjustedDuty = parentObj.dutyLookup[data >> 6];
+			parentObj.channel2totalLength = (0x40 - (data & 0x3F)) * parentObj.audioTotalLengthMultiplier;
+			parentObj.memory[0xFF16] = data & 0xC0;
+		}
 	}
 	this.memoryHighWriter[0x17] = this.memoryWriter[0xFF17] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		parentObj.channel2envelopeVolume = data >> 4;
-		parentObj.channel2currentVolume = parentObj.channel2envelopeVolume / 0x1E;
-		parentObj.channel2envelopeType = ((data & 0x08) == 0x08);
-		parentObj.channel2envelopeSweeps = data & 0x7;
-		parentObj.channel2volumeEnvTime = parentObj.channel2volumeEnvTimeLast = parentObj.channel2envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
-		parentObj.memory[0xFF17] = data;
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			/*parentObj.channel2envelopeVolume = data >> 4;
+			parentObj.channel2currentVolume = parentObj.channel2envelopeVolume / 0x1E;
+			parentObj.channel2envelopeType = ((data & 0x08) == 0x08);
+			parentObj.channel2envelopeSweeps = data & 0x7;
+			parentObj.channel2volumeEnvTime = parentObj.channel2volumeEnvTimeLast = parentObj.channel2envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;*/
+			parentObj.memory[0xFF17] = data;
+		}
 	}
 	this.memoryHighWriter[0x18] = this.memoryWriter[0xFF18] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		parentObj.channel2frequency = (parentObj.channel2frequency & 0x700) | data;
-		//Pre-calculate the frequency computation outside the waveform generator for speed:
-		parentObj.channel2adjustedFrequencyPrep = parentObj.preChewedAudioComputationMultiplier / (0x800 - parentObj.channel2frequency);
-		parentObj.memory[0xFF18] = data;
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			parentObj.channel2frequency = (parentObj.channel2frequency & 0x700) | data;
+			//Pre-calculate the frequency computation outside the waveform generator for speed:
+			parentObj.channel2adjustedFrequencyPrep = parentObj.preChewedAudioComputationMultiplier / (0x800 - parentObj.channel2frequency);
+			parentObj.memory[0xFF18] = data;
+		}
 	}
 	this.memoryHighWriter[0x19] = this.memoryWriter[0xFF19] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		if (data > 0x7F) {
-			parentObj.channel2envelopeVolume = parentObj.memory[0xFF17] >> 4;
-			parentObj.channel2currentVolume = parentObj.channel2envelopeVolume / 0x1E;
-			parentObj.channel2volumeEnvTime = parentObj.channel2volumeEnvTimeLast;
-			parentObj.channel2totalLength = parentObj.channel2lastTotalLength;
-			if ((data & 0x40) == 0x40) {
-				parentObj.memory[0xFF26] |= 0x2;
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			if (data > 0x7F) {
+				//Reload 0xFF17:
+				var nr16 = parentObj.memory[0xFF17];
+				parentObj.channel2envelopeVolume = nr16 >> 4;
+				parentObj.channel2currentVolume = parentObj.channel2envelopeVolume / 0x1E;
+				parentObj.channel2envelopeType = ((nr16 & 0x08) == 0x08);
+				parentObj.channel2envelopeSweeps = nr16 & 0x7;
+				parentObj.channel2volumeEnvTime = parentObj.channel2volumeEnvTimeLast = parentObj.channel2envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
+				if (parentObj.channel2totalLength == 0) {
+					parentObj.channel2totalLength = 64 * parentObj.audioTotalLengthMultiplier
+				}
+				if ((data & 0x40) == 0x40) {
+					parentObj.memory[0xFF26] |= 0x2;
+				}
 			}
+			parentObj.channel2consecutive = ((data & 0x40) == 0x0);
+			parentObj.channel2frequency = ((data & 0x7) << 8) | (parentObj.channel2frequency & 0xFF);
+			//Pre-calculate the frequency computation outside the waveform generator for speed:
+			parentObj.channel2adjustedFrequencyPrep = parentObj.preChewedAudioComputationMultiplier / (0x800 - parentObj.channel2frequency);
+			parentObj.memory[0xFF19] = data & 0x40;
 		}
-		parentObj.channel2consecutive = ((data & 0x40) == 0x0);
-		parentObj.channel2frequency = ((data & 0x7) << 8) | (parentObj.channel2frequency & 0xFF);
-		//Pre-calculate the frequency computation outside the waveform generator for speed:
-		parentObj.channel2adjustedFrequencyPrep = parentObj.preChewedAudioComputationMultiplier / (0x800 - parentObj.channel2frequency);
-		parentObj.memory[0xFF19] = data & 0x40;
 	}
 	this.memoryHighWriter[0x1A] = this.memoryWriter[0xFF1A] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		if (!parentObj.channel3canPlay && data >= 0x80) {
-			parentObj.channel3Tracker = 0;
-		}
-		parentObj.channel3canPlay = (data > 0x7F);
-		if (parentObj.channel3canPlay && parentObj.memory[0xFF1A] > 0x7F) {
-			parentObj.channel3totalLength = parentObj.channel3lastTotalLength;
-			if (!parentObj.channel3consecutive) {
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			if (!parentObj.channel3canPlay && data >= 0x80) {
+				parentObj.channel3Tracker = 0;
+			}
+			parentObj.channel3canPlay = (data > 0x7F);
+			if (parentObj.channel3canPlay && parentObj.memory[0xFF1A] > 0x7F && !parentObj.channel3consecutive) {
 				parentObj.memory[0xFF26] |= 0x4;
 			}
+			parentObj.memory[0xFF1A] = data & 0x80;
 		}
-		parentObj.memory[0xFF1A] = data & 0x80;
 	}
 	this.memoryHighWriter[0x1B] = this.memoryWriter[0xFF1B] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		parentObj.channel3lastTotalLength = parentObj.channel3totalLength = (0x100 - data) * parentObj.audioTotalLengthMultiplier;
-		parentObj.memory[0xFF1B] = data;
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			parentObj.channel3totalLength = (0x100 - data) * parentObj.audioTotalLengthMultiplier;
+			parentObj.memory[0xFF1B] = data;
+		}
 	}
 	this.memoryHighWriter[0x1C] = this.memoryWriter[0xFF1C] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		parentObj.memory[0xFF1C] = data & 0x60;
-		parentObj.channel3patternType = parentObj.memory[0xFF1C] - 0x20;
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			parentObj.memory[0xFF1C] = data & 0x60;
+			parentObj.channel3patternType = parentObj.memory[0xFF1C] - 0x20;
+		}
 	}
 	this.memoryHighWriter[0x1D] = this.memoryWriter[0xFF1D] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		parentObj.channel3frequency = (parentObj.channel3frequency & 0x700) | data;
-		parentObj.channel3adjustedFrequencyPrep = parentObj.preChewedWAVEAudioComputationMultiplier / (0x800 - parentObj.channel3frequency);
-		parentObj.memory[0xFF1D] = data;
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			parentObj.channel3frequency = (parentObj.channel3frequency & 0x700) | data;
+			parentObj.channel3adjustedFrequencyPrep = parentObj.preChewedWAVEAudioComputationMultiplier / (0x800 - parentObj.channel3frequency);
+			parentObj.memory[0xFF1D] = data;
+		}
 	}
 	this.memoryHighWriter[0x1E] = this.memoryWriter[0xFF1E] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		if (data > 0x7F) {
-			parentObj.channel3totalLength = parentObj.channel3lastTotalLength;
-			parentObj.channel3Tracker = 0;
-			if ((data & 0x40) == 0x40) {
-				parentObj.memory[0xFF26] |= 0x4;
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			if (data > 0x7F) {
+				if (parentObj.channel3totalLength == 0) {
+					parentObj.channel3totalLength = 0x100 * parentObj.audioTotalLengthMultiplier
+				}
+				parentObj.channel3Tracker = 0;
+				if ((data & 0x40) == 0x40) {
+					parentObj.memory[0xFF26] |= 0x4;
+				}
 			}
+			parentObj.channel3consecutive = ((data & 0x40) == 0x0);
+			parentObj.channel3frequency = ((data & 0x7) << 8) | (parentObj.channel3frequency & 0xFF);
+			parentObj.channel3adjustedFrequencyPrep = parentObj.preChewedWAVEAudioComputationMultiplier / (0x800 - parentObj.channel3frequency);
+			parentObj.memory[0xFF1E] = data & 0x40;
 		}
-		parentObj.channel3consecutive = ((data & 0x40) == 0x0);
-		parentObj.channel3frequency = ((data & 0x7) << 8) | (parentObj.channel3frequency & 0xFF);
-		parentObj.channel3adjustedFrequencyPrep = parentObj.preChewedWAVEAudioComputationMultiplier / (0x800 - parentObj.channel3frequency);
-		parentObj.memory[0xFF1E] = data & 0x40;
 	}
 	this.memoryHighWriter[0x20] = this.memoryWriter[0xFF20] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		parentObj.channel4lastTotalLength = parentObj.channel4totalLength = (0x40 - (data & 0x3F)) * parentObj.audioTotalLengthMultiplier;
-		parentObj.memory[0xFF20] = data | 0xC0;
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			parentObj.channel4totalLength = (0x40 - (data & 0x3F)) * parentObj.audioTotalLengthMultiplier;
+			parentObj.memory[0xFF20] = data | 0xC0;
+		}
 	}
 	this.memoryHighWriter[0x21] = this.memoryWriter[0xFF21] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		parentObj.channel4envelopeVolume = data >> 4;
-		parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
-		parentObj.channel4envelopeType = ((data & 0x08) == 0x08);
-		parentObj.channel4envelopeSweeps = data & 0x7;
-		parentObj.channel4volumeEnvTime = parentObj.channel4volumeEnvTimeLast = parentObj.channel4envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
-		parentObj.memory[0xFF21] = data;
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			parentObj.channel4envelopeVolume = data >> 4;
+			parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
+			parentObj.channel4envelopeType = ((data & 0x08) == 0x08);
+			parentObj.channel4envelopeSweeps = data & 0x7;
+			parentObj.channel4volumeEnvTime = parentObj.channel4volumeEnvTimeLast = parentObj.channel4envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
+			parentObj.memory[0xFF21] = data;
+		}
 	}
 	this.memoryHighWriter[0x22] = this.memoryWriter[0xFF22] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		parentObj.channel4adjustedFrequencyPrep = parentObj.whiteNoiseFrequencyPreMultiplier / Math.max(data & 0x7, 0.5) / Math.pow(2, (data >> 4) + 1);
-		var bitWidth = (data & 0x8);
-		if ((bitWidth == 0x8 && parentObj.noiseTableLength == 0x8000) || (bitWidth == 0 && parentObj.noiseTableLength == 0x80)) {
-			parentObj.channel4lastSampleLookup = 0;
-			parentObj.noiseTableLength = (bitWidth == 0x8) ? 0x80 : 0x8000;
-			parentObj.channel4VolumeShifter = (bitWidth == 0x8) ? 7 : 15;
-			parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
-			parentObj.noiseSampleTable = (bitWidth == 0x8) ? parentObj.LSFR7Table : parentObj.LSFR15Table;
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			parentObj.channel4adjustedFrequencyPrep = parentObj.whiteNoiseFrequencyPreMultiplier / Math.max(data & 0x7, 0.5) / Math.pow(2, (data >> 4) + 1);
+			var bitWidth = (data & 0x8);
+			if ((bitWidth == 0x8 && parentObj.noiseTableLength == 0x8000) || (bitWidth == 0 && parentObj.noiseTableLength == 0x80)) {
+				parentObj.channel4lastSampleLookup = 0;
+				parentObj.noiseTableLength = (bitWidth == 0x8) ? 0x80 : 0x8000;
+				parentObj.channel4VolumeShifter = (bitWidth == 0x8) ? 7 : 15;
+				parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
+				parentObj.noiseSampleTable = (bitWidth == 0x8) ? parentObj.LSFR7Table : parentObj.LSFR15Table;
+			}
+			parentObj.memory[0xFF22] = data;
 		}
-		parentObj.memory[0xFF22] = data;
 	}
 	this.memoryHighWriter[0x23] = this.memoryWriter[0xFF23] = function (parentObj, address, data) {
-		parentObj.audioJIT();
-		parentObj.memory[0xFF23] = data;
-		parentObj.channel4consecutive = ((data & 0x40) == 0x0);
-		if (data > 0x7F) {
-			parentObj.channel4lastSampleLookup = 0;
-			parentObj.channel4envelopeVolume = parentObj.memory[0xFF21] >> 4;
-			parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
-			parentObj.channel4volumeEnvTime = parentObj.channel4volumeEnvTimeLast;
-			parentObj.channel4totalLength = parentObj.channel4lastTotalLength;
-			if ((data & 0x40) == 0x40) {
-				parentObj.memory[0xFF26] |= 0x8;
+		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
+			parentObj.memory[0xFF23] = data;
+			parentObj.channel4consecutive = ((data & 0x40) == 0x0);
+			if (data > 0x7F) {
+				parentObj.channel4lastSampleLookup = 0;
+				parentObj.channel4envelopeVolume = parentObj.memory[0xFF21] >> 4;
+				parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
+				parentObj.channel4volumeEnvTime = parentObj.channel4volumeEnvTimeLast;
+				if (parentObj.channel4totalLength == 0) {
+					parentObj.channel4totalLength = 64 * parentObj.audioTotalLengthMultiplier
+				}
+				if ((data & 0x40) == 0x40) {
+					parentObj.memory[0xFF26] |= 0x8;
+				}
 			}
 		}
 	}
 	this.memoryHighWriter[0x24] = this.memoryWriter[0xFF24] = function (parentObj, address, data) {
-		if (parentObj.memory[0xFF24] != data) {
+		if (parentObj.soundMasterEnabled && parentObj.memory[0xFF24] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF24] = data;
 			parentObj.VinLeftChannelMasterVolume = (((data >> 4) & 0x07) + 1) / 8;
@@ -8157,7 +8197,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		}
 	}
 	this.memoryHighWriter[0x25] = this.memoryWriter[0xFF25] = function (parentObj, address, data) {
-		if (parentObj.memory[0xFF25] != data) {
+		if (parentObj.soundMasterEnabled && parentObj.memory[0xFF25] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF25] = data;
 			parentObj.rightChannel = [(data & 0x01) == 0x01, (data & 0x02) == 0x02, (data & 0x04) == 0x04, (data & 0x08) == 0x08];
