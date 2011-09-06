@@ -6391,6 +6391,25 @@ GameBoyCore.prototype.WindowGBLayerRender = function (pixelEnd) {
 				for (var texel = (this.currentX % 8); texel < 8 && scrollXAdjusted < 160 && pixelPosition < pixelPositionEnd; scrollXAdjusted++) {
 					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
 				}
+				var scrollXAdjustedAligned = Math.min(pixelPositionEnd - pixelPosition, 160 - scrollXAdjusted) >> 3;
+				scrollXAdjusted += scrollXAdjustedAligned << 3;
+				scrollXAdjustedAligned += tileNumber;
+				while (tileNumber < scrollXAdjustedAligned) {
+					chrCode = this.BGCHRBank1[++tileNumber];
+					if (chrCode < this.gfxBackgroundBankOffset) {
+						chrCode |= 0x100;
+					}
+					tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBTile(chrCode))[tileYLine];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[0]];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[1]];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[2]];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[3]];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[4]];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[5]];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[6]];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[7]];
+					
+				}
 				while (scrollXAdjusted < 160 && pixelPosition < pixelPositionEnd) {
 					chrCode = this.BGCHRBank1[++tileNumber];
 					if (chrCode < this.gfxBackgroundBankOffset) {
@@ -6426,6 +6445,28 @@ GameBoyCore.prototype.WindowGBCLayerRender = function (pixelEnd) {
 				var palette = (attrCode & 0x7) << 2;
 				for (var texel = (this.currentX % 8); texel < 8 && scrollXAdjusted < 160 && pixelPosition < pixelPositionEnd; scrollXAdjusted++) {
 					this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[texel++]];
+				}
+				var scrollXAdjustedAligned = Math.min(pixelPositionEnd - pixelPosition, 160 - scrollXAdjusted) >> 3;
+				scrollXAdjusted += scrollXAdjustedAligned << 3;
+				scrollXAdjustedAligned += tileNumber;
+				while (tileNumber < scrollXAdjustedAligned) {
+					chrCode = this.BGCHRBank1[++tileNumber];
+					if (chrCode < this.gfxBackgroundBankOffset) {
+						chrCode |= 0x100;
+					}
+					attrCode = this.BGCHRBank2[tileNumber];
+					chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
+					tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
+					pixelFlag = (attrCode << 17) & this.BGPriorityEnabled;
+					palette = (attrCode & 0x7) << 2;
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[0]];
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[1]];
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[2]];
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[3]];
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[4]];
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[5]];
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[6]];
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[7]];
 				}
 				while (scrollXAdjusted < 160 && pixelPosition < pixelPositionEnd) {
 					chrCode = this.BGCHRBank1[++tileNumber];
