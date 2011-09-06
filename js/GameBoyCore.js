@@ -7967,14 +7967,22 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryHighWriter[0x12] = this.memoryWriter[0xFF12] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
-			/*parentObj.audioJIT();
-			parentObj.channel1envelopeVolume = data >> 4;
-			parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
-			parentObj.channel1currentLeftVolume = parentObj.channel1currentVolume + parentObj.neutralLeftOffset;
-			parentObj.channel1currentRightVolume = parentObj.channel1currentVolume + parentObj.neutralRightOffset;
-			parentObj.channel1envelopeType = ((data & 0x08) == 0x08);
-			parentObj.channel1envelopeSweeps = data & 0x7;
-			parentObj.channel1volumeEnvTime = parentObj.channel1volumeEnvTimeLast = parentObj.channel1envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;*/
+			if (parentObj.channel1envelopeSweeps == 0) {
+				parentObj.audioJIT();
+				//Zombie Volume PAPU Bug:
+				/*if (((data ^ parentObj.memory[0xFF12]) & 0x8) == 0x8 && (data & 0x8) != ((parentObj.channel1envelopeType) ? 0x8 : 0)) {
+					parentObj.channel1envelopeVolume = (16 - parentObj.channel1envelopeVolume) & 0xF;
+				}
+				else */if (!parentObj.channel1envelopeType) {
+					parentObj.channel1envelopeVolume = (2 + parentObj.channel1envelopeVolume) & 0xF;
+				}
+				else {
+					parentObj.channel1envelopeVolume = (1 + parentObj.channel1envelopeVolume) & 0xF;
+				}
+				parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
+				parentObj.channel1currentLeftVolume = parentObj.channel1currentVolume + parentObj.neutralLeftOffset;
+				parentObj.channel1currentRightVolume = parentObj.channel1currentVolume + parentObj.neutralRightOffset;
+			}
 			parentObj.memory[0xFF12] = data;
 		}
 	}
@@ -8036,12 +8044,20 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryHighWriter[0x17] = this.memoryWriter[0xFF17] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
-			parentObj.audioJIT();
-			/*parentObj.channel2envelopeVolume = data >> 4;
-			parentObj.channel2currentVolume = parentObj.channel2envelopeVolume / 0x1E;
-			parentObj.channel2envelopeType = ((data & 0x08) == 0x08);
-			parentObj.channel2envelopeSweeps = data & 0x7;
-			parentObj.channel2volumeEnvTime = parentObj.channel2volumeEnvTimeLast = parentObj.channel2envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;*/
+			if (parentObj.channel2envelopeSweeps == 0) {
+				parentObj.audioJIT();
+				//Zombie Volume PAPU Bug:
+				/*if (((data ^ parentObj.memory[0xFF17]) & 0x8) == 0x8 && (data & 0x8) != ((parentObj.channel2envelopeType) ? 0x8 : 0)) {
+					parentObj.channel2envelopeVolume = (16 - parentObj.channel2envelopeVolume) & 0xF;
+				}
+				else */if (!parentObj.channel2envelopeType) {
+					parentObj.channel2envelopeVolume = (2 + parentObj.channel2envelopeVolume) & 0xF;
+				}
+				else {
+					parentObj.channel2envelopeVolume = (1 + parentObj.channel2envelopeVolume) & 0xF;
+				}
+				parentObj.channel2currentVolume = parentObj.channel2envelopeVolume / 0x1E;
+			}
 			parentObj.memory[0xFF17] = data;
 		}
 	}
@@ -8141,12 +8157,20 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryHighWriter[0x21] = this.memoryWriter[0xFF21] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
-			/*parentObj.audioJIT();
-			parentObj.channel4envelopeVolume = data >> 4;
-			parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
-			parentObj.channel4envelopeType = ((data & 0x08) == 0x08);
-			parentObj.channel4envelopeSweeps = data & 0x7;
-			parentObj.channel4volumeEnvTime = parentObj.channel4volumeEnvTimeLast = parentObj.channel4envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;*/
+			if (parentObj.channel4envelopeSweeps == 0) {
+				parentObj.audioJIT();
+				//Zombie Volume PAPU Bug:
+				/*if (((data ^ parentObj.memory[0xFF21]) & 0x8) == 0x8 && (data & 0x8) != ((parentObj.channel4envelopeType) ? 0x8 : 0)) {
+					parentObj.channel4envelopeVolume = (16 - parentObj.channel4envelopeVolume) & 0xF;
+				}
+				else */if (!parentObj.channel4envelopeType) {
+					parentObj.channel4envelopeVolume = (2 + parentObj.channel4envelopeVolume) & 0xF;
+				}
+				else {
+					parentObj.channel4envelopeVolume = (1 + parentObj.channel4envelopeVolume) & 0xF;
+				}
+				parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
+			}
 			parentObj.memory[0xFF21] = data;
 		}
 	}
