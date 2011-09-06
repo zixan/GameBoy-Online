@@ -5929,22 +5929,11 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 	}
 }
 GameBoyCore.prototype.executeHDMA = function () {
-	if (this.halt) {
-		if ((this.LCDTicks - this.spriteCount) < ((4 >> this.doubleSpeedDivider) + 4)) {
-			this.DMAWrite(1);
-			this.CPUTicks = 4 + ((4 + this.spriteCount) * this.multiplier);
-			this.LCDTicks = this.spriteCount + (4 >> this.doubleSpeedDivider) + 4;
-		}
-		else {
-			var lcdTicks = this.LCDTicks;
-			var clocks = this.CPUTicks;
-			this.DMAWrite(1);
-			this.LCDTicks = lcdTicks;
-			this.CPUTicks = clocks;
-		}
-	}
-	else {
-		this.DMAWrite(1);
+	this.DMAWrite(1);
+	if (this.halt && (this.LCDTicks - this.spriteCount) < ((4 >> this.doubleSpeedDivider) + 0x20)) {
+		//HALT clocking correction:
+		this.CPUTicks = 4 + ((0x20 + this.spriteCount) << this.doubleSpeedDivider);
+		this.LCDTicks = this.spriteCount + (4 >> this.doubleSpeedDivider) + 0x20;
 	}
 	if (this.memory[0xFF55] == 0) {
 		this.hdmaRunning = false;
@@ -7805,9 +7794,11 @@ GameBoyCore.prototype.VRAMGBCCHRMAPWrite = function (parentObj, address, data) {
 	}
 }
 GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
-	//Clock the CPU for the DMA transfer (CPU is halted during the transfer):
-	this.CPUTicks += 4 + ((tilesToTransfer << 2) * this.multiplier);
-	this.LCDTicks += (4 >> this.doubleSpeedDivider) + (tilesToTransfer << 2);			//LCD Timing Update For DMA.
+	if (!this.halt) {
+		//Clock the CPU for the DMA transfer (CPU is halted during the transfer):
+		this.CPUTicks += 4 + ((tilesToTransfer << 5) << this.doubleSpeedDivider);
+		this.LCDTicks += (4 >> this.doubleSpeedDivider) + (tilesToTransfer << 5);			//LCD Timing Update For DMA.
+	}
 	//Source address of the transfer:
 	var source = (this.memory[0xFF51] << 8) | this.memory[0xFF52];
 	//Destination address in the VRAM memory range:
