@@ -7994,7 +7994,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x12] = this.memoryWriter[0xFF12] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
 			//Zombie Volume PAPU Bug:
-			if (parentObj.channel1volumeEnvTimeLast != 0) {
+			if (parentObj.channel1volumeEnvTimeLast != 0 || parentObj.channel1envelopeSweeps == 0) {
 				parentObj.audioJIT();
 				if (((parentObj.memory[0xFF12] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF12] & 0x8) == 0) {
@@ -8010,6 +8010,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				else if ((parentObj.memory[0xFF12] & 0xF) == 0x8) {
 					parentObj.channel1envelopeVolume = (1 + parentObj.channel1envelopeVolume) & 0xF;
 				}
+				parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
+				parentObj.channel1currentLeftVolume = parentObj.channel1currentVolume + parentObj.neutralLeftOffset;
+				parentObj.channel1currentRightVolume = parentObj.channel1currentVolume + parentObj.neutralRightOffset;
 			}
 			parentObj.memory[0xFF12] = data;
 		}
@@ -8077,7 +8080,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x17] = this.memoryWriter[0xFF17] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
 			//Zombie Volume PAPU Bug:
-			if (parentObj.channel2volumeEnvTimeLast != 0) {
+			if (parentObj.channel2volumeEnvTimeLast != 0 || parentObj.channel2envelopeSweeps == 0) {
 				parentObj.audioJIT();
 				if (((parentObj.memory[0xFF17] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF17] & 0x8) == 0) {
@@ -8093,6 +8096,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				else if ((parentObj.memory[0xFF17] & 0xF) == 0x8) {
 					parentObj.channel2envelopeVolume = (1 + parentObj.channel2envelopeVolume) & 0xF;
 				}
+				parentObj.channel2currentVolume = parentObj.channel2envelopeVolume / 0x1E;
 			}
 			parentObj.memory[0xFF17] = data;
 		}
@@ -8194,7 +8198,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x21] = this.memoryWriter[0xFF21] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
 			//Zombie Volume PAPU Bug:
-			if (parentObj.channel4volumeEnvTimeLast != 0) {
+			if (parentObj.channel4volumeEnvTimeLast != 0 || parentObj.channel4envelopeSweeps == 0) {
 				parentObj.audioJIT();
 				if (((parentObj.memory[0xFF21] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF21] & 0x8) == 0) {
@@ -8210,6 +8214,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				else if ((parentObj.memory[0xFF21] & 0xF) == 0x8) {
 					parentObj.channel4envelopeVolume = (1 + parentObj.channel4envelopeVolume) & 0xF;
 				}
+				parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
 			}
 			parentObj.memory[0xFF21] = data;
 		}
