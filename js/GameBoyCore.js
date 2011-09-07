@@ -5099,7 +5099,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 		}
 		if (this.channel1numSweep > 0) {
 			if (--this.channel1timeSweep == 0) {
-				this.channel1numSweep--;
+				--this.channel1numSweep;
 				this.channel1frequency = (this.channel1ShadowFrequency > -1) ? this.channel1ShadowFrequency : this.channel1frequency;
 				if (this.channel1decreaseSweep) {
 					this.channel1frequency -= this.channel1frequency >> this.channel1frequencySweepDivider;
@@ -5117,7 +5117,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 		}
 		if (this.channel1volumeEnvTimeLast > 0) {
 			if (this.channel1volumeEnvTime > 0) {
-				this.channel1volumeEnvTime--;
+				--this.channel1volumeEnvTime;
 			}
 			else {
 				if (!this.channel1envelopeType) {
@@ -5273,7 +5273,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 		this.currentSampleRight = (this.channel1lastSampleLookup <= this.channel1adjustedDuty && this.rightChannel[0]) ? this.channel1currentRightVolume : this.neutralRightOffset;
 		if (this.channel1numSweep > 0) {
 			if (--this.channel1timeSweep == 0) {
-				this.channel1numSweep--;
+				--this.channel1numSweep;
 				this.channel1frequency = (this.channel1ShadowFrequency > -1) ? this.channel1ShadowFrequency : this.channel1frequency;
 				if (this.channel1decreaseSweep) {
 					this.channel1frequency -= this.channel1frequency >> this.channel1frequencySweepDivider;
@@ -7995,6 +7995,11 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 					parentObj.channel1Fault = true;
 				}
 			}
+			parentObj.channel1lastTimeSweep = parentObj.channel1timeSweep = (((data & 0x70) >> 4) * parentObj.channel1TimeSweepPreMultiplier) | 0;
+			parentObj.channel1frequencySweepDivider = parentObj.channel1numSweep = data & 0x07;
+			parentObj.channel1decreaseSweep = ((data & 0x08) == 0x08);
+			//GB manual says that the audio won't play if this condition happens:
+			parentObj.channel1Fault = (parentObj.channel1numSweep == 0 && parentObj.channel1lastTimeSweep > 0 && parentObj.channel1decreaseSweep) ? true : parentObj.channel1Fault;
 			parentObj.memory[0xFF10] = data;
 		}
 	}
@@ -8013,7 +8018,13 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x12] = this.memoryWriter[0xFF12] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
 			//Zombie Volume PAPU Bug:
-			if ((parentObj.channel1consecutive || parentObj.channel1totalLength > 0) && (parentObj.channel1volumeEnvTimeLast == -1 || parentObj.channel1envelopeSweeps == 0)) {
+			if (data < 0x08) {
+				//Manual says this is a way to turn off the audio:
+				parentObj.channel1currentVolume = parentObj.channel1envelopeVolume = 0;
+				parentObj.channel1currentLeftVolume = parentObj.neutralLeftOffset;
+				parentObj.channel1currentRightVolume = parentObj.neutralRightOffset;
+			}
+			else if ((parentObj.channel1consecutive || parentObj.channel1totalLength > 0) && (parentObj.channel1volumeEnvTimeLast == -1 || parentObj.channel1envelopeSweeps == 0)) {
 				parentObj.audioJIT();
 				if (((parentObj.memory[0xFF12] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF12] & 0x8) == 0) {
@@ -8052,28 +8063,31 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if (parentObj.soundMasterEnabled) {
 			parentObj.audioJIT();
 			if (data > 0x7F) {
-				//Reload 0xFF10:
-				var nr10 = parentObj.memory[0xFF10];
-				parentObj.channel1lastTimeSweep = parentObj.channel1timeSweep = (((nr10 & 0x70) >> 4) * parentObj.channel1TimeSweepPreMultiplier) | 0;
-				parentObj.channel1frequencySweepDivider = parentObj.channel1numSweep = nr10 & 0x07;
-				parentObj.channel1decreaseSweep = ((nr10 & 0x08) == 0x08);
+				parentObj.channel1timeSweep = parentObj.channel1lastTimeSweep;
+				parentObj.channel1numSweep = parentObj.channel1frequencySweepDivider;
+				//GB manual says that the audio won't play if this condition happens:
+				parentObj.channel1Fault = (parentObj.channel1numSweep == 0 && parentObj.channel1lastTimeSweep > 0 && parentObj.channel1decreaseSweep);
 				//Reload 0xFF12:
 				var nr12 = parentObj.memory[0xFF12];
-				parentObj.channel1envelopeVolume = nr12 >> 4;
-				parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
-				parentObj.channel1currentLeftVolume = parentObj.channel1currentVolume + parentObj.neutralLeftOffset;
-				parentObj.channel1currentRightVolume = parentObj.channel1currentVolume + parentObj.neutralRightOffset;
-				parentObj.channel1envelopeType = ((nr12 & 0x08) == 0x08);
-				parentObj.channel1envelopeSweeps = nr12 & 0x7;
-				parentObj.channel1volumeEnvTime = parentObj.channel1volumeEnvTimeLast = parentObj.channel1envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
-				if (parentObj.channel1totalLength <= 0) {
-					parentObj.channel1totalLength = 0x40 * parentObj.audioTotalLengthMultiplier;
+				if (nr12 > 0x07) {
+					parentObj.channel1envelopeVolume = nr12 >> 4;
+					parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
+					parentObj.channel1currentLeftVolume = parentObj.channel1currentVolume + parentObj.neutralLeftOffset;
+					parentObj.channel1currentRightVolume = parentObj.channel1currentVolume + parentObj.neutralRightOffset;
+					parentObj.channel1envelopeType = ((nr12 & 0x08) == 0x08);
+					parentObj.channel1envelopeSweeps = nr12 & 0x7;
+					parentObj.channel1volumeEnvTime = parentObj.channel1volumeEnvTimeLast = parentObj.channel1envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
+					if (parentObj.channel1totalLength <= 0) {
+						parentObj.channel1totalLength = 0x40 * parentObj.audioTotalLengthMultiplier;
+					}
+				}
+				else {
+					parentObj.channel1volumeEnvTimeLast = -1;
 				}
 				if ((data & 0x40) == 0x40) {
 					parentObj.memory[0xFF26] |= 0x1;
 				}
 				parentObj.channel1ShadowFrequency = -1;
-				parentObj.channel1Fault = false;
 			}
 			else if ((parentObj.channel1consecutive || parentObj.channel1totalLength > 0) && parentObj.channel1frequency <= 0x7FF && !parentObj.channel1Fault) {
 				parentObj.channel1ShadowFrequency = parentObj.channel1frequency;
@@ -8100,7 +8114,11 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x17] = this.memoryWriter[0xFF17] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
 			//Zombie Volume PAPU Bug:
-			if ((parentObj.channel2consecutive || parentObj.channel2totalLength > 0) && (parentObj.channel2volumeEnvTimeLast == -1 || parentObj.channel2envelopeSweeps == 0)) {
+			if (data < 0x08) {
+				//Manual says this is a way to turn off the audio:
+				parentObj.channel2currentVolume = parentObj.channel2envelopeVolume = 0;
+			}
+			else if ((parentObj.channel2consecutive || parentObj.channel2totalLength > 0) && (parentObj.channel2volumeEnvTimeLast == -1 || parentObj.channel2envelopeSweeps == 0)) {
 				parentObj.audioJIT();
 				if (((parentObj.memory[0xFF17] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF17] & 0x8) == 0) {
@@ -8136,13 +8154,18 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			if (data > 0x7F) {
 				//Reload 0xFF17:
 				var nr22 = parentObj.memory[0xFF17];
-				parentObj.channel2envelopeVolume = nr22 >> 4;
-				parentObj.channel2currentVolume = parentObj.channel2envelopeVolume / 0x1E;
-				parentObj.channel2envelopeType = ((nr22 & 0x08) == 0x08);
-				parentObj.channel2envelopeSweeps = nr22 & 0x7;
-				parentObj.channel2volumeEnvTime = parentObj.channel2volumeEnvTimeLast = parentObj.channel2envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
-				if (parentObj.channel2totalLength <= 0) {
-					parentObj.channel2totalLength = 0x40 * parentObj.audioTotalLengthMultiplier;
+				if (nr22 > 0x7) {
+					parentObj.channel2envelopeVolume = nr22 >> 4;
+					parentObj.channel2currentVolume = parentObj.channel2envelopeVolume / 0x1E;
+					parentObj.channel2envelopeType = ((nr22 & 0x08) == 0x08);
+					parentObj.channel2envelopeSweeps = nr22 & 0x7;
+					parentObj.channel2volumeEnvTime = parentObj.channel2volumeEnvTimeLast = parentObj.channel2envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
+					if (parentObj.channel2totalLength <= 0) {
+						parentObj.channel2totalLength = 0x40 * parentObj.audioTotalLengthMultiplier;
+					}
+				}
+				else {
+					parentObj.channel2volumeEnvTimeLast = -1;
 				}
 				if ((data & 0x40) == 0x40) {
 					parentObj.memory[0xFF26] |= 0x2;
@@ -8218,7 +8241,11 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x21] = this.memoryWriter[0xFF21] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
 			//Zombie Volume PAPU Bug:
-			if ((parentObj.channel4consecutive || parentObj.channel4totalLength > 0) && (parentObj.channel4volumeEnvTimeLast == -1 || parentObj.channel4envelopeSweeps == 0)) {
+			if (data < 0x08) {
+				//Manual says this is a way to turn off the audio:
+				parentObj.channel4currentVolume = parentObj.channel4envelopeVolume = 0;
+			}
+			else if ((parentObj.channel4consecutive || parentObj.channel4totalLength > 0) && (parentObj.channel4volumeEnvTimeLast == -1 || parentObj.channel4envelopeSweeps == 0)) {
 				parentObj.audioJIT();
 				if (((parentObj.memory[0xFF21] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF21] & 0x8) == 0) {
@@ -8261,13 +8288,18 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.channel4consecutive = ((data & 0x40) == 0x0);
 			if (data > 0x7F) {
 				var nr42 = parentObj.memory[0xFF21];
-				parentObj.channel4envelopeVolume = nr42 >> 4;
-				parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
-				parentObj.channel4envelopeType = ((nr42 & 0x08) == 0x08);
-				parentObj.channel4envelopeSweeps = nr42 & 0x7;
-				parentObj.channel4volumeEnvTime = parentObj.channel4volumeEnvTimeLast = parentObj.channel4envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
-				if (parentObj.channel4totalLength <= 0) {
-					parentObj.channel4totalLength = 0x40 * parentObj.audioTotalLengthMultiplier;
+				if (nr42 > 0x7) {
+					parentObj.channel4envelopeVolume = nr42 >> 4;
+					parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
+					parentObj.channel4envelopeType = ((nr42 & 0x08) == 0x08);
+					parentObj.channel4envelopeSweeps = nr42 & 0x7;
+					parentObj.channel4volumeEnvTime = parentObj.channel4volumeEnvTimeLast = parentObj.channel4envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
+					if (parentObj.channel4totalLength <= 0) {
+						parentObj.channel4totalLength = 0x40 * parentObj.audioTotalLengthMultiplier;
+					}
+				}
+				else {
+					parentObj.channel4volumeEnvTimeLast = -1;
 				}
 				if ((data & 0x40) == 0x40) {
 					parentObj.memory[0xFF26] |= 0x8;
