@@ -6099,7 +6099,7 @@ GameBoyCore.prototype.renderScanLine = function () {
 	if (settings[4] == 0 || this.frameCount > 0) {
 		this.pixelStart = this.actualScanLine * 160;
 		if (this.bgEnabled) {
-			var shadowRender = (Math.max((this.LCDTicks - 92), 0) | 0);
+			var shadowRender = (Math.max((this.LCDTicks - 80), 0) | 0);
 			shadowRender = Math.max(shadowRender - this.midScanlineOffset - (shadowRender % 0x8), 0);
 			shadowRender = Math.min(shadowRender - 8, 160);
 			if (this.midScanlineBGYScrollShadow != this.memory[0xFF42]) {
@@ -6138,7 +6138,7 @@ GameBoyCore.prototype.renderMidScanLine = function () {
 		if (this.currentX == 0) {
 			this.midScanlineOffset = this.memory[0xFF43] & 0x7;
 		}
-		var pixelEnd = (Math.max((this.LCDTicks - 92), 0) | 0);
+		var pixelEnd = (Math.max((this.LCDTicks - 80), 0) | 0);
 		pixelEnd = Math.max(pixelEnd - this.midScanlineOffset - (pixelEnd % 0x8), 0);
 		if (this.bgEnabled) {
 			this.pixelStart = this.actualScanLine * 160;
