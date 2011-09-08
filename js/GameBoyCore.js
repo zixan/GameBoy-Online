@@ -189,8 +189,6 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.drewBlank = 0;						//To prevent the repeating of drawing a blank screen.
 	this.drewFrame = false;					//Throttle how many draws we can do to once per iteration.
 	this.midScanlineOffset = 0;				//mid-scanline rendering offset.
-	this.midScanlineBGYScrollShadow = 0;	//mid-scanline BG y scroll shadowing.
-	this.midScanlineWINYScrollShadow = 0;	//mid-scanline WIN y scroll shadowing.
 	//BG Tile Pointer Caches:
 	this.BGCHRBank1 = this.getTypedArray(0x800, 0, "uint8");
 	this.BGCHRBank2 = this.getTypedArray(0x800, 0, "uint8");
@@ -4035,8 +4033,6 @@ GameBoyCore.prototype.saveState = function () {
 		this.numRAMBanks,
 		this.windowY,
 		this.windowX,
-		this.midScanlineBGYScrollShadow,
-		this.midScanlineWINYScrollShadow,
 		this.returnOAMXCacheCopy(this.OAMAddresses),
 		this.fromTypedArray(this.gbcOBJRawPalette),
 		this.fromTypedArray(this.gbcBGRawPalette),
@@ -4210,8 +4206,6 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.numRAMBanks = state[index++];
 	this.windowY = state[index++];
 	this.windowX = state[index++];
-	this.midScanlineBGYScrollShadow = state[index++];
-	this.midScanlineWINYScrollShadow = state[index++];
 	this.OAMAddresses = this.returnOAMXCacheCopy(state[index++]);
 	this.gbcOBJRawPalette = this.toTypedArray(state[index++], "uint8");
 	this.gbcBGRawPalette = this.toTypedArray(state[index++], "uint8");
@@ -6099,21 +6093,6 @@ GameBoyCore.prototype.renderScanLine = function () {
 	if (settings[4] == 0 || this.frameCount > 0) {
 		this.pixelStart = this.actualScanLine * 160;
 		if (this.bgEnabled) {
-			var shadowRender = (Math.max((this.LCDTicks - 80), 0) | 0);
-			shadowRender = Math.max(shadowRender - this.midScanlineOffset - (shadowRender % 0x8), 0);
-			shadowRender = Math.min(shadowRender - 8, 160);
-			if (this.midScanlineBGYScrollShadow != this.memory[0xFF42]) {
-				var tempY = this.memory[0xFF42];
-				this.memory[0xFF42] = this.midScanlineBGYScrollShadow;
-				this.BGLayerRender(shadowRender);
-				this.midScanlineBGYScrollShadow = this.memory[0xFF42] = tempY;
-			}
-			if (this.midScanlineWINYScrollShadow != this.windowY) {
-				var tempY = this.windowY;
-				this.windowY = this.midScanlineWINYScrollShadow;
-				this.WindowLayerRender(shadowRender);
-				this.midScanlineWINYScrollShadow = this.windowY = tempY;
-			}
 			this.BGLayerRender(160);
 			this.WindowLayerRender(160);
 		}
@@ -6139,31 +6118,14 @@ GameBoyCore.prototype.renderMidScanLine = function () {
 			this.midScanlineOffset = this.memory[0xFF43] & 0x7;
 		}
 		var pixelEnd = (Math.max((this.LCDTicks - 80), 0) | 0);
-		pixelEnd = Math.max(pixelEnd - this.midScanlineOffset - (pixelEnd % 0x8), 0);
+		pixelEnd = Math.min(Math.max(pixelEnd - this.midScanlineOffset - (pixelEnd % 0x8), 0), 160);
 		if (this.bgEnabled) {
 			this.pixelStart = this.actualScanLine * 160;
-			var shadowRender = Math.min(pixelEnd - 8, 160);
-			if (shadowRender > 0) {
-				if (this.midScanlineBGYScrollShadow != this.memory[0xFF42]) {
-					var tempY = this.memory[0xFF42];
-					this.memory[0xFF42] = this.midScanlineBGYScrollShadow;
-					this.BGLayerRender(shadowRender);
-					this.midScanlineBGYScrollShadow = this.memory[0xFF42] = tempY;
-				}
-				if (this.midScanlineWINYScrollShadow != this.windowY) {
-					var tempY = this.windowY;
-					this.windowY = this.midScanlineWINYScrollShadow;
-					this.WindowLayerRender(shadowRender);
-					this.midScanlineWINYScrollShadow = this.windowY = tempY;
-				}
-			}
-			pixelEnd = (pixelEnd > 160) ? 160 : pixelEnd;
 			this.BGLayerRender(pixelEnd);
 			this.WindowLayerRender(pixelEnd);
 			//TODO: Do midscanline JIT for sprites...
 		}
 		else {
-			pixelEnd = (pixelEnd > 160) ? 160 : pixelEnd;
 			var pixelLine = (this.actualScanLine * 160) + pixelEnd;
 			var defaultColor = (this.cGBC || (this.usedBootROM && settings[17])) ? 0xF8F8F8 : 0xEFFFDE;
 			for (var pixelPosition = (this.actualScanLine * 160) + this.currentX; pixelPosition < pixelLine; pixelPosition++) {
@@ -8586,7 +8548,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x42] = this.memoryWriter[0xFF42] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF42] != data) {
 			parentObj.renderMidScanLine();
-			parentObj.midScanlineBGYScrollShadow = data;
 			parentObj.memory[0xFF42] = data;
 		}
 	}
@@ -8622,7 +8583,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x4A] = this.memoryWriter[0xFF4A] = function (parentObj, address, data) {
 		if (parentObj.windowY != data) {
 			parentObj.renderMidScanLine();
-			parentObj.midScanlineWINYScrollShadow = parentObj.windowY;
 			parentObj.windowY = data;
 		}
 	}
