@@ -6099,6 +6099,21 @@ GameBoyCore.prototype.renderScanLine = function () {
 	if (settings[4] == 0 || this.frameCount > 0) {
 		this.pixelStart = this.actualScanLine * 160;
 		if (this.bgEnabled) {
+			var shadowRender = (Math.max((this.LCDTicks - 92), 0) | 0);
+			shadowRender = Math.max(shadowRender - this.midScanlineOffset - (shadowRender % 0x8), 0);
+			shadowRender = Math.min(shadowRender - 8, 160);
+			if (this.midScanlineBGYScrollShadow != this.memory[0xFF42]) {
+				var tempY = this.memory[0xFF42];
+				this.memory[0xFF42] = this.midScanlineBGYScrollShadow;
+				this.BGLayerRender(shadowRender);
+				this.midScanlineBGYScrollShadow = this.memory[0xFF42] = tempY;
+			}
+			if (this.midScanlineWINYScrollShadow != this.windowY) {
+				var tempY = this.windowY;
+				this.windowY = this.midScanlineWINYScrollShadow;
+				this.WindowLayerRender(shadowRender);
+				this.midScanlineWINYScrollShadow = this.windowY = tempY;
+			}
 			this.BGLayerRender(160);
 			this.WindowLayerRender(160);
 		}
@@ -6121,20 +6136,26 @@ GameBoyCore.prototype.renderMidScanLine = function () {
 	if (this.actualScanLine < 144 && this.modeSTAT == 3 && (settings[4] == 0 || this.frameCount > 0)) {
 		//TODO: Get this accurate:
 		if (this.currentX == 0) {
-			this.midScanlineOffset = 8 - (this.memory[0xFF43] & 0x7);
+			this.midScanlineOffset = this.memory[0xFF43] & 0x7;
 		}
-		var pixelEnd = (Math.max((this.LCDTicks - 84), 0) | 0);
-		pixelEnd = pixelEnd + this.midScanlineOffset - (pixelEnd % 0x8);
+		var pixelEnd = (Math.max((this.LCDTicks - 92), 0) | 0);
+		pixelEnd = Math.max(pixelEnd - this.midScanlineOffset - (pixelEnd % 0x8), 0);
 		if (this.bgEnabled) {
 			this.pixelStart = this.actualScanLine * 160;
 			var shadowRender = Math.min(pixelEnd - 8, 160);
-			if (this.midScanlineBGYScrollShadow != this.memory[0xFF42]) {
-				this.BGLayerRender(shadowRender);
-				this.midScanlineBGYScrollShadow = this.memory[0xFF42];
-			}
-			if (this.midScanlineWINYScrollShadow != this.windowY) {
-				this.WindowLayerRender(shadowRender);
-				this.midScanlineWINYScrollShadow = this.windowY;
+			if (shadowRender > 0) {
+				if (this.midScanlineBGYScrollShadow != this.memory[0xFF42]) {
+					var tempY = this.memory[0xFF42];
+					this.memory[0xFF42] = this.midScanlineBGYScrollShadow;
+					this.BGLayerRender(shadowRender);
+					this.midScanlineBGYScrollShadow = this.memory[0xFF42] = tempY;
+				}
+				if (this.midScanlineWINYScrollShadow != this.windowY) {
+					var tempY = this.windowY;
+					this.windowY = this.midScanlineWINYScrollShadow;
+					this.WindowLayerRender(shadowRender);
+					this.midScanlineWINYScrollShadow = this.windowY = tempY;
+				}
 			}
 			pixelEnd = (pixelEnd > 160) ? 160 : pixelEnd;
 			this.BGLayerRender(pixelEnd);
