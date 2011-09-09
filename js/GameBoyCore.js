@@ -4195,10 +4195,6 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.soundMasterEnabled = state[index++];
 	this.VinLeftChannelMasterVolume = state[index++];
 	this.VinRightChannelMasterVolume = state[index++];
-	this.neutralLeftOffset = (-1 / this.VinLeftChannelMasterVolume);
-	this.neutralRightOffset = (-1 / this.VinRightChannelMasterVolume);
-	this.channel1currentLeftVolume = this.channel1currentVolume + this.neutralLeftOffset;
-	this.channel1currentRightVolume = this.channel1currentVolume + this.neutralRightOffset;
 	this.leftChannel = state[index++];
 	this.rightChannel = state[index++];
 	this.actualScanLine = state[index++];
@@ -5030,10 +5026,6 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 	this.channel4lastSampleLookup = 0;
 	this.VinLeftChannelMasterVolume = 1;
 	this.VinRightChannelMasterVolume = 1;
-	this.neutralLeftOffset = -1;
-	this.neutralRightOffset = -1;
-	this.channel1currentLeftVolume = this.channel1currentVolume - 1;
-	this.channel1currentRightVolume = this.channel1currentVolume - 1;
 }
 //Below are the audio generation functions timed against the CPU:
 GameBoyCore.prototype.generateAudio = function (numSamples) {
@@ -5042,8 +5034,8 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			while (--numSamples >= 0) {
 				//STEREO
 				this.audioChannelsComputeStereo();
-				this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume;
-				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume;
+				this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1;
+				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
 					this.audioHandle.writeAudio(this.currentBuffer);
@@ -5054,7 +5046,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			while (--numSamples >= 0) {
 				//MONO
 				this.audioChannelsComputeMono();
-				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume;
+				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
 					this.audioHandle.writeAudio(this.currentBuffer);
@@ -5105,12 +5097,11 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 	//Channel 1:
 	if ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1frequency <= 0x7FF && !this.channel1Fault) {
 		if (this.channel1lastSampleLookup <= this.channel1adjustedDuty) {
-			this.currentSampleLeft = (this.leftChannel[0]) ? this.channel1currentLeftVolume : this.neutralLeftOffset;
-			this.currentSampleRight = (this.rightChannel[0]) ? this.channel1currentRightVolume : this.neutralRightOffset;
+			this.currentSampleLeft = (this.leftChannel[0]) ? this.channel1currentVolume : 0;
+			this.currentSampleRight = (this.rightChannel[0]) ? this.channel1currentVolume : 0;
 		}
 		else {
-			this.currentSampleLeft = this.neutralLeftOffset;
-			this.currentSampleRight = this.neutralRightOffset;
+			this.currentSampleRight = this.currentSampleLeft = 0;
 		}
 		if (this.channel1numSweep > 0) {
 			if (--this.channel1timeSweep == 0) {
@@ -5138,8 +5129,6 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 				if (!this.channel1envelopeType) {
 					if (this.channel1envelopeVolume > 0) {
 						this.channel1currentVolume = --this.channel1envelopeVolume / 0x1E;
-						this.channel1currentLeftVolume = this.channel1currentVolume + this.neutralLeftOffset;
-						this.channel1currentRightVolume = this.channel1currentVolume + this.neutralRightOffset;
 						this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
 					}
 					else {
@@ -5148,8 +5137,6 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 				}
 				else if (this.channel1envelopeVolume < 0xF) {
 					this.channel1currentVolume = ++this.channel1envelopeVolume / 0x1E;
-					this.channel1currentLeftVolume = this.channel1currentVolume + this.neutralLeftOffset;
-					this.channel1currentRightVolume = this.channel1currentVolume + this.neutralRightOffset;
 					this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
 				}
 				else {
@@ -5169,8 +5156,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 		}
 	}
 	else {
-		this.currentSampleLeft = this.neutralLeftOffset;
-		this.currentSampleRight = this.neutralRightOffset;
+		this.currentSampleRight = this.currentSampleLeft = 0;
 	}
 	//Channel 2:
 	if (this.channel2consecutive || this.channel2totalLength > 0) {
@@ -5285,7 +5271,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 GameBoyCore.prototype.audioChannelsComputeMono = function () {
 	//Channel 1:
 	if ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1frequency <= 0x7FF && !this.channel1Fault) {
-		this.currentSampleRight = (this.channel1lastSampleLookup <= this.channel1adjustedDuty && this.rightChannel[0]) ? this.channel1currentRightVolume : this.neutralRightOffset;
+		this.currentSampleRight = (this.channel1lastSampleLookup <= this.channel1adjustedDuty && this.rightChannel[0]) ? this.channel1currentVolume : 0;
 		if (this.channel1numSweep > 0) {
 			if (--this.channel1timeSweep == 0) {
 				--this.channel1numSweep;
@@ -5312,8 +5298,6 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 				if (!this.channel1envelopeType) {
 					if (this.channel1envelopeVolume > 0) {
 						this.channel1currentVolume = --this.channel1envelopeVolume / 0x1E;
-						this.channel1currentLeftVolume = this.channel1currentVolume + this.neutralLeftOffset;
-						this.channel1currentRightVolume = this.channel1currentVolume + this.neutralRightOffset;
 						this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
 					}
 					else {
@@ -5322,8 +5306,6 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 				}
 				else if (this.channel1envelopeVolume < 0xF) {
 					this.channel1currentVolume = ++this.channel1envelopeVolume / 0x1E;
-					this.channel1currentLeftVolume = this.channel1currentVolume + this.neutralLeftOffset;
-					this.channel1currentRightVolume = this.channel1currentVolume + this.neutralRightOffset;
 					this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
 				}
 				else {
@@ -5343,7 +5325,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 		}
 	}
 	else {
-		this.currentSampleRight = this.neutralRightOffset;
+		this.currentSampleRight = 0;
 	}
 	//Channel 2:
 	if (this.channel2consecutive || this.channel2totalLength > 0) {
@@ -5447,15 +5429,15 @@ GameBoyCore.prototype.generateAudioSafe = function (tempBuffer, numSamples) {
 			while (--numSamples >= 0) {
 				//STEREO
 				this.audioChannelsComputeStereoSafe();
-				tempBuffer.push(this.currentSampleLeft * this.VinLeftChannelMasterVolume);
-				tempBuffer.push(this.currentSampleRight * this.VinRightChannelMasterVolume);
+				tempBuffer.push(this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1);
+				tempBuffer.push(this.currentSampleRight * this.VinRightChannelMasterVolume - 1);
 			}
 		}
 		else {
 			while (--numSamples >= 0) {
 				//MONO
 				this.audioChannelsComputeMonoSafe();
-				tempBuffer.push(this.currentSampleRight * this.VinRightChannelMasterVolume);
+				tempBuffer.push(this.currentSampleRight * this.VinRightChannelMasterVolume - 1);
 			}
 		}
 	}
@@ -5481,12 +5463,11 @@ GameBoyCore.prototype.audioChannelsComputeStereoSafe = function () {
 	//channel 1:
 	if ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1frequency <= 0x7FF && !this.channel1Fault) {
 		if (this.channel1lastSampleLookup <= this.channel1adjustedDuty) {
-			this.currentSampleLeft = (this.leftChannel[0]) ? this.channel1currentLeftVolume : this.neutralLeftOffset;
-			this.currentSampleRight = (this.rightChannel[0]) ? this.channel1currentRightVolume : this.neutralRightOffset;
+			this.currentSampleLeft = (this.leftChannel[0]) ? this.channel1currentVolume : 0;
+			this.currentSampleRight = (this.rightChannel[0]) ? this.channel1currentVolume : 0;
 		}
 		else {
-			this.currentSampleLeft = this.neutralLeftOffset;
-			this.currentSampleRight = this.neutralRightOffset;
+			this.currentSampleRight = this.currentSampleLeft = 0;
 		}
 		this.channel1lastSampleLookup += this.channel1adjustedFrequencyPrep;
 		while (this.channel1lastSampleLookup >= 1) {
@@ -5494,8 +5475,7 @@ GameBoyCore.prototype.audioChannelsComputeStereoSafe = function () {
 		}
 	}
 	else {
-		this.currentSampleLeft = this.neutralLeftOffset;
-		this.currentSampleRight = this.neutralRightOffset;
+		this.currentSampleRight = this.currentSampleLeft = 0;
 	}
 	//Channel 2:
 	if (this.channel2consecutive || this.channel2totalLength > 0) {
@@ -5547,10 +5527,10 @@ GameBoyCore.prototype.audioChannelsComputeMonoSafe = function () {
 	//channel 1:
 	if ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1frequency <= 0x7FF && !this.channel1Fault) {
 		if (this.channel1lastSampleLookup <= this.channel1adjustedDuty) {
-			this.currentSampleRight = (this.rightChannel[0]) ? this.channel1currentRightVolume : this.neutralRightOffset;
+			this.currentSampleRight = (this.rightChannel[0]) ? this.channel1currentVolume : 0;
 		}
 		else {
-			this.currentSampleRight = this.neutralRightOffset;
+			this.currentSampleRight = 0;
 		}
 		this.channel1lastSampleLookup += this.channel1adjustedFrequencyPrep;
 		while (this.channel1lastSampleLookup >= 1) {
@@ -5558,7 +5538,7 @@ GameBoyCore.prototype.audioChannelsComputeMonoSafe = function () {
 		}
 	}
 	else {
-		this.currentSampleRight = this.neutralRightOffset;
+		this.currentSampleRight = 0;
 	}
 	//Channel 2:
 	if (this.channel2consecutive || this.channel2totalLength > 0) {
@@ -8051,8 +8031,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			if (data < 0x08) {
 				//Manual says this is a way to turn off the audio:
 				parentObj.channel1currentVolume = parentObj.channel1envelopeVolume = 0;
-				parentObj.channel1currentLeftVolume = parentObj.neutralLeftOffset;
-				parentObj.channel1currentRightVolume = parentObj.neutralRightOffset;
 			}
 			else if ((parentObj.channel1consecutive || parentObj.channel1totalLength > 0) && (parentObj.channel1volumeEnvTimeLast == -1 || parentObj.channel1envelopeSweeps == 0)) {
 				parentObj.audioJIT();
@@ -8071,8 +8049,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 					parentObj.channel1envelopeVolume = (1 + parentObj.channel1envelopeVolume) & 0xF;
 				}
 				parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
-				parentObj.channel1currentLeftVolume = parentObj.channel1currentVolume + parentObj.neutralLeftOffset;
-				parentObj.channel1currentRightVolume = parentObj.channel1currentVolume + parentObj.neutralRightOffset;
 			}
 			parentObj.memory[0xFF12] = data;
 		}
@@ -8102,8 +8078,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				if (nr12 > 0x07) {
 					parentObj.channel1envelopeVolume = nr12 >> 4;
 					parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
-					parentObj.channel1currentLeftVolume = parentObj.channel1currentVolume + parentObj.neutralLeftOffset;
-					parentObj.channel1currentRightVolume = parentObj.channel1currentVolume + parentObj.neutralRightOffset;
 					parentObj.channel1envelopeType = ((nr12 & 0x08) == 0x08);
 					parentObj.channel1envelopeSweeps = nr12 & 0x7;
 					parentObj.channel1volumeEnvTime = parentObj.channel1volumeEnvTimeLast = parentObj.channel1envelopeSweeps * parentObj.volumeEnvelopePreMultiplier;
@@ -8343,10 +8317,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.memory[0xFF24] = data;
 			parentObj.VinLeftChannelMasterVolume = (((data >> 4) & 0x07) + 1) / 8;
 			parentObj.VinRightChannelMasterVolume = ((data & 0x07) + 1) / 8;
-			parentObj.neutralLeftOffset = (-1 / parentObj.VinLeftChannelMasterVolume);
-			parentObj.neutralRightOffset = (-1 / parentObj.VinRightChannelMasterVolume);
-			parentObj.channel1currentLeftVolume = parentObj.channel1currentVolume + parentObj.neutralLeftOffset;
-			parentObj.channel1currentRightVolume = parentObj.channel1currentVolume + parentObj.neutralRightOffset;
 		}
 	}
 	this.memoryHighWriter[0x25] = this.memoryWriter[0xFF25] = function (parentObj, address, data) {
