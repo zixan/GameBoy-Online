@@ -7994,21 +7994,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.memory[0xFF01] = data;
 		}
 	}
-	//SC (Serial Transfer Control Register)
-	this.memoryHighWriter[0x2] = this.memoryWriter[0xFF02] = function (parentObj, address, data) {
-		if (((data & 0x1) == 0x1)) {
-			//Internal clock:
-			parentObj.memory[0xFF02] = (data & 0x7F);
-			parentObj.serialTimer = (!parentObj.cGBC || (data & 0x2) == 0) ? 4096 : 128;	//Set the Serial IRQ counter.
-			parentObj.serialShiftTimerAllocated = (!parentObj.cGBC || (data & 0x2) == 0) ? 512 : 16;	//Set the transfer data shift counter.
-			parentObj.serialShiftTimer = parentObj.serialShiftTimerAllocated;
-		}
-		else {
-			//External clock:
-			parentObj.memory[0xFF02] = data;
-			parentObj.serialShiftTimer = parentObj.serialShiftTimerAllocated = parentObj.serialTimer = 0;	//Zero the timers, since we're emulating as if nothing is connected.
-		}
-	}
 	//DIV
 	this.memoryHighWriter[0x4] = this.memoryWriter[0xFF04] = function (parentObj, address, data) {
 		parentObj.DIVTicks &= 0xFF;	//Update DIV for realignment.
@@ -8664,6 +8649,20 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	if (this.cGBC) {
 		//GameBoy Color Specific I/O:
+		//SC (Serial Transfer Control Register)
+		this.memoryHighWriter[0x2] = this.memoryWriter[0xFF02] = function (parentObj, address, data) {
+			if (((data & 0x1) == 0x1)) {
+				//Internal clock:
+				parentObj.memory[0xFF02] = (data & 0x7F);
+				parentObj.serialTimer = ((data & 0x2) == 0) ? 4096 : 128;	//Set the Serial IRQ counter.
+				parentObj.serialShiftTimer = parentObj.serialShiftTimerAllocated = ((data & 0x2) == 0) ? 512 : 16;	//Set the transfer data shift counter.
+			}
+			else {
+				//External clock:
+				parentObj.memory[0xFF02] = data;
+				parentObj.serialShiftTimer = parentObj.serialShiftTimerAllocated = parentObj.serialTimer = 0;	//Zero the timers, since we're emulating as if nothing is connected.
+			}
+		}
 		this.memoryHighWriter[0x40] = this.memoryWriter[0xFF40] = function (parentObj, address, data) {
 			if (parentObj.memory[0xFF40] != data) {
 				parentObj.renderMidScanLine();
@@ -8815,6 +8814,20 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	else {
 		//Fill in the GameBoy Color I/O registers as normal RAM for GameBoy compatibility:
+		//SC (Serial Transfer Control Register)
+		this.memoryHighWriter[0x2] = this.memoryWriter[0xFF02] = function (parentObj, address, data) {
+			if (((data & 0x1) == 0x1)) {
+				//Internal clock:
+				parentObj.memory[0xFF02] = (data & 0x7F);
+				parentObj.serialTimer = 4096;	//Set the Serial IRQ counter.
+				parentObj.serialShiftTimer = parentObj.serialShiftTimerAllocated = 512;	//Set the transfer data shift counter.
+			}
+			else {
+				//External clock:
+				parentObj.memory[0xFF02] = data;
+				parentObj.serialShiftTimer = parentObj.serialShiftTimerAllocated = parentObj.serialTimer = 0;	//Zero the timers, since we're emulating as if nothing is connected.
+			}
+		}
 		this.memoryHighWriter[0x40] = this.memoryWriter[0xFF40] = function (parentObj, address, data) {
 			if (parentObj.memory[0xFF40] != data) {
 				parentObj.renderMidScanLine();
