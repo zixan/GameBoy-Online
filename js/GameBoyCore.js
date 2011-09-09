@@ -145,6 +145,9 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.timerTicks = 0;				//Counter for the TIMA timer.
 	this.TIMAEnabled = false;			//Is TIMA enabled?
 	this.TACClocker = 1024;				//Timer Max Ticks
+	this.serialTimer = 0;				//Serial IRQ Timer
+	this.serialShiftTimer = 0;			//Serial Transfer Shift Timer
+	this.serialShiftTimerAllocated = 0;	//Serial Transfer Shift Timer Refill
 	this.IRQEnableDelay = 0;			//Are the interrupts on queue to be enabled?
 	var dateVar = new Date();
 	this.lastIteration = dateVar.getTime();//The last time we iterated the main loop.
@@ -1220,6 +1223,12 @@ GameBoyCore.prototype.OPCODE = new Array(
 			if (temp_var <= currentClocks) {
 				parentObj.halt = false;
 				currentClocks = temp_var;
+			}
+		}
+		if (parentObj.serialTimer > 0 && (parentObj.interruptsEnabled & 0x8) == 0x8) {
+			if (parentObj.serialTimer <= currentClocks) {
+				parentObj.halt = false;
+				currentClocks = parentObj.serialTimer;
 			}
 		}
 		if (!parentObj.halt) {
@@ -3941,6 +3950,9 @@ GameBoyCore.prototype.saveState = function () {
 		this.LCDTicks,
 		this.timerTicks,
 		this.TACClocker,
+		this.serialTimer,
+		this.serialShiftTimer,
+		this.serialShiftTimerAllocated,
 		this.IRQEnableDelay,
 		this.lastIteration,
 		this.cMBC1,
@@ -4108,6 +4120,9 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.LCDTicks = state[index++];
 	this.timerTicks = state[index++];
 	this.TACClocker = state[index++];
+	this.serialTimer = state[index++];
+	this.serialShiftTimer = state[index++];
+	this.serialShiftTimerAllocated = state[index++];
 	this.IRQEnableDelay = state[index++];
 	this.lastIteration = state[index++];
 	this.cMBC1 = state[index++];
@@ -5672,6 +5687,19 @@ GameBoyCore.prototype.executeIteration = function () {
 				}
 			}
 		}
+		if (this.serialTimer > 0) {										//Serial Timing
+			//IRQ Counter:
+			this.serialTimer -= this.CPUTicks;
+			if (this.serialTimer <= 0) {
+				this.interruptsRequested |= 0x8;
+			}
+			//Bit Shit Counter:
+			this.serialShiftTimer -= this.CPUTicks;
+			if (this.serialShiftTimer <= 0) {
+				this.serialShiftTimer = this.serialShiftTimerAllocated;
+				this.memory[0xFF01] = ((this.memory[0xFF01] << 1) & 0xFE) | 0x01;	//We could shift in actual link data here if we were to implement such!!!
+			}
+		}
 		//End of iteration routine:
 		if (this.emulatorTicks >= this.CPUCyclesPerIteration) {
 			this.audioJIT();	//Make sure we at least output once per iteration.
@@ -5790,6 +5818,19 @@ GameBoyCore.prototype.updateCore = function () {
 				this.memory[0xFF05] = this.memory[0xFF06];
 				this.interruptsRequested |= 0x4;
 			}
+		}
+	}
+	if (this.serialTimer > 0) {										//Serial Timing
+		//IRQ Counter:
+		this.serialTimer -= this.CPUTicks;
+		if (this.serialTimer <= 0) {
+			this.interruptsRequested |= 0x8;
+		}
+		//Bit Shit Counter:
+		this.serialShiftTimer -= this.CPUTicks;
+		if (this.serialShiftTimer <= 0) {
+			this.serialShiftTimer = this.serialShiftTimerAllocated;
+			this.memory[0xFF01] = ((this.memory[0xFF01] << 1) & 0xFE) | 0x01;	//We could shift in actual link data here if we were to implement such!!!
 		}
 	}
 	//End of iteration routine:
@@ -7043,21 +7084,21 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 					}
 					break;
 				case 0xFF01:
-					//SC
+					//SB
 					this.memoryHighReader[0x01] = this.memoryReader[0xFF01] = function (parentObj, address) {
-						return ((parentObj.memory[0xFF02] & 0x1) == 0x1) ? 0xFF : parentObj.memory[0xFF01];
+						return (parentObj.memory[0xFF02] < 0x80) ? parentObj.memory[0xFF01] : 0xFF;
 					}
 					break;
 				case 0xFF02:
-					//SB
+					//SC
 					if (this.cGBC) {
 						this.memoryHighReader[0x02] = this.memoryReader[0xFF02] = function (parentObj, address) {
-							return 0x7C | parentObj.memory[0xFF02];
+							return ((parentObj.serialTimer <= 0) ? 0x7C : 0xFC) | parentObj.memory[0xFF02];
 						}
 					}
 					else {
 						this.memoryHighReader[0x02] = this.memoryReader[0xFF02] = function (parentObj, address) {
-							return 0x7E | parentObj.memory[0xFF02];
+							return ((parentObj.serialTimer <= 0) ? 0x7E : 0xFE) | parentObj.memory[0xFF02];
 						}
 					}
 					break;
@@ -7949,19 +7990,23 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	//SB (Serial Transfer Data)
 	this.memoryHighWriter[0x1] = this.memoryWriter[0xFF01] = function (parentObj, address, data) {
-		parentObj.memory[0xFF01] = data;
+		if (parentObj.memory[0xFF02] < 0x80) {	//Cannot write while a serial transfer is active.
+			parentObj.memory[0xFF01] = data;
+		}
 	}
 	//SC (Serial Transfer Control Register)
 	this.memoryHighWriter[0x2] = this.memoryWriter[0xFF02] = function (parentObj, address, data) {
 		if (((data & 0x1) == 0x1)) {
 			//Internal clock:
 			parentObj.memory[0xFF02] = (data & 0x7F);
-			parentObj.interruptsRequested |= 0x8;	//Get this time delayed...
+			parentObj.serialTimer = (!parentObj.cGBC || (data & 0x2) == 0) ? 4096 : 128;	//Set the Serial IRQ counter.
+			parentObj.serialShiftTimerAllocated = (!parentObj.cGBC || (data & 0x2) == 0) ? 512 : 16;	//Set the transfer data shift counter.
+			parentObj.serialShiftTimer = parentObj.serialShiftTimerAllocated;
 		}
 		else {
 			//External clock:
 			parentObj.memory[0xFF02] = data;
-			//No connected serial device, so don't trigger interrupt...
+			parentObj.serialShiftTimer = parentObj.serialShiftTimerAllocated = parentObj.serialTimer = 0;	//Zero the timers, since we're emulating as if nothing is connected.
 		}
 	}
 	//DIV
