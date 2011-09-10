@@ -6580,7 +6580,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					}
 				}
 			}
-			for (var onXCoord = 8; onXCoord < 161; onXCoord++) {
+			for (onXCoord = 8; onXCoord < 161; onXCoord++) {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
 				for (spriteCount = 0; spriteCount < length; spriteCount++) {
@@ -6682,7 +6682,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					}
 				}
 			}
-			for (var onXCoord = 8; onXCoord < 161; onXCoord++) {
+			for (onXCoord = 8; onXCoord < 161; onXCoord++) {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
 				for (spriteCount = 0; spriteCount < length; spriteCount++) {
@@ -6717,7 +6717,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					}
 				}
 			}
-			for (var onXCoord = 161; onXCoord < 168; onXCoord++) {
+			for (onXCoord = 161; onXCoord < 168; onXCoord++) {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
 				for (spriteCount = 0; spriteCount < length; spriteCount++) {
