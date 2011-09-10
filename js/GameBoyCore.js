@@ -8057,7 +8057,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			}
 			parentObj.channel1adjustedDuty = parentObj.dutyLookup[data >> 6];
 			parentObj.channel1totalLength = (0x40 - (data & 0x3F)) * parentObj.audioTotalLengthMultiplier;
-			if ((data & 0x3F) == 0) {
+			if (parentObj.cGBC && (data & 0x3F) == 0) {
 				parentObj.channel1ConsecutiveBug = false;
 			}
 			parentObj.memory[0xFF11] = data & 0xC0;
@@ -8139,11 +8139,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				parentObj.channel1Fault = (parentObj.channel1numSweep == 0 && parentObj.channel1lastTimeSweep > 0 && parentObj.channel1decreaseSweep);
 			}
 			parentObj.channel1consecutive = ((data & 0x40) == 0x0);
-			if (parentObj.channel1consecutive) {
-				if ((data & 0x7) != (parentObj.channel1frequency >> 8) && (parentObj.memory[0xFF11] & 0x3F) != 0) {
-					//Manual says this is a PAPU consecutive audio bug:
-					parentObj.channel1ConsecutiveBug = true;
-				}
+			if (parentObj.cGBC && parentObj.channel1consecutive && (data & 0x7) != (parentObj.channel1frequency >> 8) && (parentObj.memory[0xFF11] & 0x3F) != 0) {
+				//Manual says this is a PAPU consecutive audio bug:
+				parentObj.channel1ConsecutiveBug = true;
 			}
 			parentObj.channel1frequency = ((data & 0x7) << 8) | (parentObj.channel1frequency & 0xFF);
 			//Pre-calculate the frequency computation outside the waveform generator for speed:
@@ -8160,7 +8158,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			}
 			parentObj.channel2adjustedDuty = parentObj.dutyLookup[data >> 6];
 			parentObj.channel2totalLength = (0x40 - (data & 0x3F)) * parentObj.audioTotalLengthMultiplier;
-			if ((data & 0x3F) == 0) {
+			if (parentObj.cGBC && (data & 0x3F) == 0) {
 				parentObj.channel2ConsecutiveBug = false;
 			}
 			parentObj.memory[0xFF16] = data & 0xC0;
@@ -8233,11 +8231,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				parentObj.channel2Fault = false;
 			}
 			parentObj.channel2consecutive = ((data & 0x40) == 0x0);
-			if (parentObj.channel2consecutive) {
-				if ((data & 0x7) != (parentObj.channel2frequency >> 8) && (parentObj.memory[0xFF16] & 0x3F) != 0) {
-					//Manual says this is a PAPU consecutive audio bug:
-					parentObj.channel2ConsecutiveBug = true;
-				}
+			if (parentObj.cGBC && parentObj.channel2consecutive && (data & 0x7) != (parentObj.channel2frequency >> 8) && (parentObj.memory[0xFF16] & 0x3F) != 0) {
+				//Manual says this is a PAPU consecutive audio bug:
+				parentObj.channel2ConsecutiveBug = true;
 			}
 			parentObj.channel2frequency = ((data & 0x7) << 8) | (parentObj.channel2frequency & 0xFF);
 			//Pre-calculate the frequency computation outside the waveform generator for speed:
@@ -8262,7 +8258,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if (parentObj.soundMasterEnabled || !parentObj.cGBC) {
 			parentObj.audioJIT();
 			parentObj.channel3totalLength = (0x100 - data) * parentObj.audioTotalLengthMultiplier;
-			if (data == 0) {
+			if (parentObj.cGBC && data == 0) {
 				parentObj.channel3ConsecutiveBug = false;
 			}
 			parentObj.memory[0xFF1B] = data;
@@ -8301,11 +8297,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				parentObj.channel3Fault = false;
 			}
 			parentObj.channel3consecutive = ((data & 0x40) == 0x0);
-			if (parentObj.channel3consecutive) {
-				if ((data & 0x7) != (parentObj.channel3frequency >> 8) && parentObj.memory[0xFF1B] != 0) {
-					//Manual says this is a PAPU consecutive audio bug:
-					parentObj.channel3ConsecutiveBug = true;
-				}
+			if (parentObj.cGBC && parentObj.channel3consecutive && (data & 0x7) != (parentObj.channel3frequency >> 8) && parentObj.memory[0xFF1B] != 0) {
+				//Manual says this is a PAPU consecutive audio bug:
+				parentObj.channel3ConsecutiveBug = true;
 			}
 			parentObj.channel3frequency = ((data & 0x7) << 8) | (parentObj.channel3frequency & 0xFF);
 			parentObj.channel3adjustedFrequencyPrep = parentObj.preChewedWAVEAudioComputationMultiplier / (0x800 - parentObj.channel3frequency);
