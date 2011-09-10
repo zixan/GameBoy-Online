@@ -7759,7 +7759,7 @@ GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) 
 		var oldData = parentObj.memory[address];
 		if (oldData != data) {
 			parentObj.memory[address--] = data;
-			if (oldData < 168) {
+			if (oldData > 0 && oldData < 168) {
 				//Remove the old position:
 				var length = parentObj.OAMAddresses[oldData].length;
 				while (length > 0) {
@@ -7769,15 +7769,13 @@ GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) 
 					}
 				}
 			}
-			if (data < 168) {
-				if (data > 0) {
-					//Make sure the stacking is correct if multiple sprites are at the same x-coord:
-					var length = parentObj.OAMAddresses[data].length;
-					while (length > 0) {
-						if (parentObj.OAMAddresses[data][--length] > address) {
-							parentObj.OAMAddresses[data].splice(length, 0, address);
-							return;
-						}
+			if (data > 0 && data < 168) {
+				//Make sure the stacking is correct if multiple sprites are at the same x-coord:
+				var length = parentObj.OAMAddresses[data].length;
+				while (length > 0) {
+					if (parentObj.OAMAddresses[data][--length] > address) {
+						parentObj.OAMAddresses[data].splice(length, 0, address);
+						return;
 					}
 				}
 				parentObj.OAMAddresses[data].push(address);
@@ -7787,15 +7785,13 @@ GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) 
 }
 GameBoyCore.prototype.memoryWriteGBOAMRAMUnsafe = function (parentObj, address, data) {
 	parentObj.memory[address--] = data;
-	if (data < 168) {
-		if (data > 0) {
-			//Make sure the stacking is correct if multiple sprites are at the same x-coord:
-			var length = parentObj.OAMAddresses[data].length;
-			while (length > 0) {
-				if (parentObj.OAMAddresses[data][--length] > address) {
-					parentObj.OAMAddresses[data].splice(length, 0, address);
-					return;
-				}
+	if (data > 0 && data < 168) {
+		//Make sure the stacking is correct if multiple sprites are at the same x-coord:
+		var length = parentObj.OAMAddresses[data].length;
+		while (length > 0) {
+			if (parentObj.OAMAddresses[data][--length] > address) {
+				parentObj.OAMAddresses[data].splice(length, 0, address);
+				return;
 			}
 		}
 		parentObj.OAMAddresses[data].push(address);
