@@ -8065,14 +8065,13 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryHighWriter[0x12] = this.memoryWriter[0xFF12] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
 			if (data < 0x08) {
 				//Manual says this is a way to turn off the audio:
-				parentObj.audioJIT();
 				parentObj.channel1currentVolume = parentObj.channel1envelopeVolume = 0;
 			}
 			else if ((parentObj.channel1consecutive || parentObj.channel1totalLength > 0) && (parentObj.channel1volumeEnvTimeLast == -1 || parentObj.channel1envelopeSweeps == 0)) {
 				//Zombie Volume PAPU Bug:
-				parentObj.audioJIT();
 				if (((parentObj.memory[0xFF12] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF12] & 0x8) == 0) {
 						if ((parentObj.memory[0xFF12] & 0x7) == 0x7) {
@@ -8166,14 +8165,13 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryHighWriter[0x17] = this.memoryWriter[0xFF17] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
 			if (data < 0x08) {
 				//Manual says this is a way to turn off the audio:
-				parentObj.audioJIT();
 				parentObj.channel2currentVolume = parentObj.channel2envelopeVolume = 0;
 			}
 			else if ((parentObj.channel2consecutive || parentObj.channel2totalLength > 0) && (parentObj.channel2volumeEnvTimeLast == -1 || parentObj.channel2envelopeSweeps == 0)) {
 				//Zombie Volume PAPU Bug:
-				parentObj.audioJIT();
 				if (((parentObj.memory[0xFF17] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF17] & 0x8) == 0) {
 						if ((parentObj.memory[0xFF17] & 0x7) == 0x7) {
@@ -8315,14 +8313,13 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryHighWriter[0x21] = this.memoryWriter[0xFF21] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
+			parentObj.audioJIT();
 			if (data < 0x08) {
 				//Manual says this is a way to turn off the audio:
-				parentObj.audioJIT();
 				parentObj.channel4currentVolume = parentObj.channel4envelopeVolume = 0;
 			}
 			else if ((parentObj.channel4consecutive || parentObj.channel4totalLength > 0) && (parentObj.channel4volumeEnvTimeLast == -1 || parentObj.channel4envelopeSweeps == 0)) {
 				//Zombie Volume PAPU Bug:
-				parentObj.audioJIT();
 				if (((parentObj.memory[0xFF21] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF21] & 0x8) == 0) {
 						if ((parentObj.memory[0xFF21] & 0x7) == 0x7) {
