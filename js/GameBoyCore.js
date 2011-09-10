@@ -8107,15 +8107,11 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x14] = this.memoryWriter[0xFF14] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
 			parentObj.audioJIT();
-			if (data == 0x80) {
-				//GB manual says that the audio won't play if this condition happens:
-				parentObj.channel1Fault = true;
-			}
 			if (data > 0x7F) {
 				parentObj.channel1timeSweep = parentObj.channel1lastTimeSweep;
 				parentObj.channel1numSweep = parentObj.channel1frequencySweepDivider;
 				//GB manual says that the audio won't play if this condition happens:
-				parentObj.channel1Fault = (parentObj.channel1numSweep == 0 && parentObj.channel1lastTimeSweep > 0 && parentObj.channel1decreaseSweep);
+				parentObj.channel1Fault = (data == 0x80 || (parentObj.channel1numSweep == 0 && parentObj.channel1lastTimeSweep > 0 && parentObj.channel1decreaseSweep));
 				//Reload 0xFF12:
 				var nr12 = parentObj.memory[0xFF12];
 				if (nr12 > 0x07) {
@@ -8208,10 +8204,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x19] = this.memoryWriter[0xFF19] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
 			parentObj.audioJIT();
-			if (data == 0x80) {
-				//GB manual says that the audio won't play if this condition happens:
-				parentObj.channel2Fault = true;
-			}
 			if (data > 0x7F) {
 				//Reload 0xFF17:
 				var nr22 = parentObj.memory[0xFF17];
@@ -8231,10 +8223,8 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				if ((data & 0x40) == 0x40) {
 					parentObj.memory[0xFF26] |= 0x2;
 				}
-				parentObj.channel2Fault = false;
-			}
-			else {
-				parentObj.channel2Fault = false;
+				//GB manual says that the audio won't play if this condition happens:
+				parentObj.channel2Fault = (data == 0x80);
 			}
 			parentObj.channel2consecutive = ((data & 0x40) == 0x0);
 			if (parentObj.channel2consecutive) {
@@ -8290,10 +8280,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x1E] = this.memoryWriter[0xFF1E] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
 			parentObj.audioJIT();
-			if (data == 0x80) {
-				//GB manual says that the audio won't play if this condition happens:
-				parentObj.channel3Fault = true;
-			}
 			if (data > 0x7F) {
 				if (parentObj.channel3totalLength <= 0) {
 					parentObj.channel3totalLength = 0x100 * parentObj.audioTotalLengthMultiplier;
@@ -8302,10 +8288,8 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				if ((data & 0x40) == 0x40) {
 					parentObj.memory[0xFF26] |= 0x4;
 				}
-				parentObj.channel3Fault = false;
-			}
-			else {
-				parentObj.channel3Fault = false;
+				//GB manual says that the audio won't play if this condition happens:
+				parentObj.channel3Fault = (data == 0x80);
 			}
 			parentObj.channel3consecutive = ((data & 0x40) == 0x0);
 			if (parentObj.channel3consecutive) {
