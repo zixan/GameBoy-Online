@@ -5174,7 +5174,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 		this.currentSampleRight = this.currentSampleLeft = 0;
 	}
 	//Channel 2:
-	if (((this.channel2consecutive && !this.channel2ConsecutiveBug) || this.channel2totalLength > 0) && !this.channel3Fault) {
+	if (((this.channel2consecutive && !this.channel2ConsecutiveBug) || this.channel2totalLength > 0) && !this.channel2Fault) {
 		if (this.channel2lastSampleLookup <= this.channel2adjustedDuty) {
 			if (this.leftChannel[1]) {
 				this.currentSampleLeft += this.channel2currentVolume;
@@ -5343,7 +5343,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 		this.currentSampleRight = 0;
 	}
 	//Channel 2:
-	if (((this.channel2consecutive && !this.channel2ConsecutiveBug) || this.channel2totalLength > 0) && !this.channel3Fault) {
+	if (((this.channel2consecutive && !this.channel2ConsecutiveBug) || this.channel2totalLength > 0) && !this.channel2Fault) {
 		if (this.channel2lastSampleLookup <= this.channel2adjustedDuty && this.rightChannel[1]) {
 			this.currentSampleRight += this.channel2currentVolume;
 		}
@@ -8352,7 +8352,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x22] = this.memoryWriter[0xFF22] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
 			parentObj.audioJIT();
-			parentObj.channel4adjustedFrequencyPrep = parentObj.whiteNoiseFrequencyPreMultiplier / Math.max(data & 0x7, 0.5) / Math.pow(2, (data >> 4) + 1);
+			parentObj.channel4adjustedFrequencyPrep = (data < 0x80 && (data & 0xF0) != 0x70) ? (parentObj.whiteNoiseFrequencyPreMultiplier / Math.max(data & 0x7, 0.5) / Math.pow(2, (data >> 4) + 1)) : 0;
 			var bitWidth = (data & 0x8);
 			if ((bitWidth == 0x8 && parentObj.noiseTableLength == 0x8000) || (bitWidth == 0 && parentObj.noiseTableLength == 0x80)) {
 				parentObj.channel4lastSampleLookup = 0;
