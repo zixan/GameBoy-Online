@@ -6555,7 +6555,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					OAMAddress = currentColumn[spriteCount];
 					if (OAMAddress < lowestSpriteAddress) {
 						yoffset = lineAdjusted - this.memory[OAMAddress];
-						if (yoffset > -1 && yoffset < 8) {
+						if ((yoffset & 0x7) == yoffset) {
 							xcoord = xCounter = onXCoord - 8;
 							xCounter = Math.max(xCounter, 0);
 							attrCode = this.memory[OAMAddress | 3];
@@ -6587,7 +6587,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					OAMAddress = currentColumn[spriteCount];
 					if (OAMAddress < lowestSpriteAddress) {
 						yoffset = lineAdjusted - this.memory[OAMAddress];
-						if (yoffset > -1 && yoffset < 8) {
+						if ((yoffset & 0x7) == yoffset) {
 							attrCode = this.memory[OAMAddress | 3];
 							palette = (attrCode & 0x10) >> 2;
 							tileNumber = ((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2];
@@ -6617,7 +6617,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					OAMAddress = currentColumn[spriteCount];
 					if (OAMAddress < lowestSpriteAddress) {
 						yoffset = lineAdjusted - this.memory[OAMAddress];
-						if (yoffset > -1 && yoffset < 8) {
+						if ((yoffset & 0x7) == yoffset) {
 							xCounter = onXCoord - 8;
 							attrCode = this.memory[OAMAddress | 3];
 							palette = (attrCode & 0x10) >> 2;
@@ -6652,7 +6652,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					OAMAddress = currentColumn[spriteCount];
 					if (OAMAddress < lowestSpriteAddress) {
 						yoffset = lineAdjusted - this.memory[OAMAddress];
-						if (yoffset > -1 && yoffset < 0x10) {
+						if ((yoffset & 0xF) == yoffset) {
 							xcoord = xCounter = onXCoord - 8;
 							xCounter = Math.max(xCounter, 0);
 							attrCode = this.memory[OAMAddress | 0x3];
@@ -6689,7 +6689,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					OAMAddress = currentColumn[spriteCount];
 					if (OAMAddress < lowestSpriteAddress) {
 						yoffset = lineAdjusted - this.memory[OAMAddress];
-						if (yoffset > -1 && yoffset < 0x10) {
+						if ((yoffset & 0xF) == yoffset) {
 							attrCode = this.memory[OAMAddress | 0x3];
 							palette = (attrCode & 0x10) >> 2;
 							if ((attrCode & 0x40) == (0x40 & (yoffset << 3))) {
@@ -6724,7 +6724,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 					OAMAddress = currentColumn[spriteCount];
 					if (OAMAddress < lowestSpriteAddress) {
 						yoffset = lineAdjusted - this.memory[OAMAddress];
-						if (yoffset > -1 && yoffset < 0x10) {
+						if ((yoffset & 0xF) == yoffset) {
 							xCounter = onXCoord - 8;
 							attrCode = this.memory[OAMAddress | 0x3];
 							palette = (attrCode & 0x10) >> 2;
@@ -6800,7 +6800,7 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 		if (!this.gfxSpriteDouble) {
 			for (var OAMAddress = 0xFE00; OAMAddress < 0xFEA0 && this.spriteCount < 312; OAMAddress += 4) {
 				yoffset = lineAdjusted - this.memory[OAMAddress];
-				if (yoffset > -1 && yoffset < 8) {
+				if ((yoffset & 0x7) == yoffset) {
 					xcoord = this.memory[OAMAddress | 1] - 8;
 					endX = Math.min(160, xcoord + 8);
 					attrCode = this.memory[OAMAddress | 3];
@@ -6828,7 +6828,7 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 		else {
 			for (var OAMAddress = 0xFE00; OAMAddress < 0xFEA0 && this.spriteCount < 312; OAMAddress += 4) {
 				yoffset = lineAdjusted - this.memory[OAMAddress];
-				if (yoffset > -1 && yoffset < 0x10) {
+				if ((yoffset & 0xF) == yoffset) {
 					xcoord = this.memory[OAMAddress | 1] - 8;
 					endX = Math.min(160, xcoord + 8);
 					attrCode = this.memory[OAMAddress | 3];
