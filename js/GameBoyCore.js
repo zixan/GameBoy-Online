@@ -8135,6 +8135,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			else if ((parentObj.channel1consecutive || parentObj.channel1totalLength > 0) && parentObj.channel1frequency <= 0x7FF && !parentObj.channel1Fault) {
 				parentObj.channel1ShadowFrequency = parentObj.channel1frequency;
 			}
+			else {
+				parentObj.channel1Fault = (parentObj.channel1numSweep == 0 && parentObj.channel1lastTimeSweep > 0 && parentObj.channel1decreaseSweep);
+			}
 			parentObj.channel1consecutive = ((data & 0x40) == 0x0);
 			if (parentObj.channel1consecutive) {
 				if ((data & 0x7) != (parentObj.channel1frequency >> 8) && (parentObj.memory[0xFF11] & 0x3F) != 0) {
@@ -8226,6 +8229,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				//GB manual says that the audio won't play if this condition happens:
 				parentObj.channel2Fault = (data == 0x80);
 			}
+			else {
+				parentObj.channel2Fault = false;
+			}
 			parentObj.channel2consecutive = ((data & 0x40) == 0x0);
 			if (parentObj.channel2consecutive) {
 				if ((data & 0x7) != (parentObj.channel2frequency >> 8) && (parentObj.memory[0xFF16] & 0x3F) != 0) {
@@ -8290,6 +8296,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				}
 				//GB manual says that the audio won't play if this condition happens:
 				parentObj.channel3Fault = (data == 0x80);
+			}
+			else {
+				parentObj.channel3Fault = false;
 			}
 			parentObj.channel3consecutive = ((data & 0x40) == 0x0);
 			if (parentObj.channel3consecutive) {
