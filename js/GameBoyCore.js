@@ -4988,14 +4988,14 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 		this.channel1envelopeVolume = 0;
 		this.channel1currentVolume = 0;
 		this.channel1envelopeType = false;
-		this.channel1envelopeSweeps = -1;
+		this.channel1envelopeSweeps = 0;
 		this.channel1consecutive = true;
 		this.channel1ConsecutiveBug = false;
 		this.channel1frequency = 0;
 		this.channel1Fault = true;
 		this.channel1ShadowFrequency = -1;
 		this.channel1volumeEnvTime = 0;
-		this.channel1volumeEnvTimeLast = -1;
+		this.channel1volumeEnvTimeLast = 0;
 		this.channel1timeSweep = 0;
 		this.channel1lastTimeSweep = 0;
 		this.channel1numSweep = 0;
@@ -5007,13 +5007,13 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 		this.channel2envelopeVolume = 0;
 		this.channel2currentVolume = 0;
 		this.channel2envelopeType = false;
-		this.channel2envelopeSweeps = -1;
+		this.channel2envelopeSweeps = 0;
 		this.channel2consecutive = true;
 		this.channel2ConsecutiveBug = false;
 		this.channel2frequency = 0;
 		this.channel2Fault = false;
 		this.channel2volumeEnvTime = 0;
-		this.channel2volumeEnvTimeLast = -1;
+		this.channel2volumeEnvTimeLast = 0;
 		this.channel3canPlay = false;
 		this.channel3totalLength = 0;
 		this.channel3patternType = -20;
@@ -5027,10 +5027,10 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 		this.channel4envelopeVolume = 0;
 		this.channel4currentVolume = 0;
 		this.channel4envelopeType = false;
-		this.channel4envelopeSweeps = -1;
+		this.channel4envelopeSweeps = 0;
 		this.channel4consecutive = true;
 		this.channel4volumeEnvTime = 0;
-		this.channel4volumeEnvTimeLast = -1;
+		this.channel4volumeEnvTimeLast = 0;
 		this.noiseTableLength = 0x8000;
 		this.noiseSampleTable = this.LSFR15Table;
 		this.channel4VolumeShifter = 15;
@@ -5136,7 +5136,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 				this.channel1adjustedFrequencyPrep = this.preChewedAudioComputationMultiplier / (0x800 - this.channel1frequency);
 			}
 		}
-		if (this.channel1volumeEnvTimeLast > 0) {
+		if (this.channel1envelopeSweeps > 0) {
 			if (this.channel1volumeEnvTime > 0) {
 				--this.channel1volumeEnvTime;
 			}
@@ -5147,7 +5147,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 						this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
 					}
 					else {
-						this.channel1volumeEnvTimeLast = -1;
+						this.channel1envelopeSweeps = 0;
 					}
 				}
 				else if (this.channel1envelopeVolume < 0xF) {
@@ -5155,7 +5155,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 					this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
 				}
 				else {
-					this.channel1volumeEnvTimeLast = -1;
+					this.channel1envelopeSweeps = 0;
 				}
 			}
 		}
@@ -5183,7 +5183,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 				this.currentSampleRight += this.channel2currentVolume;
 			}
 		}
-		if (this.channel2volumeEnvTimeLast > 0) {
+		if (this.channel2envelopeSweeps > 0) {
 			if (this.channel2volumeEnvTime > 0) {
 				this.channel2volumeEnvTime--;
 			}
@@ -5194,7 +5194,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 						this.channel2volumeEnvTime = this.channel2volumeEnvTimeLast;
 					}
 					else {
-						this.channel2volumeEnvTimeLast = -1;
+						this.channel2envelopeSweeps = 0;
 					}
 				}
 				else if (this.channel2envelopeVolume < 0xF) {
@@ -5202,7 +5202,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 					this.channel2volumeEnvTime = this.channel2volumeEnvTimeLast;
 				}
 				else {
-					this.channel2volumeEnvTimeLast = -1;
+					this.channel2envelopeSweeps = 0;
 				}
 			}
 		}
@@ -5248,7 +5248,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 		if (this.rightChannel[3]) {
 			this.currentSampleRight += duty;
 		}
-		if (this.channel4volumeEnvTimeLast > 0) {
+		if (this.channel4envelopeSweeps > 0) {
 			if (this.channel4volumeEnvTime > 0) {
 				this.channel4volumeEnvTime--;
 			}
@@ -5259,7 +5259,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 						this.channel4volumeEnvTime = this.channel4volumeEnvTimeLast;
 					}
 					else {
-						this.channel4volumeEnvTimeLast = -1;
+						this.channel4envelopeSweeps = 0;
 					}
 				}
 				else if (this.channel4envelopeVolume < 0xF) {
@@ -5267,7 +5267,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 					this.channel4volumeEnvTime = this.channel4volumeEnvTimeLast;
 				}
 				else {
-					this.channel4volumeEnvTimeLast = -1;
+					this.channel4envelopeSweeps = 0;
 				}
 			}
 		}
@@ -5305,7 +5305,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 				this.channel1adjustedFrequencyPrep = this.preChewedAudioComputationMultiplier / (0x800 - this.channel1frequency);
 			}
 		}
-		if (this.channel1volumeEnvTimeLast > 0) {
+		if (this.channel1envelopeSweeps > 0) {
 			if (this.channel1volumeEnvTime > 0) {
 				this.channel1volumeEnvTime--;
 			}
@@ -5316,7 +5316,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 						this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
 					}
 					else {
-						this.channel1volumeEnvTimeLast = -1;
+						this.channel1envelopeSweeps = 0;
 					}
 				}
 				else if (this.channel1envelopeVolume < 0xF) {
@@ -5324,7 +5324,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 					this.channel1volumeEnvTime = this.channel1volumeEnvTimeLast;
 				}
 				else {
-					this.channel1volumeEnvTimeLast = -1;
+					this.channel1envelopeSweeps = 0;
 				}
 			}
 		}
@@ -5347,7 +5347,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 		if (this.channel2lastSampleLookup <= this.channel2adjustedDuty && this.rightChannel[1]) {
 			this.currentSampleRight += this.channel2currentVolume;
 		}
-		if (this.channel2volumeEnvTimeLast > 0) {
+		if (this.channel2envelopeSweeps > 0) {
 			if (this.channel2volumeEnvTime > 0) {
 				this.channel2volumeEnvTime--;
 			}
@@ -5358,7 +5358,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 						this.channel2volumeEnvTime = this.channel2volumeEnvTimeLast;
 					}
 					else {
-						this.channel2volumeEnvTimeLast = -1;
+						this.channel2envelopeSweeps = 0;
 					}
 				}
 				else if (this.channel2envelopeVolume < 0xF) {
@@ -5366,7 +5366,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 					this.channel2volumeEnvTime = this.channel2volumeEnvTimeLast;
 				}
 				else {
-					this.channel2volumeEnvTimeLast = -1;
+					this.channel2envelopeSweeps = 0;
 				}
 			}
 		}
@@ -5402,7 +5402,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 		if (this.rightChannel[3]) {
 			this.currentSampleRight += this.noiseSampleTable[this.channel4currentVolume | this.channel4lastSampleLookup];
 		}
-		if (this.channel4volumeEnvTimeLast > 0) {
+		if (this.channel4envelopeSweeps > 0) {
 			if (this.channel4volumeEnvTime > 0) {
 				this.channel4volumeEnvTime--;
 			}
@@ -5413,7 +5413,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 						this.channel4volumeEnvTime = this.channel4volumeEnvTimeLast;
 					}
 					else {
-						this.channel4volumeEnvTimeLast = -1;
+						this.channel4envelopeSweeps = 0;
 					}
 				}
 				else if (this.channel4envelopeVolume < 0xF) {
@@ -5421,7 +5421,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 					this.channel4volumeEnvTime = this.channel4volumeEnvTimeLast;
 				}
 				else {
-					this.channel4volumeEnvTimeLast = -1;
+					this.channel4envelopeSweeps = 0;
 				}
 			}
 		}
@@ -8071,7 +8071,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				//Manual says this is a way to turn off the audio:
 				parentObj.channel1currentVolume = parentObj.channel1envelopeVolume = 0;
 			}
-			else if ((parentObj.channel1consecutive || parentObj.channel1totalLength > 0) && (parentObj.channel1volumeEnvTimeLast == -1 || parentObj.channel1envelopeSweeps == 0)) {
+			else if ((parentObj.channel1consecutive || parentObj.channel1totalLength > 0) && parentObj.channel1envelopeSweeps == 0) {
 				//Zombie Volume PAPU Bug:
 				if (((parentObj.memory[0xFF12] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF12] & 0x8) == 0) {
@@ -8169,7 +8169,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				//Manual says this is a way to turn off the audio:
 				parentObj.channel2currentVolume = parentObj.channel2envelopeVolume = 0;
 			}
-			else if ((parentObj.channel2consecutive || parentObj.channel2totalLength > 0) && (parentObj.channel2volumeEnvTimeLast == -1 || parentObj.channel2envelopeSweeps == 0)) {
+			else if ((parentObj.channel2consecutive || parentObj.channel2totalLength > 0) && parentObj.channel2envelopeSweeps == 0) {
 				//Zombie Volume PAPU Bug:
 				if (((parentObj.memory[0xFF17] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF17] & 0x8) == 0) {
@@ -8318,7 +8318,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				//Manual says this is a way to turn off the audio:
 				parentObj.channel4currentVolume = parentObj.channel4envelopeVolume = 0;
 			}
-			else if ((parentObj.channel4consecutive || parentObj.channel4totalLength > 0) && (parentObj.channel4volumeEnvTimeLast == -1 || parentObj.channel4envelopeSweeps == 0)) {
+			else if ((parentObj.channel4consecutive || parentObj.channel4totalLength > 0) && parentObj.channel4envelopeSweeps == 0) {
 				//Zombie Volume PAPU Bug:
 				if (((parentObj.memory[0xFF21] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF21] & 0x8) == 0) {
