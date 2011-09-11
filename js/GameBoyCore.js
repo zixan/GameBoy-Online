@@ -5115,16 +5115,20 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 				this.channel1frequency = (this.channel1ShadowFrequency > -1) ? this.channel1ShadowFrequency : this.channel1frequency;
 				if (this.channel1decreaseSweep) {
 					this.channel1frequency -= this.channel1frequency >> this.channel1frequencySweepDivider;
+					//Pre-calculate the frequency computation outside the waveform generator for speed:
+					this.channel1adjustedFrequencyPrep = this.preChewedAudioComputationMultiplier / (0x800 - this.channel1frequency);
 				}
 				else {
 					this.channel1frequency += this.channel1frequency >> this.channel1frequencySweepDivider;
-					if (this.channel1frequency > 0x7FF) {
+					if (this.channel1frequency <= 0x7FF) {
+						//Pre-calculate the frequency computation outside the waveform generator for speed:
+						this.channel1adjustedFrequencyPrep = this.preChewedAudioComputationMultiplier / (0x800 - this.channel1frequency);
+					}
+					else {
 						this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
 					}
 				}
 				this.channel1timeSweep = this.channel1lastTimeSweep;
-				//Pre-calculate the frequency computation outside the waveform generator for speed:
-				this.channel1adjustedFrequencyPrep = this.preChewedAudioComputationMultiplier / (0x800 - this.channel1frequency);
 			}
 		}
 		if (this.channel1envelopeSweeps > 0) {
@@ -5284,16 +5288,20 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 				this.channel1frequency = (this.channel1ShadowFrequency > -1) ? this.channel1ShadowFrequency : this.channel1frequency;
 				if (this.channel1decreaseSweep) {
 					this.channel1frequency -= this.channel1frequency >> this.channel1frequencySweepDivider;
+					//Pre-calculate the frequency computation outside the waveform generator for speed:
+					this.channel1adjustedFrequencyPrep = this.preChewedAudioComputationMultiplier / (0x800 - this.channel1frequency);
 				}
 				else {
 					this.channel1frequency += this.channel1frequency >> this.channel1frequencySweepDivider;
-					if (this.channel1frequency > 0x7FF) {
+					if (this.channel1frequency <= 0x7FF) {
+						//Pre-calculate the frequency computation outside the waveform generator for speed:
+						this.channel1adjustedFrequencyPrep = this.preChewedAudioComputationMultiplier / (0x800 - this.channel1frequency);
+					}
+					else {
 						this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
 					}
 				}
 				this.channel1timeSweep = this.channel1lastTimeSweep;
-				//Pre-calculate the frequency computation outside the waveform generator for speed:
-				this.channel1adjustedFrequencyPrep = this.preChewedAudioComputationMultiplier / (0x800 - this.channel1frequency);
 			}
 		}
 		if (this.channel1envelopeSweeps > 0) {
