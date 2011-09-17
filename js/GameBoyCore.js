@@ -4702,8 +4702,6 @@ GameBoyCore.prototype.initializeTiming = function () {
 	//Emulator Timing:
 	this.baseCPUCyclesPerIteration = 4194.3 * settings[20];
 	this.setEmulatorSpeed(1);
-	//Audio Timing:
-	this.setAudioSpeed(1);
 }
 GameBoyCore.prototype.setEmulatorSpeed = function(speed) {
 	this.CPUCyclesPerIteration = this.baseCPUCyclesPerIteration * speed;
@@ -5003,7 +5001,7 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 		this.channel2volumeEnvTimeLast = 0;
 		this.channel3canPlay = false;
 		this.channel3totalLength = 0;
-		this.channel3patternType = -20;
+		this.channel3patternType = -0x20;
 		this.channel3frequency = 0;
 		this.channel3consecutive = true;
 		this.channel3adjustedFrequencyPrep = 0x20000 / settings[14];
@@ -5208,7 +5206,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 	}
 	//Channel 3:
 	if (this.channel3canPlay && (this.channel3consecutive || this.channel3totalLength > 0)) {
-		if (this.channel3patternType > -20) {
+		if (this.channel3patternType > -0x20) {
 			var PCMSample = this.channel3PCM[this.channel3Tracker | this.channel3patternType];
 			if (this.leftChannel[2]) {
 				this.currentSampleLeft += PCMSample;
@@ -5376,7 +5374,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 	}
 	//Channel 3:
 	if (this.channel3canPlay && (this.channel3consecutive || this.channel3totalLength > 0)) {
-		if (this.channel3patternType > -20 && this.rightChannel[2]) {
+		if (this.channel3patternType > -0x20 && this.rightChannel[2]) {
 			this.currentSampleRight += this.channel3PCM[this.channel3Tracker | this.channel3patternType];
 		}
 		this.channel3Tracker += this.channel3adjustedFrequencyPrep;
@@ -5502,7 +5500,7 @@ GameBoyCore.prototype.audioChannelsComputeStereoSafe = function () {
 	}
 	//Channel 3:
 	if (this.channel3canPlay && (this.channel3consecutive || this.channel3totalLength > 0)) {
-		if (this.channel3patternType > -20) {
+		if (this.channel3patternType > -0x20) {
 			var PCMSample = this.channel3PCM[this.channel3Tracker | this.channel3patternType];
 			if (this.leftChannel[2]) {
 				this.currentSampleLeft += PCMSample;
@@ -5560,7 +5558,7 @@ GameBoyCore.prototype.audioChannelsComputeMonoSafe = function () {
 	}
 	//Channel 3:
 	if (this.channel3canPlay && (this.channel3consecutive || this.channel3totalLength > 0)) {
-		if (this.channel3patternType > -20 && this.rightChannel[2]) {
+		if (this.channel3patternType > -0x20 && this.rightChannel[2]) {
 			this.currentSampleRight += this.channel3PCM[this.channel3Tracker | this.channel3patternType];
 		}
 		this.channel3Tracker += this.channel3adjustedFrequencyPrep;
