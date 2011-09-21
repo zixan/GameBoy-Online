@@ -6179,7 +6179,19 @@ GameBoyCore.prototype.consoleModeAdjust = function () {
 	this.WindowLayerRender = (this.cGBC) ? this.WindowGBCLayerRender : this.WindowGBLayerRender;
 	this.SpriteLayerRender = (this.cGBC) ? this.SpriteGBCLayerRender : this.SpriteGBLayerRender;
 	this.tileCache = this.generateCacheArray((this.cGBC) ? 0xF80 : 0x700);
-	this.tileCacheValid = this.getTypedArray((this.cGBC) ? 0xF80 : 0x700, 0, "int8");
+	if (this.usedBootROM && settings[17]) {
+		if (!this.cGBC) {
+			//Save some rendering time right after boot, by not immediately marking the tile cache entirely invalid:
+			var newTileCacheVerifier = this.getTypedArray(0x700, 0, "int8");
+			for (var index = 0; index < 0x700; index++) {
+				newTileCacheVerifier[index] = this.tileCacheValid[index];
+			}
+			this.tileCacheValid = newTileCacheVerifier;
+		}
+	}
+	else {
+		this.tileCacheValid = this.getTypedArray((this.cGBC) ? 0xF80 : 0x700, 0, "int8");
+	}
 	this.BGCHRCurrentBank = (this.currVRAMBank > 0 && this.cGBC) ? this.BGCHRBank2 : this.BGCHRBank1;
 	this.LCDCONTROL = (this.LCDisOn) ? this.LINECONTROL : this.DISPLAYOFFCONTROL;
 }
