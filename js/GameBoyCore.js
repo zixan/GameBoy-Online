@@ -4361,7 +4361,7 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 					this.memory[0xFF00 | index] = this.ffxxDump[index];
 			}
 		}
-		index--;
+		--index;
 	}
 	if (this.cGBC) {
 		this.memory[0xFF6C] = 0xFE;
@@ -5147,7 +5147,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 			}
 		}
 		if (this.channel1totalLength > 0) {
-			this.channel1totalLength--;
+			--this.channel1totalLength;
 			if (this.channel1totalLength <= 0) {
 				this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
 			}
@@ -5172,7 +5172,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 		}
 		if (this.channel2envelopeSweeps > 0) {
 			if (this.channel2volumeEnvTime > 0) {
-				this.channel2volumeEnvTime--;
+				--this.channel2volumeEnvTime;
 			}
 			else {
 				if (!this.channel2envelopeType) {
@@ -5194,7 +5194,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 			}
 		}
 		if (this.channel2totalLength > 0) {
-			this.channel2totalLength--;
+			--this.channel2totalLength;
 			if (this.channel2totalLength <= 0) {
 				this.memory[0xFF26] &= 0xFD;	//Channel #2 On Flag Off
 			}
@@ -5220,7 +5220,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 			this.channel3Tracker -= 0x20;
 		}
 		if (this.channel3totalLength > 0) {
-			this.channel3totalLength--;
+			--this.channel3totalLength;
 			if (this.channel3totalLength <= 0) {
 				this.memory[0xFF26] &= 0xFB;	//Channel #3 On Flag Off
 			}
@@ -5237,7 +5237,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 		}
 		if (this.channel4envelopeSweeps > 0) {
 			if (this.channel4volumeEnvTime > 0) {
-				this.channel4volumeEnvTime--;
+				--this.channel4volumeEnvTime;
 			}
 			else {
 				if (!this.channel4envelopeType) {
@@ -5259,7 +5259,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 			}
 		}
 		if (this.channel4totalLength > 0) {
-			this.channel4totalLength--;
+			--this.channel4totalLength;
 			if (this.channel4totalLength <= 0) {
 				this.memory[0xFF26] &= 0xF7;	//Channel #4 On Flag Off
 			}
@@ -5298,7 +5298,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 		}
 		if (this.channel1envelopeSweeps > 0) {
 			if (this.channel1volumeEnvTime > 0) {
-				this.channel1volumeEnvTime--;
+				--this.channel1volumeEnvTime;
 			}
 			else {
 				if (!this.channel1envelopeType) {
@@ -5320,7 +5320,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 			}
 		}
 		if (this.channel1totalLength > 0) {
-			this.channel1totalLength--;
+			--this.channel1totalLength;
 			if (this.channel1totalLength <= 0) {
 				this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
 			}
@@ -5340,7 +5340,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 		}
 		if (this.channel2envelopeSweeps > 0) {
 			if (this.channel2volumeEnvTime > 0) {
-				this.channel2volumeEnvTime--;
+				--this.channel2volumeEnvTime;
 			}
 			else {
 				if (!this.channel2envelopeType) {
@@ -5362,7 +5362,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 			}
 		}
 		if (this.channel2totalLength > 0) {
-			this.channel2totalLength--;
+			--this.channel2totalLength;
 			if (this.channel2totalLength <= 0) {
 				this.memory[0xFF26] &= 0xFD;	//Channel #2 On Flag Off
 			}
@@ -5382,7 +5382,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 			this.channel3Tracker -= 0x20;
 		}
 		if (this.channel3totalLength > 0) {
-			this.channel3totalLength--;
+			--this.channel3totalLength;
 			if (this.channel3totalLength <= 0) {
 				this.memory[0xFF26] &= 0xFB;	//Channel #3 On Flag Off
 			}
@@ -5395,7 +5395,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 		}
 		if (this.channel4envelopeSweeps > 0) {
 			if (this.channel4volumeEnvTime > 0) {
-				this.channel4volumeEnvTime--;
+				--this.channel4volumeEnvTime;
 			}
 			else {
 				if (!this.channel4envelopeType) {
@@ -5417,7 +5417,7 @@ GameBoyCore.prototype.audioChannelsComputeMono = function () {
 			}
 		}
 		if (this.channel4totalLength > 0) {
-			this.channel4totalLength--;
+			--this.channel4totalLength;
 			if (this.channel4totalLength <= 0) {
 				this.memory[0xFF26] &= 0xF7;	//Channel #4 On Flag Off
 			}
@@ -5908,7 +5908,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					parentObj.modeSTAT = 1;
 					parentObj.interruptsRequested |= 0x1;
 					if (parentObj.drewBlank > 0) {		//LCD off takes at least 2 frames.
-						parentObj.drewBlank--;
+						--parentObj.drewBlank;
 					}
 					else {
 						//Draw the frame:
@@ -5955,7 +5955,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 				}
 			}
 		}
-		line++;
+		++line;
 	}
 }
 GameBoyCore.prototype.DisplayShowOff = function () {
@@ -5996,7 +5996,7 @@ GameBoyCore.prototype.executeHDMA = function () {
 		this.memory[0xFF55] = 0xFF;	//Transfer completed ("Hidden last step," since some ROMs don't imply this, but most do).
 	}
 	else {
-		this.memory[0xFF55]--;
+		--this.memory[0xFF55];
 	}
 }
 GameBoyCore.prototype.clockUpdate = function () {
@@ -6011,13 +6011,13 @@ GameBoyCore.prototype.clockUpdate = function () {
 			this.RTCSeconds += timeElapsed / 1000;
 			while (this.RTCSeconds >= 60) {	//System can stutter, so the seconds difference can get large, thus the "while".
 				this.RTCSeconds -= 60;
-				this.RTCMinutes++;
+				++this.RTCMinutes;
 				if (this.RTCMinutes >= 60) {
 					this.RTCMinutes -= 60;
-					this.RTCHours++;
+					++this.RTCHours;
 					if (this.RTCHours >= 24) {
 						this.RTCHours -= 24
-						this.RTCDays++;
+						++this.RTCDays;
 						if (this.RTCDays >= 512) {
 							this.RTCDays -= 512;
 							this.RTCDayOverFlow = true;
@@ -6028,16 +6028,16 @@ GameBoyCore.prototype.clockUpdate = function () {
 		}
 		if (settings[7]) {
 			//Auto Frame Skip:
-			this.iterations++;
+			++this.iterations;
 			if (timeElapsed > settings[20] && ((newTime - this.firstIteration) / this.iterations) > (settings[20] + 1 + (settings[20] / this.iterations))) {
 				//Did not finish in time...
 				if (settings[4] < settings[8]) {
-					settings[4]++;
+					++settings[4];
 				}
 			}
 			else if (settings[4] > 0) {
 				//We finished on time, decrease frame skipping (throttle to somewhere just below full speed)...
-				settings[4]--;
+				--settings[4];
 			}
 			if (this.iterations > 200) {
 				this.iterations = 0;
@@ -7943,7 +7943,7 @@ GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 				destination = (destination + 0x1800) & 0x1FF0;
 			}
 			source &= 0xFFF0;
-			tilesToTransfer--;
+			--tilesToTransfer;
 		} while (tilesToTransfer > 0);
 	}
 	else {
@@ -7991,7 +7991,7 @@ GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 				destination = (destination + 0x1800) & 0x1FF0;
 			}
 			source &= 0xFFF0;
-			tilesToTransfer--;
+			--tilesToTransfer;
 		} while (tilesToTransfer > 0);
 	}
 	//Update the HDMA registers to their next addresses:
@@ -9095,7 +9095,7 @@ GameBoyCore.prototype.returnOAMXCacheCopy = function (array) {
 			for (subindex = 0; subindex < length; subindex++) {
 				arrayHandle[index][subindex] = array[index][subindex];
 			}
-			index++;
+			++index;
 		}
 		cout("OAM sprite cached preserved.", 0);
 	}
