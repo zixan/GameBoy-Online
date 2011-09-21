@@ -6832,7 +6832,7 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 						}
 						else if (this.frameBuffer[currentPixel] < 0x1000000) {
 							data = tile[xCounter - xcoord];
-							if (data > 0 && attrCode < 0x80) {
+							if (data > 0 && attrCode < 0x80) {		//Don't optimize for attrCode, as LICM-capable JITs should optimize its checks.
 								this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
 							}
 						}
@@ -6866,7 +6866,7 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 						}
 						else if (this.frameBuffer[currentPixel] < 0x1000000) {
 							data = tile[xCounter - xcoord];
-							if (data > 0 && attrCode < 0x80) {
+							if (data > 0 && attrCode < 0x80) {		//Don't optimize for attrCode, as LICM-capable JITs should optimize its checks.
 								this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
 							}
 						}
