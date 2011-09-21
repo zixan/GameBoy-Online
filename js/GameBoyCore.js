@@ -6801,6 +6801,7 @@ GameBoyCore.prototype.findLowestSpriteDoubleDrawable = function () {
 }
 GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 	if (this.gfxSpriteShow) {										//Is the window enabled?
+		var OAMAddress = 0xFE00;
 		var lineAdjusted = this.actualScanLine + 0x10;
 		var yoffset = 0;
 		var xcoord = 0;
@@ -6813,7 +6814,7 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 		var data = 0;
 		var currentPixel = 0;
 		if (!this.gfxSpriteDouble) {
-			for (var OAMAddress = 0xFE00; OAMAddress < 0xFEA0 && this.spriteCount < 312; OAMAddress += 4) {
+			do {
 				yoffset = lineAdjusted - this.memory[OAMAddress];
 				if ((yoffset & 0x7) == yoffset) {
 					xcoord = this.memory[OAMAddress | 1] - 8;
@@ -6838,10 +6839,11 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 					}
 					this.spriteCount += 6;
 				}
-			}
+				OAMAddress += 4;
+			} while (OAMAddress < 0xFEA0 && this.spriteCount < 312);
 		}
 		else {
-			for (var OAMAddress = 0xFE00; OAMAddress < 0xFEA0 && this.spriteCount < 312; OAMAddress += 4) {
+			do {
 				yoffset = lineAdjusted - this.memory[OAMAddress];
 				if ((yoffset & 0xF) == yoffset) {
 					xcoord = this.memory[OAMAddress | 1] - 8;
@@ -6871,7 +6873,8 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 					}
 					this.spriteCount += 6;
 				}
-			}
+				OAMAddress += 4;
+			} while (OAMAddress < 0xFEA0 && this.spriteCount < 312);
 		}
 	}
 }
