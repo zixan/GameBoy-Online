@@ -222,8 +222,6 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.scaledFrameBuffer = [];		//The post-processed frame-buffer if we do scaling.
 	this.canvasBuffer = null;			//imageData handle
 	this.pixelStart = 0;				//Temp variable for holding the current working framebuffer offset.
-	this.tileDataCopier = this.getTypedArray(8, 0, "uint16");
-	this.tileDoubleDataCopier = this.getTypedArray(0x10, 0, "uint16");
 	this.frameCount = settings[12];		//Frame skip tracker
 	//Variables used for scaling in JS:
 	this.width = 160;
@@ -6936,7 +6934,6 @@ GameBoyCore.prototype.generateGBCTile = function (map, tile) {
 	var address = (tile & 0x1FF) << 4;		//Start address of the tile.
 	var tileBlock = this.tileCache[tile];	//Reference to the 8x8 tile.
 	var tileLine = null;					//Reference to a line of the cached tile.
-	var tileLineWord = this.tileDataCopier;	//Unconverted line data array reference.
 	var tileRawLine = 0;					//Unconverted line data.
 	var index = 0;							//Tile pixel number.
 	if ((map & 8) == 0) {
@@ -6948,19 +6945,15 @@ GameBoyCore.prototype.generateGBCTile = function (map, tile) {
 		//Set the copy address as bank 1:
 		var memoryBank = this.VRAM;
 	}
-	//Copy the tile dara:
-	do {
-		tileLineWord[index] = (memoryBank[address | (index << 1) | 1] << 8) | memoryBank[address | (index << 1)];
-	} while (++index < 8);
 	//Some tile flipping initialization:
 	if ((map & 0x40) == 0x40) {
 		//Normal Y:
-		var y = 8;
+		var y = 7;
 		var yINC = -1;
 	}
 	else {
 		//Flipped Y:
-		var y = -1;
+		var y = 0;
 		var yINC = 1;
 	}
 	var lineIndex = 0;	//Line line we're working on.
@@ -6968,8 +6961,10 @@ GameBoyCore.prototype.generateGBCTile = function (map, tile) {
 		//Normal X:
 		do {
 			//Get a reference to the tile line:
-			tileLine = tileBlock[y += yINC];
-			tileRawLine = tileLineWord[lineIndex];
+			tileLine = tileBlock[y];
+			y += yINC;
+			//Copy the new tile data:
+			tileRawLine = (memoryBank[address | (lineIndex << 1) | 1] << 8) | memoryBank[address | (lineIndex << 1)];
 			//Each pixel is composed of two bits: MSB is in the second byte, while the LSB is in the first byte.
 			tileLine[7] = ((tileRawLine & 0x100) >> 7) | (tileRawLine & 0x1);
 			tileLine[6] = ((tileRawLine & 0x200) >> 8) | ((tileRawLine & 0x2) >> 1);
@@ -6985,8 +6980,10 @@ GameBoyCore.prototype.generateGBCTile = function (map, tile) {
 		//Flipped X:
 		do {
 			//Get a reference to the tile line:
-			tileLine = tileBlock[y += yINC];
-			tileRawLine = tileLineWord[lineIndex];
+			tileLine = tileBlock[y];
+			y += yINC;
+			//Copy the new tile data:
+			tileRawLine = (memoryBank[address | (lineIndex << 1) | 1] << 8) | memoryBank[address | (lineIndex << 1)];
 			//Each pixel is composed of two bits: MSB is in the second byte, while the LSB is in the first byte.
 			tileLine[0] = ((tileRawLine & 0x100) >> 7) | (tileRawLine & 0x1);
 			tileLine[1] = ((tileRawLine & 0x200) >> 8) | ((tileRawLine & 0x2) >> 1);
@@ -7008,16 +7005,15 @@ GameBoyCore.prototype.generateGBOAMTile = function (map, tile) {
 	var address = 0x8000 | ((tile & 0x1FF) << 4);	//Start address of the tile.
 	var tileBlock = this.tileCache[tile];			//Reference to the 8x8 tile.
 	var tileLine = null;							//Reference to a line of the cached tile.
-	var tileLineWord = this.tileDataCopier;			//Unconverted line data array reference.
 	var tileRawLine = 0;							//Unconverted line data.
 	if ((map & 0x40) == 0x40) {
 		//Normal Y:
-		var y = 8;
+		var y = 7;
 		var yINC = -1;
 	}
 	else {
 		//Flipped Y:
-		var y = -1;
+		var y = 0;
 		var yINC = 1;
 	}
 	var lineIndex = 0;	//Line line we're working on.
@@ -7025,7 +7021,8 @@ GameBoyCore.prototype.generateGBOAMTile = function (map, tile) {
 		//Normal X:
 		do {
 			//Get a reference to the tile line:
-			tileLine = tileBlock[y += yINC];
+			tileLine = tileBlock[y];
+			y += yINC;
 			//Copy data from bank 0:
 			tileRawLine = (this.memory[address | (lineIndex << 1) | 1] << 8) | this.memory[address | (lineIndex << 1)];
 			//Each pixel is composed of two bits: MSB is in the second byte, while the LSB is in the first byte.
@@ -7043,7 +7040,8 @@ GameBoyCore.prototype.generateGBOAMTile = function (map, tile) {
 		//Flipped X:
 		do {
 			//Get a reference to the tile line:
-			tileLine = tileBlock[y += yINC];
+			tileLine = tileBlock[y];
+			y += yINC;
 			//Copy data from bank 0:
 			tileRawLine = (this.memory[address | (lineIndex << 1) | 1] << 8) | this.memory[address | (lineIndex << 1)];
 			//Each pixel is composed of two bits: MSB is in the second byte, while the LSB is in the first byte.
