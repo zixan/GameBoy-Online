@@ -6568,7 +6568,8 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 			do {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length; ++spriteCount) {
+				spriteCount = 0;
+				do {
 					OAMAddress = currentColumn[spriteCount];
 					if (OAMAddress < lowestSpriteAddress) {
 						yoffset = lineAdjusted - this.memory[OAMAddress];
@@ -6595,12 +6596,13 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							} while (++xcoord < 8);
 						}
 					}
-				}
+				} while (++spriteCount < length);
 			} while(++onXCoord < 8);
 			do {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length; ++spriteCount) {
+				spriteCount = 0;
+				do {
 					OAMAddress = currentColumn[spriteCount];
 					if (OAMAddress < lowestSpriteAddress) {
 						yoffset = lineAdjusted - this.memory[OAMAddress];
@@ -6627,12 +6629,13 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							} while (++xcoord < 8);
 						}
 					}
-				}
+				} while (++spriteCount < length);
 			} while (++onXCoord < 161);
 			do {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length; ++spriteCount) {
+				spriteCount = 0;
+				do {
 					OAMAddress = currentColumn[spriteCount];
 					if (OAMAddress < lowestSpriteAddress) {
 						yoffset = lineAdjusted - this.memory[OAMAddress];
@@ -6659,7 +6662,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							} while (--xcoord > -1);
 						}
 					}
-				}
+				} while (++spriteCount < length);
 			} while(++onXCoord < 168);
 		}
 		else {
@@ -6668,7 +6671,8 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 			do {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length; ++spriteCount) {
+				spriteCount = 0;
+				do {
 					OAMAddress = currentColumn[spriteCount];
 					if (OAMAddress < lowestSpriteAddress) {
 						yoffset = lineAdjusted - this.memory[OAMAddress];
@@ -6683,8 +6687,9 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 								tileNumber = ((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2] | 1;
 							}
 							tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBOAMTile(attrCode, tileNumber))[yoffset & 0x7];
-							for (currentPixel = this.pixelStart; xcoord < 8; ++xcoord, ++currentPixel) {
-								if (this.frameBuffer[currentPixel] >= 0x2000000) {
+							currentPixel = this.pixelStart - 1;
+							do {
+								if (this.frameBuffer[++currentPixel] >= 0x2000000) {
 									data = tile[xcoord];
 									if (data > 0) {
 										this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
@@ -6696,15 +6701,16 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 										this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
 									}
 								}
-							}
+							} while (++xcoord < 8);
 						}
 					}
-				}
+				} while (++spriteCount < length);
 			} while(++onXCoord < 8);
 			do {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length; ++spriteCount) {
+				spriteCount = 0;
+				do {
 					OAMAddress = currentColumn[spriteCount];
 					if (OAMAddress < lowestSpriteAddress) {
 						yoffset = lineAdjusted - this.memory[OAMAddress];
@@ -6736,12 +6742,13 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							} while (++xcoord < 8);
 						}
 					}
-				}
+				} while (++spriteCount < length);
 			} while(++onXCoord < 161);
 			do {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length; ++spriteCount) {
+				spriteCount = 0;
+				do {
 					OAMAddress = currentColumn[spriteCount];
 					if (OAMAddress < lowestSpriteAddress) {
 						yoffset = lineAdjusted - this.memory[OAMAddress];
@@ -6773,7 +6780,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							} while (--xcoord > -1);
 						}
 					}
-				}
+				} while (++spriteCount < length);
 			} while(++onXCoord < 168);
 		}
 	}
