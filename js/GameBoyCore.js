@@ -6595,9 +6595,6 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							} while (++xcoord < 8);
 						}
 					}
-					else {
-						break;
-					}
 				}
 			} while(++onXCoord < 8);
 			do {
@@ -6630,9 +6627,6 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							} while (++xcoord < 8);
 						}
 					}
-					else {
-						break;
-					}
 				}
 			} while (++onXCoord < 161);
 			do {
@@ -6664,9 +6658,6 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 								}
 							} while (--xcoord > -1);
 						}
-					}
-					else {
-						break;
 					}
 				}
 			} while(++onXCoord < 168);
@@ -6708,9 +6699,6 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							}
 						}
 					}
-					else {
-						break;
-					}
 				}
 			} while(++onXCoord < 8);
 			do {
@@ -6748,9 +6736,6 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							} while (++xcoord < 8);
 						}
 					}
-					else {
-						break;
-					}
 				}
 			} while(++onXCoord < 161);
 			do {
@@ -6787,9 +6772,6 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 								}
 							} while (--xcoord > -1);
 						}
-					}
-					else {
-						break;
 					}
 				}
 			} while(++onXCoord < 168);
