@@ -6830,7 +6830,6 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 		var tile = null;
 		var data = 0;
 		var currentPixel = 0;
-		var pixelOffset = this.pixelStart - 1;
 		if (!this.gfxSpriteDouble) {
 			do {
 				yoffset = lineAdjusted - this.memory[OAMAddress];
@@ -6842,7 +6841,7 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 					tileNumber = ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5) | this.memory[OAMAddress | 2];
 					tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBCTile(attrCode, tileNumber))[yoffset];
 					xCounter = (xcoord > 0) ? (xcoord - 1) : -1;
-					currentPixel = pixelOffset + xCounter;
+					currentPixel = this.pixelStart + xCounter;
 					while (++xCounter < endX) {
 						if (this.frameBuffer[++currentPixel] >= 0x2000000) {
 							data = tile[xCounter - xcoord];
@@ -6878,7 +6877,7 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 					}
 					tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBCTile(attrCode, tileNumber))[yoffset & 0x7];
 					xCounter = (xcoord > 0) ? (xcoord - 1) : -1;
-					currentPixel = pixelOffset + xCounter;
+					currentPixel = this.pixelStart + xCounter;
 					while (++xCounter < endX) {
 						if (this.frameBuffer[++currentPixel] >= 0x2000000) {
 							data = tile[xCounter - xcoord];
