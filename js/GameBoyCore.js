@@ -6926,7 +6926,7 @@ GameBoyCore.prototype.generateGBTile = function (tile) {
 		tileLine[1] = ((lineCopy & 0x4000) >> 13) | ((lineCopy & 0x40) >> 6);
 		tileLine[0] = ((lineCopy & 0x8000) >> 14) | ((lineCopy & 0x80) >> 7);
 		address += 2;
-	} (lineIndex < 8);
+	} while (lineIndex < 8);
 	//Set flag for the tile in the cache to valid:
 	this.tileCacheValid[tile] = 1;
 	//Return the obtained tile to the rendering path:
