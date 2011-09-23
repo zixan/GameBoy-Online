@@ -6931,17 +6931,18 @@ GameBoyCore.prototype.generateGBTile = function (tile) {
 }
 //Generate a tile for the tile cache for all CGB graphics planes:
 GameBoyCore.prototype.generateGBCTile = function (map, tile) {
-	var address = (tile & 0x1FF) << 4;		//Start address of the tile.
 	var tileBlock = this.tileCache[tile];	//Reference to the 8x8 tile.
 	var tileLine = null;					//Reference to a line of the cached tile.
 	var tileRawLine = 0;					//Unconverted line data.
-	var index = 0;							//Tile pixel number.
 	if ((map & 8) == 0) {
+		//Start address of the tile:
+		var address = 0x8000 | ((tile & 0x1FF) << 4);
 		//Set the copy address as bank 0:
-		address |= 0x8000;
 		var memoryBank = this.memory;
 	}
 	else {
+		//Start address of the tile:
+		var address = (tile & 0x1FF) << 4;
 		//Set the copy address as bank 1:
 		var memoryBank = this.VRAM;
 	}
