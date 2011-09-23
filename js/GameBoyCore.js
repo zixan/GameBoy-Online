@@ -6556,8 +6556,8 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 		var tile = null;
 		var data = 0;
 		var spriteCount = 0;
-		var currentColumn = this.OAMAddresses[0];
-		var length = currentColumn.length;
+		var currentColumn = 0;
+		var length = 0;
 		var currentPixel = 0;
 		var onXCoord = 1;
 		var pixelOffset1 = this.pixelStart - 1;
@@ -6674,7 +6674,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 				length = currentColumn.length;
 				spriteCount = 0;
 				do {
-					OAMAddress = currentColumn[spriteCount];
+					OAMAddress = currentColumn[spriteCount++];
 					if (OAMAddress < lowestSpriteAddress) {
 						yoffset = lineAdjusted - this.memory[OAMAddress];
 						if ((yoffset & 0xF) == yoffset) {
@@ -6705,14 +6705,14 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							} while (++xcoord < 8);
 						}
 					}
-				} while (++spriteCount < length);
+				} while (spriteCount < length);
 			} while(++onXCoord < 8);
 			do {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
 				spriteCount = 0;
 				do {
-					OAMAddress = currentColumn[spriteCount];
+					OAMAddress = currentColumn[spriteCount++];
 					if (OAMAddress < lowestSpriteAddress) {
 						yoffset = lineAdjusted - this.memory[OAMAddress];
 						if ((yoffset & 0xF) == yoffset) {
@@ -6743,14 +6743,14 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							} while (++xcoord < 8);
 						}
 					}
-				} while (++spriteCount < length);
+				} while (spriteCount < length);
 			} while(++onXCoord < 161);
 			do {
 				currentColumn = this.OAMAddresses[onXCoord];
 				length = currentColumn.length;
 				spriteCount = 0;
 				do {
-					OAMAddress = currentColumn[spriteCount];
+					OAMAddress = currentColumn[spriteCount++];
 					if (OAMAddress < lowestSpriteAddress) {
 						yoffset = lineAdjusted - this.memory[OAMAddress];
 						if ((yoffset & 0xF) == yoffset) {
@@ -6781,7 +6781,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							} while (--xcoord > -1);
 						}
 					}
-				} while (++spriteCount < length);
+				} while (spriteCount < length);
 			} while(++onXCoord < 168);
 		}
 	}
