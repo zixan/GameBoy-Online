@@ -6562,6 +6562,9 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 		var length = currentColumn.length;
 		var currentPixel = 0;
 		var onXCoord = 1;
+		var pixelOffset1 = this.pixelStart - 1;
+		var pixelOffset2 = pixelOffset1 - 8;
+		var pixelOffset3 = this.pixelStart + 160;
 		if (!this.gfxSpriteDouble) {
 			var lowestSpriteAddress = this.findLowestSpriteDrawable();
 			//Draw the visible sprites:
@@ -6579,7 +6582,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							palette = (attrCode & 0x10) >> 2;
 							tileNumber = ((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2];
 							tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBOAMTile(attrCode, tileNumber))[yoffset];
-							currentPixel = this.pixelStart - 1;
+							currentPixel = pixelOffset1;
 							do {
 								if (this.frameBuffer[++currentPixel] >= 0x2000000) {
 									data = tile[xcoord];
@@ -6611,7 +6614,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							palette = (attrCode & 0x10) >> 2;
 							tileNumber = ((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2];
 							tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBOAMTile(attrCode, tileNumber))[yoffset];
-							currentPixel = this.pixelStart + onXCoord - 9;
+							currentPixel = pixelOffset2 + onXCoord;
 							xcoord = 0;
 							do {
 								if (this.frameBuffer[++currentPixel] >= 0x2000000) {
@@ -6645,7 +6648,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 							palette = (attrCode & 0x10) >> 2;
 							tileNumber = ((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2];
 							tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBOAMTile(attrCode, tileNumber))[yoffset];
-							currentPixel = this.pixelStart + 160;
+							currentPixel = pixelOffset3;
 							do {
 								if (this.frameBuffer[--currentPixel] >= 0x2000000) {
 									data = tile[xcoord];
@@ -6687,7 +6690,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 								tileNumber = ((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2] | 1;
 							}
 							tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBOAMTile(attrCode, tileNumber))[yoffset & 0x7];
-							currentPixel = this.pixelStart - 1;
+							currentPixel = pixelOffset1;
 							do {
 								if (this.frameBuffer[++currentPixel] >= 0x2000000) {
 									data = tile[xcoord];
@@ -6724,7 +6727,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 								tileNumber = ((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2] | 1;
 							}
 							tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBOAMTile(attrCode, tileNumber))[yoffset & 0x7];
-							currentPixel = this.pixelStart + onXCoord - 9;
+							currentPixel = pixelOffset2 + onXCoord;
 							xcoord = 0;
 							do {
 								if (this.frameBuffer[++currentPixel] >= 0x2000000) {
@@ -6763,7 +6766,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 								tileNumber = ((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2] | 1;
 							}
 							tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBOAMTile(attrCode, tileNumber))[yoffset & 0x7];
-							currentPixel = this.pixelStart + 160;
+							currentPixel = pixelOffset3;
 							do {
 								if (this.frameBuffer[--currentPixel] >= 0x2000000) {
 									data = tile[xcoord];
@@ -6827,6 +6830,7 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 		var tile = null;
 		var data = 0;
 		var currentPixel = 0;
+		var pixelOffset = this.pixelStart - 1;
 		if (!this.gfxSpriteDouble) {
 			do {
 				yoffset = lineAdjusted - this.memory[OAMAddress];
@@ -6838,7 +6842,7 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 					tileNumber = ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5) | this.memory[OAMAddress | 2];
 					tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBCTile(attrCode, tileNumber))[yoffset];
 					xCounter = (xcoord > 0) ? (xcoord - 1) : -1;
-					currentPixel = this.pixelStart + xCounter - 1;
+					currentPixel = pixelOffset + xCounter;
 					while (++xCounter < endX) {
 						if (this.frameBuffer[++currentPixel] >= 0x2000000) {
 							data = tile[xCounter - xcoord];
@@ -6874,7 +6878,7 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 					}
 					tile = ((this.tileCacheValid[tileNumber] == 1) ? this.tileCache[tileNumber] : this.generateGBCTile(attrCode, tileNumber))[yoffset & 0x7];
 					xCounter = (xcoord > 0) ? (xcoord - 1) : -1;
-					currentPixel = this.pixelStart + xCounter - 1;
+					currentPixel = pixelOffset + xCounter;
 					while (++xCounter < endX) {
 						if (this.frameBuffer[++currentPixel] >= 0x2000000) {
 							data = tile[xCounter - xcoord];
