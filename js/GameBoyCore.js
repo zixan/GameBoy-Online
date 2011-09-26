@@ -8294,7 +8294,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				//Manual says this is a way to turn off the audio:
 				parentObj.channel4currentVolume = parentObj.channel4envelopeVolume = 0;
 			}
-			else if ((parentObj.channel4consecutive || parentObj.channel4totalLength > 0) && parentObj.channel4envelopeSweeps == 0) {
+			/*else if ((parentObj.channel4consecutive || parentObj.channel4totalLength > 0) && parentObj.channel4envelopeSweeps == 0) {
 				//Zombie Volume PAPU Bug:
 				if (((parentObj.memory[0xFF21] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF21] & 0x8) == 0) {
@@ -8311,7 +8311,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 					parentObj.channel4envelopeVolume = (1 + parentObj.channel4envelopeVolume) & 0xF;
 				}
 				parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
-			}
+			}*/
 			parentObj.channel4envelopeType = ((data & 0x08) == 0x08);
 			parentObj.memory[0xFF21] = data;
 		}
