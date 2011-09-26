@@ -181,7 +181,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.currVRAMBank = 0;					//Current VRAM bank for GBC.
 	this.gfxWindowDisplay = false;			//Is the windows enabled?
 	this.gfxSpriteShow = false;				//Are sprites enabled?
-	this.gfxSpriteDouble = false;			//Are we doing 8x8 or 8x16 sprites?
+	this.gfxSpriteNormalHeight = true;			//Are we doing 8x8 or 8x16 sprites?
 	this.bgEnabled = true;					//Is the BG enabled?
 	this.BGPriorityEnabled = 0x1000000;		//Can we flag the BG for priority over sprites?
 	this.gfxWindowCHRBankPosition = 0;		//The current bank of the character map the window uses.
@@ -3940,7 +3940,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.gfxWindowCHRBankPosition,
 		this.gfxWindowDisplay,
 		this.gfxSpriteShow,
-		this.gfxSpriteDouble,
+		this.gfxSpriteNormalHeight,
 		this.gfxBackgroundCHRBankPosition,
 		this.gfxBackgroundBankOffset,
 		this.TIMAEnabled,
@@ -4110,7 +4110,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.gfxWindowCHRBankPosition = state[index++];
 	this.gfxWindowDisplay = state[index++];
 	this.gfxSpriteShow = state[index++];
-	this.gfxSpriteDouble = state[index++];
+	this.gfxSpriteNormalHeight = state[index++];
 	this.gfxBackgroundCHRBankPosition = state[index++];
 	this.gfxBackgroundBankOffset = state[index++];
 	this.TIMAEnabled = state[index++];
@@ -4334,7 +4334,7 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.gfxWindowDisplay = false;
 	this.gfxBackgroundBankOffset = 0x80;
 	this.gfxBackgroundCHRBankPosition = 0;
-	this.gfxSpriteDouble = false;
+	this.gfxSpriteNormalHeight = true;
 	this.gfxSpriteShow = false;
 	this.BGPriorityEnabled = true;
 	//Fill in the boot ROM set register values
@@ -5764,7 +5764,7 @@ GameBoyCore.prototype.updateSpriteCount = function (line) {
 	if (this.cGBC && this.gfxSpriteShow) {										//Is the window enabled and are we in CGB mode?
 		var lineAdjusted = line + 0x10;
 		var yoffset = 0;
-		var yCap = (this.gfxSpriteDouble) ? 0x10 : 0x8;
+		var yCap = (this.gfxSpriteNormalHeight) ? 0x8 : 0x10;
 		for (var OAMAddress = 0xFE00; OAMAddress < 0xFEA0 && this.spriteCount < 312; OAMAddress += 4) {
 			yoffset = lineAdjusted - this.memory[OAMAddress];
 			if (yoffset > -1 && yoffset < yCap) {
@@ -6561,7 +6561,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 		var currentPixel = 0;
 		var onXCoord = 1;
 		var pixelOffsetLocal = this.pixelStart;
-		if (!this.gfxSpriteDouble) {
+		if (this.gfxSpriteNormalHeight) {
 			//Draw the visible sprites:
 			for (var lowestSpriteAddress = this.findLowestSpriteDrawable(); onXCoord < 8; ++onXCoord) {
 				currentColumn = this.OAMAddresses[onXCoord];
@@ -6806,7 +6806,7 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 		var tile = null;
 		var data = 0;
 		var currentPixel = 0;
-		if (!this.gfxSpriteDouble) {
+		if (this.gfxSpriteNormalHeight) {
 			for (; OAMAddress < 0xFEA0 && this.spriteCount < 312; OAMAddress += 4) {
 				yoffset = lineAdjusted - this.memory[OAMAddress];
 				if ((yoffset & 0x7) == yoffset) {
@@ -8695,7 +8695,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.gfxWindowDisplay = (data & 0x20) == 0x20;
 			parentObj.gfxBackgroundBankOffset = ((data & 0x10) == 0x10) ? 0 : 0x80;
 			parentObj.gfxBackgroundCHRBankPosition = ((data & 0x08) == 0x08) ? 0x400 : 0;
-			parentObj.gfxSpriteDouble = ((data & 0x04) == 0x04);
+			parentObj.gfxSpriteNormalHeight = ((data & 0x04) == 0x00);
 			parentObj.gfxSpriteShow = (data & 0x02) == 0x02;
 			parentObj.BGPriorityEnabled = ((data & 0x01) == 0x01) ? 0x1000000 : 0;
 			parentObj.memory[0xFF40] = data;
@@ -8860,7 +8860,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.gfxWindowDisplay = (data & 0x20) == 0x20;
 			parentObj.gfxBackgroundBankOffset = ((data & 0x10) == 0x10) ? 0 : 0x80;
 			parentObj.gfxBackgroundCHRBankPosition = ((data & 0x08) == 0x08) ? 0x400 : 0;
-			parentObj.gfxSpriteDouble = ((data & 0x04) == 0x04);
+			parentObj.gfxSpriteNormalHeight = ((data & 0x04) == 0x00);
 			parentObj.gfxSpriteShow = (data & 0x02) == 0x02;
 			if ((data & 0x01) == 0) {
 				// this emulates the gbc-in-gb-mode, not the original gb-mode
