@@ -6179,12 +6179,7 @@ GameBoyCore.prototype.consoleModeAdjust = function () {
 	this.tileCache = this.generateCacheArray((this.cGBC) ? 0xF80 : 0x700);
 	if (this.usedBootROM && settings[17]) {
 		if (!this.cGBC) {
-			//Save some rendering time right after boot, by not immediately marking the tile cache entirely invalid:
-			var newTileCacheVerifier = this.getTypedArray(0x700, 0, "int8");
-			for (var index = 0; index < 0x700; index++) {
-				newTileCacheVerifier[index] = this.tileCacheValid[index];
-			}
-			this.tileCacheValid = newTileCacheVerifier;
+			this.tileCacheValid = this.getTypedArray(0x700, 0, "int8");
 		}
 	}
 	else {
