@@ -8857,14 +8857,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.gfxBackgroundCHRBankPosition = ((data & 0x08) == 0x08) ? 0x400 : 0;
 			parentObj.gfxSpriteNormalHeight = ((data & 0x04) == 0x00);
 			parentObj.gfxSpriteShow = (data & 0x02) == 0x02;
-			if ((data & 0x01) == 0) {
-				// this emulates the gbc-in-gb-mode, not the original gb-mode
-				parentObj.bgEnabled = false;
-				parentObj.gfxWindowDisplay = false;
-			}
-			else {
-				parentObj.bgEnabled = true;
-			}
+			parentObj.bgEnabled = ((data & 0x01) == 0x01);
 			parentObj.memory[0xFF40] = data;
 		}
 		this.memoryHighWriter[0x41] = this.memoryWriter[0xFF41] = function (parentObj, address, data) {
