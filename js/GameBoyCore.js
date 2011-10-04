@@ -6323,7 +6323,7 @@ GameBoyCore.prototype.BGGBLayerRender = function (pixelEnd) {
 		this.frameBuffer[pixelPosition++] = this.BGPalette[tile[7]];
 	}
 	if (pixelPosition < pixelPositionEnd) {
-		chrCode = this.BGCHRBank1[tileYDown++];
+		chrCode = this.BGCHRBank1[tileYDown];
 		if (chrCode < this.gfxBackgroundBankOffset) {
 			chrCode |= 0x100;
 		}
@@ -6415,7 +6415,7 @@ GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
 		if (chrCode < this.gfxBackgroundBankOffset) {
 			chrCode |= 0x100;
 		}
-		attrCode = this.BGCHRBank2[tileYDown++];
+		attrCode = this.BGCHRBank2[tileYDown];
 		chrCode |= ((attrCode & 0x08) << 6) | ((attrCode & 0x60) << 5);
 		tile = ((this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode))[tileYLine];
 		pixelFlag = (attrCode << 17) & this.BGPriorityEnabled;
