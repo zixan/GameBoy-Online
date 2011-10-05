@@ -6459,7 +6459,7 @@ GameBoyCore.prototype.WindowGBLayerRender = function (pixelEnd) {
 		var scrollYAdjusted = this.actualScanLine - this.windowY;	//The line of the BG we're at.
 		if (scrollYAdjusted >= 0) {
 			var scrollXAdjusted = this.windowX + this.currentX;		//The scroll amount of the BG.
-			var scrollXRangeAdjusted = (scrollXAdjusted > this.currentX) ? scrollXAdjusted : this.currentX;
+			var scrollXRangeAdjusted = (this.windowX > 0) ? scrollXAdjusted : this.currentX;
 			var pixelPosition = this.pixelStart + scrollXRangeAdjusted;
 			var pixelPositionEnd = this.pixelStart + pixelEnd;
 			if (pixelPosition < pixelPositionEnd) {
@@ -6522,7 +6522,7 @@ GameBoyCore.prototype.WindowGBCLayerRender = function (pixelEnd) {
 		var scrollYAdjusted = this.actualScanLine - this.windowY;	//The line of the BG we're at.
 		if (scrollYAdjusted >= 0) {
 			var scrollXAdjusted = this.windowX + this.currentX;		//The scroll amount of the BG.
-			var scrollXRangeAdjusted = (scrollXAdjusted > this.currentX) ? scrollXAdjusted : this.currentX;
+			var scrollXRangeAdjusted = (this.windowX > 0) ? scrollXAdjusted : this.currentX;
 			var pixelPosition = this.pixelStart + scrollXRangeAdjusted;
 			var pixelPositionEnd = this.pixelStart + pixelEnd;
 			if (pixelPosition < pixelPositionEnd) {
