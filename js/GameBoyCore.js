@@ -6473,8 +6473,8 @@ GameBoyCore.prototype.WindowGBLayerRender = function (pixelEnd) {
 				for (var texel = ((this.currentX + scrollXRangeAdjusted - scrollXAdjusted) & 0x7); texel < 8 && scrollXRangeAdjusted < 160 && pixelPosition < pixelPositionEnd; scrollXRangeAdjusted++) {
 					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
 				}
-				var scrollXAdjustedAligned = tileNumber + ((pixelPositionEnd - pixelPosition) >> 3);
-				while (tileNumber < scrollXAdjustedAligned) {
+				scrollXRangeAdjusted = tileNumber + ((pixelPositionEnd - pixelPosition) >> 3);
+				while (tileNumber < scrollXRangeAdjusted) {
 					chrCode = this.BGCHRBank1[++tileNumber];
 					if (chrCode < this.gfxBackgroundBankOffset) {
 						chrCode |= 0x100;
@@ -6540,8 +6540,8 @@ GameBoyCore.prototype.WindowGBCLayerRender = function (pixelEnd) {
 				for (var texel = ((this.currentX + scrollXRangeAdjusted - scrollXAdjusted) & 0x7); texel < 8 && scrollXRangeAdjusted < 160 && pixelPosition < pixelPositionEnd; scrollXRangeAdjusted++) {
 					this.frameBuffer[pixelPosition++] = pixelFlag | this.BGPalette[palette | tile[texel++]];
 				}
-				var scrollXAdjustedAligned = tileNumber + ((pixelPositionEnd - pixelPosition) >> 3);
-				while (tileNumber < scrollXAdjustedAligned) {
+				scrollXRangeAdjusted = tileNumber + ((pixelPositionEnd - pixelPosition) >> 3);
+				while (tileNumber < scrollXRangeAdjusted) {
 					chrCode = this.BGCHRBank1[++tileNumber];
 					if (chrCode < this.gfxBackgroundBankOffset) {
 						chrCode |= 0x100;
