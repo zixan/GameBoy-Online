@@ -37,8 +37,8 @@ XAudioServer.prototype.MOZwriteAudio = function (buffer) {
 XAudioServer.prototype.WEBAUDIOwriteAudio = function (buffer) {
 	//WebKit Audio:
 	var length = buffer.length;
-	for (var bufferCounter = 0; bufferCounter < length; bufferCounter++) {
-		audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
+	for (var bufferCounter = 0; bufferCounter < length;) {
+		audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter++];
 		if (bufferEnd == startPosition) {
 			startPosition += this.audioChannels;
 			if (webAudioMaxBufferSize <= startPosition) {
@@ -53,8 +53,9 @@ XAudioServer.prototype.WEBAUDIOwriteAudio = function (buffer) {
 	if (samplesRequested > 0) {
 		buffer = this.underRunCallback(samplesRequested);
 		samplesRequested = buffer.length;
-		for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
-			audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
+		bufferCounter = 0;
+		do {
+			audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter++];
 			if (bufferEnd == startPosition) {
 				startPosition += this.audioChannels;
 				if (webAudioMaxBufferSize <= startPosition) {
@@ -64,7 +65,7 @@ XAudioServer.prototype.WEBAUDIOwriteAudio = function (buffer) {
 			else if (bufferEnd == webAudioMaxBufferSize) {
 				bufferEnd = 0;
 			}
-		}
+		} while (bufferCounter < samplesRequested);
 	}
 }
 XAudioServer.prototype.WAVwriteAudio = function (buffer) {
@@ -73,8 +74,8 @@ XAudioServer.prototype.WAVwriteAudio = function (buffer) {
 	if (this.sampleCount >= webAudioMaxBufferSize) {
 		var silenceLength = Math.round(this.audioChannels * XAudioJSSampleRate / 2);
 		var silenceBuffer = new Array(silenceLength);
-		for (var index = 0; index < silenceLength; index++) {
-			silenceBuffer[index] = defaultNeutralValue;
+		for (var index = 0; index < silenceLength;) {
+			silenceBuffer[index++] = defaultNeutralValue;
 		}
 		this.audioHandleWAV.appendBatch(silenceBuffer);	//Try to dampen the unavoidable clicking by padding with the set neutral.
 		this.audioHandleWAV.outputAudio();
@@ -155,8 +156,8 @@ XAudioServer.prototype.webAudioExecuteCallback = function () {
 	if (samplesRequested > 0) {
 		var buffer = this.underRunCallback(samplesRequested);
 		samplesRequested = buffer.length;
-		for (var bufferCounter = 0; bufferCounter < samplesRequested; bufferCounter++) {
-			audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter];
+		for (var bufferCounter = 0; bufferCounter < samplesRequested;) {
+			audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter++];
 			if (bufferEnd == startPosition) {
 				startPosition += this.audioChannels;
 				if (webAudioMaxBufferSize <= startPosition) {
@@ -333,7 +334,7 @@ XAudioServer.prototype.writeMozAudio = function (buffer) {
 	length = Math.min(buffer.length, webAudioMaxBufferSize - this.samplesAlreadyWritten + this.audioHandleMoz.mozCurrentSampleOffset());
 	var samplesAccepted = this.audioHandleMoz.mozWriteAudio(buffer);
 	this.samplesAlreadyWritten += samplesAccepted;
-	for (var index = 0; length > samplesAccepted; length--) {
+	for (var index = 0; length > samplesAccepted; --length) {
 		//Moz Audio wants us saving the tail:
 		this.mozAudioTail.push(buffer[index++]);
 	}
@@ -354,7 +355,7 @@ function getFloat32(size) {
 	catch (error) {
 		var newBuffer = new Array(size);
 	}
-	for (var audioSampleIndice = 0; audioSampleIndice < size; audioSampleIndice++) {
+	for (var audioSampleIndice = 0; audioSampleIndice < size; ++audioSampleIndice) {
 		//Create a gradual neutral position shift here to make sure we don't cause annoying clicking noises
 		//when the developer set neutral position is not 0.
 		newBuffer[audioSampleIndice] = defaultNeutralValue * (audioSampleIndice / size);
@@ -490,12 +491,12 @@ function downsamplerMono(numberOfSamples) {
 		}
 		startPositionOverflow += resampleAmountRemainder;
 		if (startPositionOverflow >= 1) {
-			startPositionOverflow--;
+			--startPositionOverflow;
 			sampleBase1 += audioContextSampleBuffer[startPosition++];
 			if (startPosition == webAudioMaxBufferSize) {
 				startPosition = 0;
 			}
-			sampleIndice++;
+			++sampleIndice;
 		}
 		resampleChannel1Buffer[samplesFound++] = sampleBase1 / sampleIndice;
 	}
@@ -530,13 +531,13 @@ function downsamplerStereo(numberOfSamples) {
 		}
 		startPositionOverflow += resampleAmountRemainder;
 		if (startPositionOverflow >= 1) {
-			startPositionOverflow--;
+			--startPositionOverflow;
 			sampleBase1 += audioContextSampleBuffer[startPosition++];
 			sampleBase2 += audioContextSampleBuffer[startPosition++];
 			if (startPosition == webAudioMaxBufferSize) {
 				startPosition = 0;
 			}
-			sampleIndice++;
+			++sampleIndice;
 		}
 		resampleChannel1Buffer[samplesFound] = sampleBase1 / sampleIndice;
 		resampleChannel2Buffer[samplesFound++] = sampleBase2 / sampleIndice;
