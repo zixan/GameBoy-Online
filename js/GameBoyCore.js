@@ -445,9 +445,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//ADD HL, BC
 	//#0x09:
 	function (parentObj) {
-		var n2 = (parentObj.registerB << 8) | parentObj.registerC;
-		var dirtySum = parentObj.registersHL + n2;
-		parentObj.FHalfCarry = ((parentObj.registersHL & 0xFFF) + (n2 & 0xFFF) > 0xFFF);
+		var dirtySum = parentObj.registersHL + ((parentObj.registerB << 8) | parentObj.registerC);
+		parentObj.FHalfCarry = ((parentObj.registersHL & 0xFFF) > (dirtySum & 0xFFF));
 		parentObj.FCarry = (dirtySum > 0xFFFF);
 		parentObj.registersHL = (dirtySum & 0xFFFF);
 		parentObj.FSubtract = false;
@@ -570,9 +569,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//ADD HL, DE
 	//#0x19:
 	function (parentObj) {
-		var n2 = (parentObj.registerD << 8) | parentObj.registerE;
-		var dirtySum = parentObj.registersHL + n2;
-		parentObj.FHalfCarry = ((parentObj.registersHL & 0xFFF) + (n2 & 0xFFF) > 0xFFF);
+		var dirtySum = parentObj.registersHL + ((parentObj.registerD << 8) | parentObj.registerE);
+		parentObj.FHalfCarry = ((parentObj.registersHL & 0xFFF) > (dirtySum & 0xFFF));
 		parentObj.FCarry = (dirtySum > 0xFFFF);
 		parentObj.registersHL = (dirtySum & 0xFFFF);
 		parentObj.FSubtract = false;
@@ -830,7 +828,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x39:
 	function (parentObj) {
 		var dirtySum = parentObj.registersHL + parentObj.stackPointer;
-		parentObj.FHalfCarry = ((parentObj.registersHL & 0xFFF) + (parentObj.stackPointer & 0xFFF) > 0xFFF);
+		parentObj.FHalfCarry = ((parentObj.registersHL & 0xFFF) > (dirtySum & 0xFFF));
 		parentObj.FCarry = (dirtySum > 0xFFFF);
 		parentObj.registersHL = (dirtySum & 0xFFFF);
 		parentObj.FSubtract = false;
