@@ -1454,7 +1454,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x90:
 	function (parentObj) {
 		var dirtySum = parentObj.registerA - parentObj.registerB;
-		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (parentObj.registerB & 0xF);
+		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (dirtySum & 0xF);
 		parentObj.FCarry = (dirtySum < 0);
 		parentObj.registerA = dirtySum & 0xFF;
 		parentObj.FZero = (parentObj.registerA == 0);
@@ -1464,7 +1464,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x91:
 	function (parentObj) {
 		var dirtySum = parentObj.registerA - parentObj.registerC;
-		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (parentObj.registerC & 0xF);
+		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (dirtySum & 0xF);
 		parentObj.FCarry = (dirtySum < 0);
 		parentObj.registerA = dirtySum & 0xFF;
 		parentObj.FZero = (parentObj.registerA == 0);
@@ -1474,7 +1474,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x92:
 	function (parentObj) {
 		var dirtySum = parentObj.registerA - parentObj.registerD;
-		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (parentObj.registerD & 0xF);
+		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (dirtySum & 0xF);
 		parentObj.FCarry = (dirtySum < 0);
 		parentObj.registerA = dirtySum & 0xFF;
 		parentObj.FZero = (parentObj.registerA == 0);
@@ -1484,7 +1484,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x93:
 	function (parentObj) {
 		var dirtySum = parentObj.registerA - parentObj.registerE;
-		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (parentObj.registerE & 0xF);
+		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (dirtySum & 0xF);
 		parentObj.FCarry = (dirtySum < 0);
 		parentObj.registerA = dirtySum & 0xFF;
 		parentObj.FZero = (parentObj.registerA == 0);
@@ -1493,9 +1493,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//SUB A, H
 	//#0x94:
 	function (parentObj) {
-		var temp_var = parentObj.registersHL >> 8;
-		var dirtySum = parentObj.registerA - temp_var;
-		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (temp_var & 0xF);
+		var dirtySum = parentObj.registerA - (parentObj.registersHL >> 8);
+		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (dirtySum & 0xF);
 		parentObj.FCarry = (dirtySum < 0);
 		parentObj.registerA = dirtySum & 0xFF;
 		parentObj.FZero = (parentObj.registerA == 0);
@@ -1505,7 +1504,7 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//#0x95:
 	function (parentObj) {
 		var dirtySum = parentObj.registerA - (parentObj.registersHL & 0xFF);
-		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (parentObj.registersHL & 0xF);
+		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (dirtySum & 0xF);
 		parentObj.FCarry = (dirtySum < 0);
 		parentObj.registerA = dirtySum & 0xFF;
 		parentObj.FZero = (parentObj.registerA == 0);
@@ -1514,9 +1513,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//SUB A, (HL)
 	//#0x96:
 	function (parentObj) {
-		var temp_var = parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL);
-		var dirtySum = parentObj.registerA - temp_var;
-		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (temp_var & 0xF);
+		var dirtySum = parentObj.registerA - parentObj.memoryReader[parentObj.registersHL](parentObj, parentObj.registersHL);
+		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (dirtySum & 0xF);
 		parentObj.FCarry = (dirtySum < 0);
 		parentObj.registerA = dirtySum & 0xFF;
 		parentObj.FZero = (parentObj.registerA == 0);
@@ -2087,9 +2085,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 	//SUB A, n
 	//#0xD6:
 	function (parentObj) {
-		var temp_var = parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
-		var dirtySum = parentObj.registerA - temp_var;
-		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (temp_var & 0xF);
+		var dirtySum = parentObj.registerA - parentObj.memoryReader[parentObj.programCounter](parentObj, parentObj.programCounter);
+		parentObj.FHalfCarry = (parentObj.registerA & 0xF) < (dirtySum & 0xF);
 		parentObj.FCarry = (dirtySum < 0);
 		parentObj.registerA = dirtySum & 0xFF;
 		parentObj.programCounter = (parentObj.programCounter + 1) & 0xFFFF;
