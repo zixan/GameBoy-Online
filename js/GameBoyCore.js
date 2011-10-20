@@ -5856,12 +5856,8 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
 					parentObj.matchLYC();
 					parentObj.STATTracker = 0;
-					parentObj.scanLineMode2();
-					if (parentObj.LCDTicks >= 456) {
-						//We need to skip 1 or more scan lines:
-						parentObj.renderScanLine();
-						parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control 
-					}
+					parentObj.modeSTAT = -1;
+					parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control.
 				}
 			}
 		}
@@ -5907,10 +5903,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 						//Draw the frame:
 						parentObj.drawToCanvas();
 					}
-					if (parentObj.LCDTicks >= 456) {
-						//We need to skip 1 or more scan lines:
-						parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control 
-					}
+					parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control.
 				}
 			}
 		}
@@ -5922,10 +5915,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					parentObj.LCDTicks -= 456;
 					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
 					parentObj.matchLYC();
-					if (parentObj.LCDTicks >= 456) {
-						//We need to skip 1 or more scan lines:
-						parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control 
-					}
+					parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control.
 				}
 			}
 		}
@@ -5940,11 +5930,8 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					//We reset back to the beginning:
 					parentObj.LCDTicks -= 456;
 					parentObj.actualScanLine = 0;
-					parentObj.scanLineMode2();
-					if (parentObj.LCDTicks >= 456) {
-						//We need to skip 1 or more scan lines:
-						parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control 
-					}
+					parentObj.modeSTAT = -1;
+					parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control.
 				}
 			}
 		}
