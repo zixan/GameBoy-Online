@@ -1,4 +1,4 @@
-//"use strict";
+"use strict";
 /* 
  * JavaScript GameBoy Color Emulator
  * Copyright (C) 2010 - 2011 Grant Galitz
@@ -151,8 +151,8 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.IRQEnableDelay = 0;			//Are the interrupts on queue to be enabled?
 	var dateVar = new Date();
 	this.lastIteration = dateVar.getTime();//The last time we iterated the main loop.
-	dateObj = new Date();
-	this.firstIteration = dateObj.getTime();
+	dateVar = new Date();
+	this.firstIteration = dateVar.getTime();
 	this.iterations = 0;
 	this.actualScanLine = 0;			//Actual scan line...
 	this.haltPostClocks = 0;			//Post-Halt clocking:
