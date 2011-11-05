@@ -6085,27 +6085,27 @@ GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 	//Attempt to resize the canvas in software instead of in CSS:
 	if (settings[13]) {
 		//JIT version:
-		var column = 0;
+		var column = -1;
 		var columnOffset = 0;
 		var heightRatio = this.heightRatio;
 		var widthRatio = this.widthRatio;
 		var height = this.height;
 		var width = this.width;
-		var compileStringArray = new Array((width * height) + 2);
+		var compileStringArray = [];
 		var compileStringIndex = 1;
-		compileStringArray[0] = "var t = this.scaledFrameBuffer;var o = this.frameBuffer";
-		for (var row = 0, rowOffset = 0, pixelOffset = 0; row < height; row++, rowOffset = ((row * heightRatio) | 0) * 160) {
-			for (column = 0, columnOffset = 0; column < width; column++, columnOffset += widthRatio) {
-				compileStringArray[compileStringIndex++] = "t[" + (pixelOffset++) + "] = o[" + (rowOffset + (columnOffset | 0)) + "]";
+		compileStringArray[0] = "var a=this.frameBuffer,b=this.scaledFrameBuffer";
+		for (var row = 0, rowOffset = 0, pixelOffset = -1; row < height; rowOffset = ((++row * heightRatio) | 0) * 160) {
+			for (column = -1, columnOffset = 0; ++column < width; columnOffset += widthRatio) {
+				compileStringArray[++compileStringIndex] = "b[" + (++pixelOffset) + "]=a[" + (rowOffset + (columnOffset | 0)) + "]";
 			}
 		}
-		compileStringArray[compileStringIndex] = "return t";
+		compileStringArray[compileStringIndex + 1] = "return b";
 		this.resizeFrameBuffer = new Function(compileStringArray.join(";"));
 	}
 	else {
 		//Runtime resolving version:
 		this.resizeFrameBuffer = function () {
-			var column = 0;
+			var column = -1;
 			var columnOffset = 0;
 			var targetFB = this.scaledFrameBuffer;
 			var originalFB = this.frameBuffer;
@@ -6113,9 +6113,9 @@ GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 			var widthRatio = this.widthRatio;
 			var height = this.height;
 			var width = this.width;
-			for (var row = 0, rowOffset = 0, pixelOffset = 0; row < height; row++, rowOffset = ((row * heightRatio) | 0) * 160) {
-				for (column = 0, columnOffset = 0; column < width; column++, columnOffset += widthRatio) {
-					targetFB[pixelOffset++] = originalFB[rowOffset + (columnOffset | 0)];
+			for (var row = 0, rowOffset = 0, pixelOffset = -1; row < height; rowOffset = ((++row * heightRatio) | 0) * 160) {
+				for (column = -1, columnOffset = 0; ++column < width; columnOffset += widthRatio) {
+					targetFB[++pixelOffset] = originalFB[rowOffset + (columnOffset | 0)];
 				}
 			}
 			return targetFB;
