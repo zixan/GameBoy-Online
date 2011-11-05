@@ -281,12 +281,8 @@ function requestVBlank(canvasHandle) {
 				window.msRequestAnimationFrame(VBlankSyncHandler);
 			}
 			catch (e) {
-				try {
-					window.requestAnimationFrame(VBlankSyncHandler);
-				}
-				catch (e) {
-					settings[11] = false;
-				}
+				//Don't run the standard request, as opera fails here:
+				settings[11] = false;
 			}
 		}
 	}

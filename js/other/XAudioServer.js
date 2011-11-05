@@ -259,6 +259,7 @@ XAudioServer.prototype.initializeWebAudio = function () {
 	if (launchedContext) {
 		webAudioEnabled = true;
 		resetCallbackAPIAudioBuffer(webAudioActualSampleRate, webAudioSamplesPerCallback);
+		//Also blacklisting the mac versions due to shitty buffering that the js api provides. D:
 		if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {
 			//Google Chrome has a critical bug that they haven't patched for half a year yet, so I'm blacklisting the OSes affected.
 			throw(new Error(""));
@@ -388,25 +389,25 @@ function audioOutputFlashEvent() {		//The callback that flash calls...
 }
 function generateFlashStereoString() {	//Convert the arrays to one long string for speed.
 	//Make sure we send an array and not a typed array!
-	var copyArray = [];
-	for (var index = 0; index < samplesFound; index++) {
+	var copyBinaryString = "";
+	for (var index = 0; index < samplesFound; ++index) {
 		//Sanitize the buffer:
-		copyArray[index] = (Math.min(Math.max(resampleChannel1Buffer[index], -1), 1) * 0x1869F) | 0;
+		copyBinaryString += String.fromCharCode((Math.min(Math.max(resampleChannel1Buffer[index] + 1, 0), 2) * 0x7FF) | 0x1000);
 	}
-	for (var index2 = 0; index2 < samplesFound; index++) {
+	for (index = 0; index < samplesFound; ++index) {
 		//Sanitize the buffer:
-		copyArray[index] = (Math.min(Math.max(resampleChannel2Buffer[index2++], -1), 1) * 0x1869F) | 0;
+		copyBinaryString += String.fromCharCode((Math.min(Math.max(resampleChannel2Buffer[index] + 1, 0), 2) * 0x7FF) | 0x1000);
 	}
-	return copyArray.join(" ");
+	return copyBinaryString;
 }
 function generateFlashMonoString() {	//Convert the array to one long string for speed.
 	//Make sure we send an array and not a typed array!
-	var copyArray = [];
-	for (var index = 0; index < samplesFound; index++) {
+	var copyBinaryString = "";
+	for (var index = 0; index < samplesFound; ++index) {
 		//Sanitize the buffer:
-		copyArray[index] = (Math.min(Math.max(resampleChannel1Buffer[index], -1), 1) * 0x1869F) | 0;
+		copyBinaryString += String.fromCharCode((Math.min(Math.max(resampleChannel1Buffer[index] + 1, 0), 2) * 0x7FF) | 0x1000);
 	}
-	return copyArray.join(" ");
+	return copyBinaryString;
 }
 //Audio API Event Handler:
 var audioContextHandle = null;
