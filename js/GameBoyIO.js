@@ -268,13 +268,13 @@ function VBlankSyncHandler() {
 		gameboy.swizzleFrameBuffer();
 	}
 }
-function requestVBlank() {
+function requestVBlank(canvasHandle) {
 	try {
 		window.mozRequestAnimationFrame(VBlankSyncHandler);
 	}
 	catch (e) {
 		try {
-			window.webkitRequestAnimationFrame(VBlankSyncHandler);
+			window.webkitRequestAnimationFrame(VBlankSyncHandler, canvasHandle);
 		}
 		catch (e) {
 			try {

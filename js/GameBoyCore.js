@@ -6064,7 +6064,7 @@ GameBoyCore.prototype.prepareFrame = function (frameBuffer) {
 		this.completeFrame = frameBuffer;
 		this.swizzleFrameBuffer();
 	}
-	requestVBlank();
+	requestVBlank(this.canvas);
 }
 GameBoyCore.prototype.swizzleFrameBuffer = function () {
 	if (this.drewBlank == 0) {
