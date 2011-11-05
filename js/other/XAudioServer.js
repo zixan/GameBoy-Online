@@ -259,10 +259,6 @@ XAudioServer.prototype.initializeWebAudio = function () {
 	if (launchedContext) {
 		webAudioEnabled = true;
 		resetCallbackAPIAudioBuffer(webAudioActualSampleRate, webAudioSamplesPerCallback);
-		if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {
-			//Google Chrome has a critical bug that they haven't patched for half a year yet, so I'm blacklisting the OSes affected.
-			throw(new Error(""));
-		}
 		this.audioType = 1;
 	}
 	else {
@@ -391,11 +387,11 @@ function generateFlashStereoString() {	//Convert the arrays to one long string f
 	var copyBinaryString = "";
 	for (var index = 0; index < samplesFound; ++index) {
 		//Sanitize the buffer:
-		copyBinaryString += String.fromCharCode((Math.min(Math.max(resampleChannel1Buffer[index] + 1, 0), 2) * 0x7FF) | 0x3000);
+		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampleChannel1Buffer[index] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 	}
 	for (index = 0; index < samplesFound; ++index) {
 		//Sanitize the buffer:
-		copyBinaryString += String.fromCharCode((Math.min(Math.max(resampleChannel2Buffer[index] + 1, 0), 2) * 0x7FF) | 0x3000);
+		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampleChannel2Buffer[index] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 	}
 	return copyBinaryString;
 }
@@ -404,7 +400,7 @@ function generateFlashMonoString() {	//Convert the array to one long string for 
 	var copyBinaryString = "";
 	for (var index = 0; index < samplesFound; ++index) {
 		//Sanitize the buffer:
-		copyBinaryString += String.fromCharCode((Math.min(Math.max(resampleChannel1Buffer[index] + 1, 0), 2) * 0x7FF) | 0x3000);
+		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampleChannel1Buffer[index] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 	}
 	return copyBinaryString;
 }
