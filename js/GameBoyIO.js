@@ -269,6 +269,7 @@ function VBlankSyncHandler() {
 	}
 }
 function requestVBlank(canvasHandle) {
+	settings[11] = true;
 	try {
 		window.mozRequestAnimationFrame(VBlankSyncHandler);
 	}
@@ -281,10 +282,13 @@ function requestVBlank(canvasHandle) {
 				window.msRequestAnimationFrame(VBlankSyncHandler);
 			}
 			catch (e) {
-				//Don't run the standard request, as opera fails here:
-				settings[11] = false;
+				try {
+					window.requestAnimationFrame(VBlankSyncHandler);
+				}
+				catch (e) {
+					settings[11] = false;
+				}
 			}
 		}
 	}
-	settings[11] = true;
 }
