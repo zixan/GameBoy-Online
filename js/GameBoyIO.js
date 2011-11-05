@@ -12,7 +12,7 @@ var settings = [						//Some settings.
 	29,									//Maximum Frame Skip
 	false,								//Override to allow for MBC1 instead of ROM only (compatibility for broken 3rd-party cartridges).
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
-	null,								//Extra Setting Slot
+	false,								//Vertical blank event availability.
 	10,									//Frameskip base factor
 	false,								//Enable the software scaling algorithm to be compiled through JIT.
 	256000,								//Sample Rate
@@ -262,4 +262,33 @@ function GameBoyGyroSignalHandler(e) {
 		}
 		catch (error) { }
 	}
+}
+function VBlankSyncHandler() {
+	if (settings[11] && typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
+		gameboy.swizzleFrameBuffer();
+	}
+}
+function requestVBlank() {
+	try {
+		window.mozRequestAnimationFrame(VBlankSyncHandler);
+	}
+	catch (e) {
+		try {
+			window.webkitRequestAnimationFrame(VBlankSyncHandler);
+		}
+		catch (e) {
+			try {
+				window.msRequestAnimationFrame(VBlankSyncHandler);
+			}
+			catch (e) {
+				try {
+					window.requestAnimationFrame(VBlankSyncHandler);
+				}
+				catch (e) {
+					settings[11] = false;
+				}
+			}
+		}
+	}
+	settings[11] = true;
 }

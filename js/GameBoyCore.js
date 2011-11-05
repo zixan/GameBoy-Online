@@ -219,6 +219,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.WindowLayerRender = null;		//Reference to the window rendering function.
 	this.SpriteLayerRender = null;		//Reference to the OAM rendering function.
 	this.frameBuffer = [];				//The internal frame-buffer.
+	this.completeFrame = null;			//The v-blank sync'd frame buffer.
 	this.scaledFrameBuffer = [];		//The post-processed frame-buffer if we do scaling.
 	this.canvasBuffer = null;			//imageData handle
 	this.pixelStart = 0;				//Temp variable for holding the current working framebuffer offset.
@@ -4791,6 +4792,7 @@ GameBoyCore.prototype.initLCD = function () {
 		this.canvasAlt.style.visibility = "hidden";	//Make sure, if restarted, that the fallback images aren't going cover the canvas.
 		this.canvas.style.visibility = "visible";
 		this.canvasFallbackHappened = false;
+		this.prepareFrame((settings[21] && this.width != 160 && this.height != 144) ? this.resizeFrameBuffer() : this.frameBuffer);
 	}
 	catch (error) {
 		//Falling back to an experimental data URI BMP file canvas alternative:
@@ -6031,17 +6033,7 @@ GameBoyCore.prototype.drawToCanvas = function () {
 	if (!this.drewFrame && this.pixelCount > 0) {	//Throttle blitting to once per interpreter loop iteration.
 		if (settings[4] == 0 || this.frameCount > 0) {
 			//Copy and convert the framebuffer data to the CanvasPixelArray format.
-			var canvasData = this.canvasBuffer.data;
-			var frameBuffer = (settings[21] && this.width != 160 && this.height != 144) ? this.resizeFrameBuffer() : this.frameBuffer;
-			var bufferIndex = this.pixelCount;
-			var canvasIndex = this.rgbCount;
-			while (canvasIndex > 3) {
-				canvasData[canvasIndex -= 4] = (frameBuffer[--bufferIndex] >> 16) & 0xFF;		//Red
-				canvasData[canvasIndex + 1] = (frameBuffer[bufferIndex] >> 8) & 0xFF;			//Green
-				canvasData[canvasIndex + 2] = frameBuffer[bufferIndex] & 0xFF;					//Blue
-			}
-			//Draw out the CanvasPixelArray data:
-			this.drawContext.putImageData(this.canvasBuffer, 0, 0);
+			this.prepareFrame((settings[21] && this.width != 160 && this.height != 144) ? this.resizeFrameBuffer() : this.frameBuffer);
 			if (settings[4] > 0) {
 				//Increment the frameskip counter:
 				this.frameCount -= settings[4];
@@ -6052,6 +6044,41 @@ GameBoyCore.prototype.drawToCanvas = function () {
 			//Reset the frameskip counter:
 			this.frameCount += settings[12];
 		}
+	}
+}
+GameBoyCore.prototype.prepareFrame = function (frameBuffer) {
+	if (settings[11]) {
+		if (typeof frameBuffer.subarray == "function") {
+			//Return an array copy for the typed array version:
+			var frame = this.completeFrame = [];
+			var length = this.pixelCount;
+			for (var index = 0; index < length; ++index) {
+				frame[index] = frameBuffer[index];
+			}
+		}
+		else {
+			this.completeFrame = frameBuffer.slice(0, length);
+		}
+	}
+	else {
+		this.completeFrame = frameBuffer;
+		this.swizzleFrameBuffer();
+	}
+	requestVBlank();
+}
+GameBoyCore.prototype.swizzleFrameBuffer = function () {
+	if (this.drewBlank == 0) {
+		var frameBuffer = this.completeFrame;
+		var bufferIndex = this.pixelCount;
+		var canvasData = this.canvasBuffer.data;
+		var canvasIndex = this.rgbCount;
+		while (canvasIndex > 3) {
+			canvasData[canvasIndex -= 4] = (frameBuffer[--bufferIndex] >> 16) & 0xFF;		//Red
+			canvasData[canvasIndex + 1] = (frameBuffer[bufferIndex] >> 8) & 0xFF;			//Green
+			canvasData[canvasIndex + 2] = frameBuffer[bufferIndex] & 0xFF;					//Blue
+		}
+		//Draw out the CanvasPixelArray data:
+		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 	}
 }
 GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
