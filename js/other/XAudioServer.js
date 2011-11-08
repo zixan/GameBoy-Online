@@ -26,29 +26,22 @@ function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underR
 	this.mozAudioFound = false;
 	this.initializeAudio();
 }
-XAudioServer.prototype.MOZwriteAudio = function (buffer) {
+XAudioServer.prototype.MOZWriteAudio = function (buffer) {
 	//mozAudio:
-	this.writeMozAudio(buffer);
+	this.MOZWriteAudioNoCallback(buffer);
 	var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
 	if (samplesRequested > 0) {
 		this.writeMozAudio(this.underRunCallback(samplesRequested));
 	}
 }
-XAudioServer.prototype.WEBAUDIOwriteAudio = function (buffer) {
-	//WebKit Audio:
-	var length = buffer.length;
-	for (var bufferCounter = 0; bufferCounter < length;) {
-		audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter++];
-		if (bufferEnd == startPosition) {
-			startPosition += this.audioChannels;
-			if (webAudioMaxBufferSize <= startPosition) {
-				startPosition -= webAudioMaxBufferSize;
-			}
-		}
-		else if (bufferEnd == webAudioMaxBufferSize) {
-			bufferEnd = 0;
-		}
-	}
+XAudioServer.prototype.MOZWriteAudioNoCallback = function (buffer) {
+	//mozAudio:
+	this.writeMozAudio(buffer);
+}
+XAudioServer.prototype.callbackBasedWriteAudio = function (buffer) {
+	//Callback-centered audio APIs:
+	this.callbackBasedWriteAudioNoCallback(buffer);
+	//Execute our callback if underrunning:
 	var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
 	if (samplesRequested > 0) {
 		buffer = this.underRunCallback(samplesRequested);
@@ -68,7 +61,23 @@ XAudioServer.prototype.WEBAUDIOwriteAudio = function (buffer) {
 		} while (bufferCounter < samplesRequested);
 	}
 }
-XAudioServer.prototype.WAVwriteAudio = function (buffer) {
+XAudioServer.prototype.callbackBasedWriteAudioNoCallback = function (buffer) {
+	//Callback-centered audio APIs:
+	var length = buffer.length;
+	for (var bufferCounter = 0; bufferCounter < length;) {
+		audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter++];
+		if (bufferEnd == startPosition) {
+			startPosition += this.audioChannels;
+			if (webAudioMaxBufferSize <= startPosition) {
+				startPosition -= webAudioMaxBufferSize;
+			}
+		}
+		else if (bufferEnd == webAudioMaxBufferSize) {
+			bufferEnd = 0;
+		}
+	}
+}
+XAudioServer.prototype.WAVWriteAudio = function (buffer) {
 	//WAV PCM via Data URI:
 	this.sampleCount += buffer.length;
 	if (this.sampleCount >= webAudioMaxBufferSize) {
@@ -93,23 +102,53 @@ examples:
 */
 XAudioServer.prototype.writeAudio = function (buffer) {
 	if (this.audioType == 0) {
-		this.MOZwriteAudio(buffer);
+		this.MOZWriteAudio(buffer);
 	}
 	else if (this.audioType == 1) {
-		this.WEBAUDIOwriteAudio(buffer);
+		this.callbackBasedWriteAudio(buffer);
 	}
 	else if (this.audioType == 2) {
-		this.WAVwriteAudio(buffer);
+		this.WAVWriteAudio(buffer);
 	}
 	else if (this.audioType == 3) {
 		if (this.checkFlashInit() || launchedContext) {
-			this.WEBAUDIOwriteAudio(buffer);
+			this.callbackBasedWriteAudio(buffer);
 		}
 		else if (this.mozAudioFound) {
-			this.MOZwriteAudio(buffer);
+			this.MOZWriteAudio(buffer);
 		}
 		else if (!this.noWave) {
-			this.WAVwriteAudio(buffer);
+			this.WAVWriteAudio(buffer);
+		}
+	}
+}
+/*Pass your samples into here if you don't want automatic callback calling:
+Pack your samples as a one-dimenional array
+With the channel samplea packed uniformly.
+examples:
+    mono - [left, left, left, left]
+    stereo - [left, right, left, right, left, right, left, right]
+Useful in preventing infinite recursion issues with calling writeAudio inside your callback.
+*/
+XAudioServer.prototype.writeAudioNoCallback = function (buffer) {
+	if (this.audioType == 0) {
+		this.MOZWriteAudioNoCallback(buffer);
+	}
+	else if (this.audioType == 1) {
+		this.callbackBasedWriteAudioNoCallback(buffer);
+	}
+	else if (this.audioType == 2) {
+		this.WAVWriteAudio(buffer);
+	}
+	else if (this.audioType == 3) {
+		if (this.checkFlashInit() || launchedContext) {
+			this.callbackBasedWriteAudioNoCallback(buffer);
+		}
+		else if (this.mozAudioFound) {
+			this.MOZWriteAudioNoCallback(buffer);
+		}
+		else if (!this.noWave) {
+			this.WAVWriteAudio(buffer);
 		}
 	}
 }
@@ -259,6 +298,10 @@ XAudioServer.prototype.initializeWebAudio = function () {
 	if (launchedContext) {
 		webAudioEnabled = true;
 		resetCallbackAPIAudioBuffer(webAudioActualSampleRate, webAudioSamplesPerCallback);
+		if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {
+			//Google Chrome has a critical bug that they haven't patched for half a year yet, so I'm blacklisting the OSes affected.
+			throw(new Error(""));
+		}
 		this.audioType = 1;
 	}
 	else {
@@ -366,8 +409,8 @@ function getFloat32Flat(size) {
 		var newBuffer = new Array(size);
 		var audioSampleIndice = 0;
 		do {
-			newBuffer[audioSampleIndice++] = 0;
-		} while(audioSampleIndice < size);
+			newBuffer[audioSampleIndice] = 0;
+		} while (++audioSampleIndice < size);
 	}
 	return newBuffer;
 }
@@ -443,21 +486,21 @@ function audioOutputEvent(event) {		//Web Audio API callback...
 				while (index < samplesFound) {
 					buffer1[index] = resampleChannel1Buffer[index];
 					buffer2[index] = resampleChannel2Buffer[index];
-					index++;
+					++index;
 				}
 			}
 			else {
 				//MONO:
 				while (index < samplesFound) {
 					buffer2[index] = buffer1[index] = resampleChannel1Buffer[index];
-					index++;
+					++index;
 				}
 			}
 		}
 		//Pad with silence if we're underrunning:
 		while (index < webAudioSamplesPerCallback) {
 			buffer2[index] = buffer1[index] = defaultNeutralValue;
-			index++;
+			++index;
 		}
 	}
 }
