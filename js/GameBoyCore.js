@@ -4184,8 +4184,6 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel4volumeEnvTime = state[index++];
 	this.channel4volumeEnvTimeLast = state[index++];
 	this.noiseTableLength = state[index++];
-	this.noiseSampleTable = (this.noiseTableLength == 0x8000) ? this.LSFR15Table : this.LSFR7Table;
-	this.channel4VolumeShifter = (this.noiseTableLength == 0x8000) ? 15 : 7;
 	this.soundMasterEnabled = state[index++];
 	this.VinLeftChannelMasterVolume = state[index++];
 	this.VinRightChannelMasterVolume = state[index++];
@@ -4236,6 +4234,8 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.memoryWriteJumpCompile();
 	this.initLCD();
 	this.initSound();
+	this.noiseSampleTable = (this.noiseTableLength == 0x8000) ? this.LSFR15Table : this.LSFR7Table;
+	this.channel4VolumeShifter = (this.noiseTableLength == 0x8000) ? 15 : 7;
 	this.drawToCanvas();
 }
 GameBoyCore.prototype.returnFromRTCState = function () {
