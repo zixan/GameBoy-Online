@@ -167,7 +167,7 @@ catch (error) {
 		$this->startElement('div');
 		$this->writeAttribute('class', 'setting');
 		$this->startElement('span');
-		$this->text('Enable Sound  (Experimental):');
+		$this->text('Enable Sound:');
 		$this->endElement();
 		$this->startElement('input');
 		$this->writeAttribute('type', 'checkbox');
