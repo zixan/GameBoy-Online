@@ -115,6 +115,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.sampleSize = 0;						//Length of the sound buffer for one channel.
 	this.dutyLookup = [0.125, 0.25, 0.5, 0.75];	//Map the duty values given to ones we can work with.
 	this.currentBuffer = [];					//The audio buffer we're working on.
+	this.audioInternalBuffer = [];				//A temporary buffer used in output management.
 	this.LSFR15Table = null;
 	this.LSFR7Table = null;
 	this.noiseSampleTable = null;
@@ -219,8 +220,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.WindowLayerRender = null;		//Reference to the window rendering function.
 	this.SpriteLayerRender = null;		//Reference to the OAM rendering function.
 	this.frameBuffer = [];				//The internal frame-buffer.
-	this.completeFrame = null;			//The v-blank sync'd frame buffer.
-	this.scaledFrameBuffer = [];		//The post-processed frame-buffer if we do scaling.
+	this.completeFrame = [];			//The v-blank sync'd frame buffer.
 	this.canvasBuffer = null;			//imageData handle
 	this.pixelStart = 0;				//Temp variable for holding the current working framebuffer offset.
 	this.frameCount = settings[12];		//Frame skip tracker
@@ -4765,7 +4765,7 @@ GameBoyCore.prototype.recomputeDimension = function () {
 }
 GameBoyCore.prototype.initLCD = function () {
 	this.recomputeDimension();
-	this.scaledFrameBuffer = this.getTypedArray(this.pixelCount, 0, "int32");	//Used for software side scaling...
+	this.completeFrame = this.getTypedArray(this.pixelCount, 0, "int32");	//Used for double-buffering and the target for software-side rescaling.
 	this.compileResizeFrameBufferFunction();
 	try {
 		if (settings[5]) {
@@ -4792,7 +4792,7 @@ GameBoyCore.prototype.initLCD = function () {
 		this.canvasAlt.style.visibility = "hidden";	//Make sure, if restarted, that the fallback images aren't going cover the canvas.
 		this.canvas.style.visibility = "visible";
 		this.canvasFallbackHappened = false;
-		this.prepareFrame((settings[21] && this.width != 160 && this.height != 144) ? this.resizeFrameBuffer() : this.frameBuffer);
+		this.prepareFrame();
 	}
 	catch (error) {
 		//Falling back to an experimental data URI BMP file canvas alternative:
@@ -4949,7 +4949,11 @@ GameBoyCore.prototype.audioUnderRun = function (samplesRequestedRaw) {
 		}
 		else {
 			//Use the overflow buffer's existing samples:
-			var tempBuffer = this.audioBufferSlice(samplesRequestedRaw);
+			var tempBuffer = this.audioInternalBuffer;
+			var currentBuffer = this.currentBuffer;
+			for (var index = 0; index < samplesRequestedRaw; ++index) {
+				tempBuffer[index] = currentBuffer[index];
+			}
 			this.audioIndex = neededSamples;
 			while (--neededSamples >= 0) {
 				//Move over the remaining samples to their new positions:
@@ -5941,30 +5945,8 @@ GameBoyCore.prototype.initializeLCDController = function () {
 	}
 }
 GameBoyCore.prototype.DisplayShowOff = function () {
-	if (this.drewBlank == 0) {
-		//Draw a blank screen:
-		var index = 23040;
-		var index2 = this.rgbCount;
-		var canvasData = this.canvasBuffer.data;
-		if (this.cGBC || (this.usedBootROM && settings[17])) {
-			//CGB or DMG-in-CGB colorization:
-			while (index2 > 0) {
-				canvasData[index2 -= 4] = 0xF8;
-				canvasData[index2 + 1] = 0xF8;
-				canvasData[index2 + 2] = 0xF8;
-			}
-		}
-		else {
-			//Classic DMG colorization:
-			while (index2 > 0) {
-				canvasData[index2 -= 4] = 0xEF;
-				canvasData[index2 + 1] = 0xFF;
-				canvasData[index2 + 2] = 0xDE;
-			}
-		}
-		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
-		this.drewBlank = 2;
-	}
+	this.drewBlank = 2;
+	this.prepareFrame();
 }
 GameBoyCore.prototype.executeHDMA = function () {
 	this.DMAWrite(1);
@@ -6033,7 +6015,7 @@ GameBoyCore.prototype.drawToCanvas = function () {
 	if (!this.drewFrame && this.pixelCount > 0) {	//Throttle blitting to once per interpreter loop iteration.
 		if (settings[4] == 0 || this.frameCount > 0) {
 			//Copy and convert the framebuffer data to the CanvasPixelArray format.
-			this.prepareFrame((settings[21] && this.width != 160 && this.height != 144) ? this.resizeFrameBuffer() : this.frameBuffer);
+			this.prepareFrame();
 			if (settings[4] > 0) {
 				//Increment the frameskip counter:
 				this.frameCount -= settings[4];
@@ -6046,40 +6028,51 @@ GameBoyCore.prototype.drawToCanvas = function () {
 		}
 	}
 }
-GameBoyCore.prototype.prepareFrame = function (frameBuffer) {
-	if (settings[11]) {
-		if (typeof frameBuffer.subarray == "function") {
-			//Return an array copy for the typed array version:
-			var frame = this.completeFrame = [];
-			var length = this.pixelCount;
+GameBoyCore.prototype.prepareFrame = function () {
+	if (this.drewBlank == 0) {
+		if (settings[21] && this.width != 160 && this.height != 144) {
+			this.resizeFrameBuffer();
+		}
+		else {
+			var frameBuffer = this.frameBuffer;
+			var frame = this.completeFrame;
+			var length = frameBuffer.length;
 			for (var index = 0; index < length; ++index) {
 				frame[index] = frameBuffer[index];
 			}
 		}
-		else {
-			this.completeFrame = frameBuffer.slice(0, length);
-		}
 	}
-	else {
-		this.completeFrame = frameBuffer;
-		this.swizzleFrameBuffer();
+	if (!settings[11]) {
+		//If we have not detected v-blank timing support, then we'll just blit now:
+		this.dispatchDraw();
 	}
+	//Request a v-blank event to occur:
 	requestVBlank(this.canvas);
 }
-GameBoyCore.prototype.swizzleFrameBuffer = function () {
+GameBoyCore.prototype.dispatchDraw = function () {
 	if (this.drewBlank == 0) {
-		var frameBuffer = this.completeFrame;
-		var bufferIndex = this.pixelCount;
-		var canvasData = this.canvasBuffer.data;
-		var canvasIndex = this.rgbCount;
-		while (canvasIndex > 3) {
-			canvasData[canvasIndex -= 4] = (frameBuffer[--bufferIndex] >> 16) & 0xFF;		//Red
-			canvasData[canvasIndex + 1] = (frameBuffer[bufferIndex] >> 8) & 0xFF;			//Green
-			canvasData[canvasIndex + 2] = frameBuffer[bufferIndex] & 0xFF;					//Blue
-		}
-		//Draw out the CanvasPixelArray data:
-		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
+		this.swizzleFrameBuffer();
 	}
+	else {
+		this.drawBlankScreen();
+	}
+}
+GameBoyCore.prototype.swizzleFrameBuffer = function () {
+	var frameBuffer = this.completeFrame;
+	var bufferIndex = this.pixelCount;
+	var canvasData = this.canvasBuffer.data;
+	var canvasIndex = this.rgbCount;
+	while (canvasIndex > 3) {
+		canvasData[canvasIndex -= 4] = (frameBuffer[--bufferIndex] >> 16) & 0xFF;		//Red
+		canvasData[canvasIndex + 1] = (frameBuffer[bufferIndex] >> 8) & 0xFF;			//Green
+		canvasData[canvasIndex + 2] = frameBuffer[bufferIndex] & 0xFF;					//Blue
+	}
+	//Draw out the CanvasPixelArray data:
+	this.drawContext.putImageData(this.canvasBuffer, 0, 0);
+}
+GameBoyCore.prototype.drawBlankScreen = function () {
+	this.drawContext.fillStyle = (this.cGBC || this.usedBootROM) ? "rgb(248, 248, 248)" : "rgb(239, 255, 222)";
+	this.drawContext.fillRect(0, 0, this.width, this.height);
 }
 GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 	//Attempt to resize the canvas in software instead of in CSS:
@@ -6093,7 +6086,7 @@ GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 		var width = this.width;
 		var compileStringArray = [];
 		var compileStringIndex = 1;
-		compileStringArray[0] = "var a=this.frameBuffer,b=this.scaledFrameBuffer";
+		compileStringArray[0] = "var a=this.frameBuffer,b=this.completeFrame";
 		for (var row = 0, rowOffset = 0, pixelOffset = -1; row < height; rowOffset = ((++row * heightRatio) | 0) * 160) {
 			for (column = -1, columnOffset = 0; ++column < width; columnOffset += widthRatio) {
 				compileStringArray[++compileStringIndex] = "b[" + (++pixelOffset) + "]=a[" + (rowOffset + (columnOffset | 0)) + "]";
@@ -6107,7 +6100,7 @@ GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 		this.resizeFrameBuffer = function () {
 			var column = -1;
 			var columnOffset = 0;
-			var targetFB = this.scaledFrameBuffer;
+			var targetFB = this.completeFrame;
 			var originalFB = this.frameBuffer;
 			var heightRatio = this.heightRatio;
 			var widthRatio = this.widthRatio;
@@ -9055,7 +9048,7 @@ GameBoyCore.prototype.fromTypedArray = function (baseArray) {
 			return [];
 		}
 		var arrayTemp = new Array(baseArray.length);
-		for (var index = 0; index < baseArray.length; index++) {
+		for (var index = 0; index < baseArray.length; ++index) {
 			arrayTemp[index] = baseArray[index];
 		}
 		return arrayTemp;
@@ -9108,19 +9101,6 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 	}
 	return arrayHandle;
 }
-GameBoyCore.prototype.audioBufferSlice = function (length) {
-	if (typeof this.currentBuffer.subarray == "function") {
-		//Return an array copy for the typed array version:
-		var tempBuffer = [];
-		for (var index = 0; index < length; index++) {
-			tempBuffer[index] = this.currentBuffer[index];
-		}
-		return tempBuffer;
-	}
-	else {
-		return this.currentBuffer.slice(0, length);
-	}
-}
 GameBoyCore.prototype.ArrayPad = function (length, defaultValue) {
 	var arrayHandle = new Array(length);
 	var index = 0;
@@ -9130,7 +9110,7 @@ GameBoyCore.prototype.ArrayPad = function (length, defaultValue) {
 	return arrayHandle;
 }
 GameBoyCore.prototype.resetOAMXCache = function () {
-	for (var index = 0; index < 168; index++) {
+	for (var index = 0; index < 168; ++index) {
 		this.OAMAddresses[index] = [];
 	}
 }

@@ -265,7 +265,8 @@ function GameBoyGyroSignalHandler(e) {
 }
 function VBlankSyncHandler() {
 	if (settings[11] && typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
-		gameboy.swizzleFrameBuffer();
+		//Draw out our graphics now:
+		gameboy.dispatchDraw();
 	}
 }
 function requestVBlank(canvasHandle) {
