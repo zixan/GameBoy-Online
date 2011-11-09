@@ -6071,7 +6071,7 @@ GameBoyCore.prototype.swizzleFrameBuffer = function () {
 	this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 }
 GameBoyCore.prototype.drawBlankScreen = function () {
-	this.drawContext.fillStyle = (this.cGBC || this.usedBootROM) ? "rgb(248, 248, 248)" : "rgb(239, 255, 222)";
+	this.drawContext.fillStyle = (this.cGBC || (this.usedBootROM && settings[17])) ? "rgb(248, 248, 248)" : "rgb(239, 255, 222)";
 	this.drawContext.fillRect(0, 0, this.width, this.height);
 }
 GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
