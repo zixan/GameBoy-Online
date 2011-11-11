@@ -38,7 +38,8 @@ function WAVEAudio(NumChannels, SampleRate, BitsPerSample) {
 	this.checkSanity = function (sampleData, isRelative) {
 		//WAV PCM Data Sanity Check
 		if (this.buildable && sampleData.length == this.NumChannels) {
-			for (channel in sampleData) {
+			var totalChannels = sampleData.length;
+			for (var channel = 0; channel < totalChannels; ++channel) {
 				var dataUnit = (isRelative) ? this.convertRelativeUnits(sampleData[channel]) : sampleData[channel];
 				switch (this.BitsPerSample) {
 					case 0x8:
@@ -88,7 +89,7 @@ WAVEAudio.prototype.dumpSamples = function () {
 WAVEAudio.prototype.replaceSample = function (newSample, samplePosition, isRelative) {
 	//WAV Buffer sample replace.
 	if (this.checkSanity(newSample, isRelative) && !isNaN(this.samples[samplePosition * this.NumChannels])) {
-		for (currentChannel = 0; currentChannel < this.NumChannels; currentChannel++) {
+		for (var currentChannel = 0; currentChannel < this.NumChannels; currentChannel++) {
 			this.samples[(samplePosition * this.NumChannels) + currentChannel] = (isRelative) ? this.convertRelativeUnits(newSample[channel]) : newSample[channel];
 		}
 	}
