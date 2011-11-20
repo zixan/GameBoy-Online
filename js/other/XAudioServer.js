@@ -111,7 +111,7 @@ XAudioServer.prototype.writeAudio = function (buffer) {
 		this.WAVWriteAudio(buffer);
 	}
 	else if (this.audioType == 3) {
-		if (this.checkFlashInit() || launchedContext) {
+		if (this.checkFlashInit() || (webAudioEnabled && launchedContext)) {
 			this.callbackBasedWriteAudio(buffer);
 		}
 		else if (this.mozAudioFound) {
@@ -141,7 +141,7 @@ XAudioServer.prototype.writeAudioNoCallback = function (buffer) {
 		this.WAVWriteAudio(buffer);
 	}
 	else if (this.audioType == 3) {
-		if (this.checkFlashInit() || launchedContext) {
+		if (this.checkFlashInit() || (webAudioEnabled && launchedContext)) {
 			this.callbackBasedWriteAudioNoCallback(buffer);
 		}
 		else if (this.mozAudioFound) {
@@ -164,7 +164,7 @@ XAudioServer.prototype.remainingBuffer = function () {
 		return ((startPosition > bufferEnd) ? (webAudioMaxBufferSize - startPosition + bufferEnd) : (bufferEnd - startPosition));
 	}
 	else if (this.audioType == 3) {
-		if (this.checkFlashInit() || launchedContext) {
+		if (this.checkFlashInit() || (webAudioEnabled && launchedContext)) {
 			//Webkit Audio / Flash Plugin Audio:
 			return ((startPosition > bufferEnd) ? (webAudioMaxBufferSize - startPosition + bufferEnd) : (bufferEnd - startPosition));
 		}
@@ -227,7 +227,7 @@ XAudioServer.prototype.executeCallback = function () {
 		this.webAudioExecuteCallback();
 	}
 	else if (this.audioType == 3) {
-		if (this.checkFlashInit() || launchedContext) {
+		if (this.checkFlashInit() || (webAudioEnabled && launchedContext)) {
 			this.webAudioExecuteCallback();
 		}
 		else if (this.mozAudioFound) {
@@ -295,8 +295,7 @@ XAudioServer.prototype.initializeMozAudio = function () {
 	this.audioType = 0;
 }
 XAudioServer.prototype.initializeWebAudio = function () {
-	if (launchedContext) {
-		webAudioEnabled = true;
+	if (webAudioEnabled && launchedContext) {
 		resetCallbackAPIAudioBuffer(webAudioActualSampleRate, webAudioSamplesPerCallback);
 		if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {
 			//Google Chrome has a critical bug that they haven't patched for half a year yet, so I'm blacklisting the OSes affected.
@@ -309,7 +308,7 @@ XAudioServer.prototype.initializeWebAudio = function () {
 	}
 }
 XAudioServer.prototype.initializeFlashAudio = function () {
-	if (!launchedContext) {
+	if (!webAudioEnabled || !launchedContext) {
 		//Web Audio was not found, so we're resetting some settings for flash:
 		resetCallbackAPIAudioBuffer(44100, samplesPerCallback);
 	}
@@ -336,11 +335,11 @@ XAudioServer.prototype.initializeFlashAudio = function () {
 			if (event.success) {
 				thisObj.audioHandleFlash = event.ref;
 				webAudioEnabled = false;
-				if (launchedContext) {
+				if (webAudioEnabled && launchedContext) {
 					resetResamplingConfigs(44100, samplesPerCallback);
 				}
 			}
-			else if (launchedContext) {
+			else if (webAudioEnabled && launchedContext) {
 				thisObj.audioType = 1;
 			}
 			else if (thisObj.mozAudioFound) {
@@ -452,7 +451,7 @@ var audioContextHandle = null;
 var audioNode = null;
 var audioSource = null;
 var launchedContext = false;
-var webAudioEnabled = true;
+var webAudioEnabled = false;		//Disable until the Google Chrome Team fixes their bugs.
 var webAudioSamplesPerCallback = 1024;
 var startPosition = 0;
 var bufferEnd = 0;
