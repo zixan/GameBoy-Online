@@ -260,8 +260,15 @@ XAudioServer.prototype.initializeAudio = function () {
 				this.initializeFlashAudio();
 			}
 			catch (error) {
-				if (this.noWave) {
-					throw(new Error("Browser does not support real time audio output."));
+				try {
+					webAudioEnabled = true;	//If we banned web audio, but flash support errored, then un-ban it.
+					this.initializeWebAudio();
+				}
+				catch (error) {
+					webAudioEnabled = false;
+					if (this.noWave) {
+						throw(new Error("Browser does not support real time audio output."));
+					}
 				}
 			}
 		}
@@ -334,13 +341,28 @@ XAudioServer.prototype.initializeFlashAudio = function () {
 		function (event) {
 			if (event.success) {
 				thisObj.audioHandleFlash = event.ref;
-				webAudioEnabled = false;
 				if (webAudioEnabled && launchedContext) {
+					webAudioEnabled = false;
 					resetResamplingConfigs(44100, samplesPerCallback);
 				}
 			}
-			else if (webAudioEnabled && launchedContext) {
-				thisObj.audioType = 1;
+			else if (launchedContext) {
+				if (webAudioEnabled) {
+					thisObj.audioType = 1;
+				}
+				else {
+					try {
+						//If we banned web audio, but flash support errored, then un-ban it:
+						webAudioEnabled = true;
+						resetResamplingConfigs(webAudioActualSampleRate, webAudioSamplesPerCallback);
+						thisObj.initializeWebAudio();
+					}
+					catch (error) {
+						//Re-ban if failed:
+						webAudioEnabled = false;
+						thisObj.audioType = 2;
+					}
+				}
 			}
 			else if (thisObj.mozAudioFound) {
 				//If Flash failed and on Linux Firefox, try MozAudio even though it's buggy (Still better than WAV):
