@@ -29,10 +29,7 @@ function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underR
 XAudioServer.prototype.MOZWriteAudio = function (buffer) {
 	//mozAudio:
 	this.MOZWriteAudioNoCallback(buffer);
-	var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
-	if (samplesRequested > 0) {
-		this.writeMozAudio(this.underRunCallback(samplesRequested));
-	}
+	this.MOZExecuteCallback();
 }
 XAudioServer.prototype.MOZWriteAudioNoCallback = function (buffer) {
 	//mozAudio:
@@ -41,25 +38,7 @@ XAudioServer.prototype.MOZWriteAudioNoCallback = function (buffer) {
 XAudioServer.prototype.callbackBasedWriteAudio = function (buffer) {
 	//Callback-centered audio APIs:
 	this.callbackBasedWriteAudioNoCallback(buffer);
-	//Execute our callback if underrunning:
-	var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
-	if (samplesRequested > 0) {
-		buffer = this.underRunCallback(samplesRequested);
-		samplesRequested = buffer.length;
-		bufferCounter = 0;
-		do {
-			audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter++];
-			if (bufferEnd == startPosition) {
-				startPosition += this.audioChannels;
-				if (webAudioMaxBufferSize <= startPosition) {
-					startPosition -= webAudioMaxBufferSize;
-				}
-			}
-			else if (bufferEnd == webAudioMaxBufferSize) {
-				bufferEnd = 0;
-			}
-		} while (bufferCounter < samplesRequested);
-	}
+	this.callbackBasedExecuteCallback();
 }
 XAudioServer.prototype.callbackBasedWriteAudioNoCallback = function (buffer) {
 	//Callback-centered audio APIs:
@@ -182,31 +161,18 @@ XAudioServer.prototype.remainingBuffer = function () {
 		return -1;	//Impossible to do this metric.
 	}
 }
-XAudioServer.prototype.mozExecuteCallback = function () {
+XAudioServer.prototype.MOZExecuteCallback = function () {
 	//mozAudio:
 	var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
 	if (samplesRequested > 0) {
 		this.writeMozAudio(this.underRunCallback(samplesRequested));
 	}
 }
-XAudioServer.prototype.webAudioExecuteCallback = function () {
+XAudioServer.prototype.callbackBasedExecuteCallback = function () {
 	//WebKit /Flash Audio:
 	var samplesRequested = webAudioMinBufferSize - this.remainingBuffer();
 	if (samplesRequested > 0) {
-		var buffer = this.underRunCallback(samplesRequested);
-		samplesRequested = buffer.length;
-		for (var bufferCounter = 0; bufferCounter < samplesRequested;) {
-			audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter++];
-			if (bufferEnd == startPosition) {
-				startPosition += this.audioChannels;
-				if (webAudioMaxBufferSize <= startPosition) {
-					startPosition -= webAudioMaxBufferSize;
-				}
-			}
-			else if (bufferEnd == webAudioMaxBufferSize) {
-				bufferEnd = 0;
-			}
-		}
+		this.callbackBasedWriteAudioNoCallback(this.underRunCallback(samplesRequested));
 	}
 }
 XAudioServer.prototype.WAVExecuteCallback = function () {
@@ -221,17 +187,17 @@ XAudioServer.prototype.WAVExecuteCallback = function () {
 //If you just want your callback called for any possible refill (Execution of callback is still conditional):
 XAudioServer.prototype.executeCallback = function () {
 	if (this.audioType == 0) {
-		this.mozExecuteCallback();
+		this.MOZExecuteCallback();
 	}
 	else if (this.audioType == 1) {
-		this.webAudioExecuteCallback();
+		this.callbackBasedExecuteCallback();
 	}
 	else if (this.audioType == 3) {
 		if (this.checkFlashInit() || (webAudioEnabled && launchedContext)) {
-			this.webAudioExecuteCallback();
+			this.callbackBasedExecuteCallback();
 		}
 		else if (this.mozAudioFound) {
-			this.mozExecuteCallback();
+			this.MOZExecuteCallback();
 		}
 		else if (!this.noWave) {
 			this.WAVExecuteCallback();
