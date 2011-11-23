@@ -17,6 +17,9 @@ Resampler.prototype.initialize = function () {
 		else {
 			this.resampler = this.interpolate;
 			this.ratioWeight = this.fromSampleRate / this.toSampleRate;
+			this.lastWeight = [];
+			this.lastOutput = [];
+			this.lastTotalWeight = [];
 		}
 	}
 	else {
@@ -26,19 +29,31 @@ Resampler.prototype.initialize = function () {
 Resampler.prototype.interpolate = function (buffer) {
 	var bufferLength = buffer.length;
 	if ((bufferLength % this.channels) == 0) {
-		var weight = this.ratioWeight;
+		var weight = 0;
 		var output = 0;
 		var totalWeight = 0;
 		var actualPosition = 0;
 		var amountToNext = 0;
+		var incompleteRunLength = this.lastWeight.length;
+		var lockedOut = false;
 		var outputBuffer = [];
 		for (var channel = 0, outputOffset = 0, currentPosition = 0; channel < this.channels; ++channel) {
 			currentPosition = channel;
 			outputOffset = channel;
+			lockedOut = false;
 			while (currentPosition < bufferLength) {
-				weight = this.ratioWeight;
-				output = 0;
-				totalWeight = 0;
+				if (lockedOut || incompleteRunLength == 0) {
+					weight = this.ratioWeight;
+					output = 0;
+					totalWeight = 0;
+				}
+				else {
+					weight = this.lastWeight.shift();
+					output = this.lastOutput.shift();
+					totalWeight = this.lastTotalWeight.shift();
+					--incompleteRunLength;
+					lockedOut = true;
+				}
 				while (weight > 0 && currentPosition < bufferLength) {
 					actualPosition = currentPosition | 0;
 					amountToNext = 1 + actualPosition - currentPosition;
@@ -52,11 +67,20 @@ Resampler.prototype.interpolate = function (buffer) {
 						output += buffer[actualPosition] * weight;
 						totalWeight += weight;
 						currentPosition += weight;
+						weight = 0;
 						break;
 					}
 				}
-				outputBuffer[outputOffset] = output / totalWeight;
-				outputOffset += this.channels;
+				if (weight == 0) {
+					outputBuffer[outputOffset] = output / totalWeight;
+					outputOffset += this.channels;
+				}
+				else {
+					//Save the tail interpolation state for the next buffer to pass through:
+					this.lastWeight.push(weight);
+					this.lastOutput.push(output);
+					this.lastTotalWeight.push(totalWeight);
+				}
 			}
 		}
 		return outputBuffer;
