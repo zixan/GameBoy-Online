@@ -405,12 +405,13 @@ function generateFlashStereoString() {	//Convert the arrays to one long string f
 	var samplesFound = Math.min(resampled.length, samplesPerCallback << 1);
 	for (var index = 0; index < samplesFound; index += 2) {
 		//Sanitize the buffer:
-		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampled.shift() + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampled[index] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 	}
 	for (index = 1; index < samplesFound; index += 2) {
 		//Sanitize the buffer:
-		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampled.shift() + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampled[index] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 	}
+	resampled = resampled.slice(samplesFound);
 	return copyBinaryString;
 }
 function generateFlashMonoString() {	//Convert the array to one long string for speed.
@@ -419,8 +420,9 @@ function generateFlashMonoString() {	//Convert the array to one long string for 
 	var samplesFound = Math.min(resampled.length, samplesPerCallback);
 	for (var index = 0; index < samplesFound; ++index) {
 		//Sanitize the buffer:
-		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampled.shift() + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampled[index] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 	}
+	resampled = resampled.slice(samplesFound);
 	return copyBinaryString;
 }
 //Audio API Event Handler:
