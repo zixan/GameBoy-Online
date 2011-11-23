@@ -400,7 +400,6 @@ function audioOutputFlashEvent() {		//The callback that flash calls...
 	return outputConvert();
 }
 function generateFlashStereoString() {	//Convert the arrays to one long string for speed.
-	//Make sure we send an array and not a typed array!
 	var copyBinaryString = "";
 	var samplesFound = Math.min(resampled.length, samplesPerCallback << 1);
 	for (var index = 0; index < samplesFound; index += 2) {
@@ -411,18 +410,17 @@ function generateFlashStereoString() {	//Convert the arrays to one long string f
 		//Sanitize the buffer:
 		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampled[index] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 	}
-	resampled = resampled.slice(samplesFound);
+	resampled.splice(0, samplesFound);
 	return copyBinaryString;
 }
 function generateFlashMonoString() {	//Convert the array to one long string for speed.
-	//Make sure we send an array and not a typed array!
 	var copyBinaryString = "";
 	var samplesFound = Math.min(resampled.length, samplesPerCallback);
 	for (var index = 0; index < samplesFound; ++index) {
 		//Sanitize the buffer:
 		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampled[index] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 	}
-	resampled = resampled.slice(samplesFound);
+	resampled.splice(0, samplesFound);
 	return copyBinaryString;
 }
 //Audio API Event Handler:
