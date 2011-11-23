@@ -401,15 +401,17 @@ function audioOutputFlashEvent() {		//The callback that flash calls...
 }
 function generateFlashStereoString() {	//Convert the arrays to one long string for speed.
 	//Make sure we send an array and not a typed array!
-	var copyBinaryStringLeft = "";
-	var copyBinaryStringRight = "";
+	var copyBinaryString = "";
 	var samplesFound = Math.min(resampled.length, samplesPerCallback << 1);
 	for (var index = 0; index < samplesFound; index += 2) {
 		//Sanitize the buffer:
-		copyBinaryStringLeft += String.fromCharCode(((Math.min(Math.max(resampled.shift() + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
-		copyBinaryStringRight += String.fromCharCode(((Math.min(Math.max(resampled.shift() + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampled.shift() + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 	}
-	return copyBinaryStringLeft.concat(copyBinaryStringRight);
+	for (index = 1; index < samplesFound; index += 2) {
+		//Sanitize the buffer:
+		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampled.shift() + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+	}
+	return copyBinaryString;
 }
 function generateFlashMonoString() {	//Convert the array to one long string for speed.
 	//Make sure we send an array and not a typed array!
