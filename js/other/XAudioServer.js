@@ -131,12 +131,12 @@ XAudioServer.prototype.remainingBuffer = function () {
 	}
 	else if (this.audioType == 1) {
 		//WebKit Audio:
-		return resampled.length + audioContextSampleBuffer.length;
+		return ((resampled.length * resampled.ratioWeight) >> (this.audioChannels - 1)) + audioContextSampleBuffer.length;
 	}
 	else if (this.audioType == 3) {
 		if (this.checkFlashInit() || (webAudioEnabled && launchedContext)) {
 			//Webkit Audio / Flash Plugin Audio:
-			return resampled.length + audioContextSampleBuffer.length;
+			return ((resampled.length * resampled.ratioWeight) >> (this.audioChannels - 1)) + audioContextSampleBuffer.length;
 		}
 		else if (this.mozAudioFound) {
 			//mozAudio:
