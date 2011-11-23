@@ -27,8 +27,10 @@ Resampler.prototype.initialize = function () {
 	}
 }
 Resampler.prototype.interpolate = function (buffer) {
+	var channels = this.channels;
 	var bufferLength = buffer.length;
-	if ((bufferLength % this.channels) == 0) {
+	if ((bufferLength % channels) == 0) {
+		var ratioWeight = this.ratioWeight;
 		var weight = 0;
 		var output = 0;
 		var totalWeight = 0;
@@ -37,17 +39,19 @@ Resampler.prototype.interpolate = function (buffer) {
 		var incompleteRunLength = this.lastWeight.length;
 		var lockedOut = false;
 		var outputBuffer = [];
-		for (var channel = 0, outputOffset = 0, currentPosition = 0; channel < this.channels; ++channel) {
+		for (var channel = 0, outputOffset = 0, currentPosition = 0; channel < channels; ++channel) {
 			currentPosition = channel;
 			outputOffset = channel;
 			lockedOut = false;
 			while (currentPosition < bufferLength) {
 				if (lockedOut || incompleteRunLength == 0) {
-					weight = this.ratioWeight;
+					//Don't use the previous state values:
+					weight = ratioWeight;
 					output = 0;
 					totalWeight = 0;
 				}
 				else {
+					//Use the previous state values:
 					weight = this.lastWeight.shift();
 					output = this.lastOutput.shift();
 					totalWeight = this.lastTotalWeight.shift();
@@ -58,12 +62,14 @@ Resampler.prototype.interpolate = function (buffer) {
 					actualPosition = currentPosition | 0;
 					amountToNext = 1 + actualPosition - currentPosition;
 					if (weight >= amountToNext) {
+						//Needs another loop pass for completion, so build up:
 						output += buffer[actualPosition] * amountToNext;
 						totalWeight += amountToNext;
-						currentPosition = actualPosition + this.channels;
+						currentPosition = actualPosition + channels;
 						weight -= amountToNext;
 					}
 					else {
+						//Iteration was able to complete fully:
 						output += buffer[actualPosition] * weight;
 						totalWeight += weight;
 						currentPosition += weight;
@@ -72,8 +78,9 @@ Resampler.prototype.interpolate = function (buffer) {
 					}
 				}
 				if (weight == 0) {
+					//Single iteration completed fully:
 					outputBuffer[outputOffset] = output / totalWeight;
-					outputOffset += this.channels;
+					outputOffset += channels;
 				}
 				else {
 					//Save the tail interpolation state for the next buffer to pass through:
