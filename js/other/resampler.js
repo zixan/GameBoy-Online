@@ -1,3 +1,4 @@
+//JavaScript Audio Resampler (c) 2011 - Grant Galitz
 function Resampler(fromSampleRate, toSampleRate, channels, qualityLevel) {
 	this.fromSampleRate = fromSampleRate;
 	this.toSampleRate = toSampleRate;
@@ -11,6 +12,7 @@ Resampler.prototype.initialize = function () {
 		if (this.fromSampleRate == this.toSampleRate) {
 			//Setup a resampler bypass:
 			this.resampler = this.bypassResampler;
+			this.ratioWeight = 1;
 		}
 		else {
 			this.resampler = this.interpolate;
@@ -22,15 +24,38 @@ Resampler.prototype.initialize = function () {
 	}
 }
 Resampler.prototype.interpolate = function (buffer) {
-	this.buffer = buffer;
-	this.bufferLength = buffer.length;
-	if ((this.bufferLength % this.channels) == 0) {
+	var bufferLength = buffer.length;
+	if ((bufferLength % this.channels) == 0) {
+		var weight = this.ratioWeight;
+		var output = 0;
+		var totalWeight = 0;
+		var actualPosition = 0;
+		var amountToNext = 0;
 		var outputBuffer = [];
-		for (var channel = 0, outputOffset = 0; channel < this.channels; ++channel) {
-			this.currentPosition = channel;
+		for (var channel = 0, outputOffset = 0, currentPosition = 0; channel < this.channels; ++channel) {
+			currentPosition = channel;
 			outputOffset = channel;
-			while (this.currentPosition < this.bufferLength) {
-				outputBuffer[outputOffset] = this.interpolationIteration();
+			while (currentPosition < bufferLength) {
+				weight = this.ratioWeight;
+				output = 0;
+				totalWeight = 0;
+				while (weight > 0 && currentPosition < bufferLength) {
+					actualPosition = currentPosition | 0;
+					amountToNext = 1 + actualPosition - currentPosition;
+					if (weight >= amountToNext) {
+						output += buffer[actualPosition] * amountToNext;
+						totalWeight += amountToNext;
+						currentPosition = actualPosition + this.channels;
+						weight -= amountToNext;
+					}
+					else {
+						output += buffer[actualPosition] * weight;
+						totalWeight += weight;
+						currentPosition += weight;
+						break;
+					}
+				}
+				outputBuffer[outputOffset] = output / totalWeight;
 				outputOffset += this.channels;
 			}
 		}
@@ -39,30 +64,6 @@ Resampler.prototype.interpolate = function (buffer) {
 	else {
 		throw(new Error("Buffer of odd length"));
 	}
-}
-Resampler.prototype.interpolationIteration = function () {
-	var weight = this.ratioWeight;
-	var output = 0;
-	var totalWeight = 0;
-	var actualPosition = 0;
-	var amountToNext = 0;
-	while (weight > 0 && this.currentPosition < this.bufferLength) {
-		actualPosition = this.currentPosition | 0;
-		amountToNext = 1 + actualPosition - this.currentPosition;
-		if (weight >= amountToNext) {
-			output += this.buffer[actualPosition] * amountToNext;
-			totalWeight += amountToNext;
-			this.currentPosition = actualPosition + this.channels;
-			weight -= amountToNext;
-		}
-		else {
-			output += this.buffer[actualPosition] * weight;
-			totalWeight += weight;
-			this.currentPosition += weight;
-			break;
-		}
-	}
-	return output / totalWeight;
 }
 Resampler.prototype.bypassResampler = function (buffer) {
 	return buffer;
