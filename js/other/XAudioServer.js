@@ -44,16 +44,7 @@ XAudioServer.prototype.callbackBasedWriteAudioNoCallback = function (buffer) {
 	//Callback-centered audio APIs:
 	var length = buffer.length;
 	for (var bufferCounter = 0; bufferCounter < length;) {
-		audioContextSampleBuffer[bufferEnd++] = buffer[bufferCounter++];
-		if (bufferEnd == startPosition) {
-			startPosition += this.audioChannels;
-			if (webAudioMaxBufferSize <= startPosition) {
-				startPosition -= webAudioMaxBufferSize;
-			}
-		}
-		else if (bufferEnd == webAudioMaxBufferSize) {
-			bufferEnd = 0;
-		}
+		audioContextSampleBuffer.push(buffer[bufferCounter++]);
 	}
 }
 XAudioServer.prototype.WAVWriteAudio = function (buffer) {
@@ -140,12 +131,12 @@ XAudioServer.prototype.remainingBuffer = function () {
 	}
 	else if (this.audioType == 1) {
 		//WebKit Audio:
-		return ((startPosition > bufferEnd) ? (webAudioMaxBufferSize - startPosition + bufferEnd) : (bufferEnd - startPosition));
+		return resampled.length + audioContextSampleBuffer.length;
 	}
 	else if (this.audioType == 3) {
 		if (this.checkFlashInit() || (webAudioEnabled && launchedContext)) {
 			//Webkit Audio / Flash Plugin Audio:
-			return ((startPosition > bufferEnd) ? (webAudioMaxBufferSize - startPosition + bufferEnd) : (bufferEnd - startPosition));
+			return resampled.length + audioContextSampleBuffer.length;
 		}
 		else if (this.mozAudioFound) {
 			//mozAudio:
@@ -309,7 +300,7 @@ XAudioServer.prototype.initializeFlashAudio = function () {
 				thisObj.audioHandleFlash = event.ref;
 				if (webAudioEnabled && launchedContext) {
 					webAudioEnabled = false;
-					resetResamplingConfigs(44100, samplesPerCallback);
+					resetCallbackAPIAudioBuffer(44100, samplesPerCallback);
 				}
 			}
 			else if (launchedContext) {
@@ -320,7 +311,7 @@ XAudioServer.prototype.initializeFlashAudio = function () {
 					try {
 						//If we banned web audio, but flash support errored, then un-ban it:
 						webAudioEnabled = true;
-						resetResamplingConfigs(webAudioActualSampleRate, webAudioSamplesPerCallback);
+						resetCallbackAPIAudioBuffer(webAudioActualSampleRate, webAudioSamplesPerCallback);
 						thisObj.initializeWebAudio();
 					}
 					catch (error) {
@@ -402,35 +393,31 @@ function getFloat32Flat(size) {
 	return newBuffer;
 }
 //Flash NPAPI Event Handler:
-var samplesPerCallback = 2500;			//Has to be between 2048 and 4096 (If over, then samples are ignored, if under then silence is added).
+var samplesPerCallback = 2048;			//Has to be between 2048 and 4096 (If over, then samples are ignored, if under then silence is added).
 var outputConvert = null;
 function audioOutputFlashEvent() {		//The callback that flash calls...
-	if (startPosition != bufferEnd) {
-		//Resample a chunk of audio:
-		resampler(samplesPerCallback);
-		return outputConvert();
-	}
-	return "";
+	resampleRefill();
+	return outputConvert();
 }
 function generateFlashStereoString() {	//Convert the arrays to one long string for speed.
 	//Make sure we send an array and not a typed array!
-	var copyBinaryString = "";
-	for (var index = 0; index < samplesFound; ++index) {
+	var copyBinaryStringLeft = "";
+	var copyBinaryStringRight = "";
+	var samplesFound = Math.min(resampled.length, samplesPerCallback << 1);
+	for (var index = 0; index < samplesFound; index += 2) {
 		//Sanitize the buffer:
-		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampleChannel1Buffer[index] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		copyBinaryStringLeft += String.fromCharCode(((Math.min(Math.max(resampled.shift() + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		copyBinaryStringRight += String.fromCharCode(((Math.min(Math.max(resampled.shift() + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 	}
-	for (index = 0; index < samplesFound; ++index) {
-		//Sanitize the buffer:
-		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampleChannel2Buffer[index] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
-	}
-	return copyBinaryString;
+	return copyBinaryStringLeft.concat(copyBinaryStringRight);
 }
 function generateFlashMonoString() {	//Convert the array to one long string for speed.
 	//Make sure we send an array and not a typed array!
 	var copyBinaryString = "";
+	var samplesFound = Math.min(resampled.length, samplesPerCallback);
 	for (var index = 0; index < samplesFound; ++index) {
 		//Sanitize the buffer:
-		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampleChannel1Buffer[index] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampled.shift() + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 	}
 	return copyBinaryString;
 }
@@ -439,47 +426,38 @@ var audioContextHandle = null;
 var audioNode = null;
 var audioSource = null;
 var launchedContext = false;
-var webAudioEnabled = false;		//Disable until the Google Chrome Team fixes their bugs.
-var webAudioSamplesPerCallback = 1024;
-var startPosition = 0;
-var bufferEnd = 0;
+var webAudioEnabled = true;
+var webAudioSamplesPerCallback = 2048;
 var audioContextSampleBuffer = [];
+var resampled = [];
 var webAudioMinBufferSize = 15000;
 var webAudioMaxBufferSize = 25000;
 var webAudioActualSampleRate = 44100;
 var XAudioJSSampleRate = 0;
 var webAudioMono = false;
-var sampleBase1 = 0;
-var sampleBase2 = 0;
-var startPositionOverflow = 0;
-var resampleAmountFloor = 0;
-var resampleAmountRemainder = 0;
-var resampleAmount = 0;
 var defaultNeutralValue = 0;
-var resampler = null;
-var samplesFound = 0;
-var resampleChannel1Buffer = [];
-var resampleChannel2Buffer = [];
+var resampleControl = null;
 function audioOutputEvent(event) {		//Web Audio API callback...
 	if (webAudioEnabled) {
 		var index = 0;
 		var buffer1 = event.outputBuffer.getChannelData(0);
 		var buffer2 = event.outputBuffer.getChannelData(1);
-		if (startPosition != bufferEnd) {
-			//Resample a chunk of audio:
-			resampler(webAudioSamplesPerCallback);
+		resampleRefill();
+		if (resampled.length > 0) {
 			if (!webAudioMono) {
 				//STEREO:
+				var samplesFound = Math.min(resampled.length >> 1, webAudioSamplesPerCallback);
 				while (index < samplesFound) {
-					buffer1[index] = resampleChannel1Buffer[index];
-					buffer2[index] = resampleChannel2Buffer[index];
+					buffer1[index] = resampled.shift();
+					buffer2[index] = resampled.shift();
 					++index;
 				}
 			}
 			else {
 				//MONO:
+				var samplesFound = Math.min(resampled.length, webAudioSamplesPerCallback);
 				while (index < samplesFound) {
-					buffer2[index] = buffer1[index] = resampleChannel1Buffer[index];
+					buffer2[index] = buffer1[index] = resampled.shift();
 					++index;
 				}
 			}
@@ -491,176 +469,24 @@ function audioOutputEvent(event) {		//Web Audio API callback...
 		}
 	}
 }
-function downsamplerMono(numberOfSamples) {
-	//MONO:
-	for (samplesFound = 0; samplesFound < numberOfSamples && startPosition != bufferEnd;) {
-		sampleBase1 = audioContextSampleBuffer[startPosition++];
-		if (startPosition == bufferEnd) {
-			//Resampling must be clipped here:
-			resampleChannel1Buffer[samplesFound++] = sampleBase1;
-			return;
-		}
-		if (startPosition == webAudioMaxBufferSize) {
-			startPosition = 0;
-		}
-		for (var sampleIndice = 1; sampleIndice < resampleAmountFloor;) {
-			++sampleIndice;
-			sampleBase1 += audioContextSampleBuffer[startPosition++];
-			if (startPosition == bufferEnd) {
-				//Resampling must be clipped here:
-				resampleChannel1Buffer[samplesFound++] = sampleBase1 / sampleIndice;
-				return;
-			}
-			if (startPosition == webAudioMaxBufferSize) {
-				startPosition = 0;
-			}
-		}
-		startPositionOverflow += resampleAmountRemainder;
-		if (startPositionOverflow >= 1) {
-			--startPositionOverflow;
-			sampleBase1 += audioContextSampleBuffer[startPosition++];
-			if (startPosition == webAudioMaxBufferSize) {
-				startPosition = 0;
-			}
-			++sampleIndice;
-		}
-		resampleChannel1Buffer[samplesFound++] = sampleBase1 / sampleIndice;
-	}
-}
-function downsamplerStereo(numberOfSamples) {
-	//STEREO:
-	for (samplesFound = 0; samplesFound < numberOfSamples && startPosition != bufferEnd;) {
-		sampleBase1 = audioContextSampleBuffer[startPosition++];
-		sampleBase2 = audioContextSampleBuffer[startPosition++];
-		if (startPosition == bufferEnd) {
-			//Resampling must be clipped here:
-			resampleChannel1Buffer[samplesFound] = sampleBase1;
-			resampleChannel2Buffer[samplesFound++] = sampleBase2;
-			return;
-		}
-		if (startPosition == webAudioMaxBufferSize) {
-			startPosition = 0;
-		}
-		for (var sampleIndice = 1; sampleIndice < resampleAmountFloor;) {
-			++sampleIndice;
-			sampleBase1 += audioContextSampleBuffer[startPosition++];
-			sampleBase2 += audioContextSampleBuffer[startPosition++];
-			if (startPosition == bufferEnd) {
-				//Resampling must be clipped here:
-				resampleChannel1Buffer[samplesFound] = sampleBase1 / sampleIndice;
-				resampleChannel2Buffer[samplesFound++] = sampleBase2 / sampleIndice;
-				return;
-			}
-			if (startPosition == webAudioMaxBufferSize) {
-				startPosition = 0;
-			}
-		}
-		startPositionOverflow += resampleAmountRemainder;
-		if (startPositionOverflow >= 1) {
-			--startPositionOverflow;
-			sampleBase1 += audioContextSampleBuffer[startPosition++];
-			sampleBase2 += audioContextSampleBuffer[startPosition++];
-			if (startPosition == webAudioMaxBufferSize) {
-				startPosition = 0;
-			}
-			++sampleIndice;
-		}
-		resampleChannel1Buffer[samplesFound] = sampleBase1 / sampleIndice;
-		resampleChannel2Buffer[samplesFound++] = sampleBase2 / sampleIndice;
-	}
-}
-function upsamplerMono(numberOfSamples) {
-	//MONO:
-	for (samplesFound = 0; samplesFound < numberOfSamples && startPosition != bufferEnd;) {
-		resampleChannel1Buffer[samplesFound++] = audioContextSampleBuffer[startPosition];
-		startPositionOverflow += resampleAmount;
-		if (startPositionOverflow >= 1) {
-			--startPositionOverflow;
-			++startPosition;
-			if (startPosition == webAudioMaxBufferSize) {
-				startPosition = 0;
-			}
-		}
-	}
-}
-function upsamplerStereo(numberOfSamples) {
-	//STEREO:
-	for (samplesFound = 0; samplesFound < numberOfSamples && startPosition != bufferEnd;) {
-		resampleChannel1Buffer[samplesFound] = audioContextSampleBuffer[startPosition];
-		resampleChannel2Buffer[samplesFound++] = audioContextSampleBuffer[startPosition + 1];
-		startPositionOverflow += resampleAmount;
-		if (startPositionOverflow >= 1) {
-			--startPositionOverflow;
-			startPosition += 2;
-			if (startPosition == webAudioMaxBufferSize) {
-				startPosition = 0;
-			}
-		}
-	}
-}
-function noresampleMono(numberOfSamples) {
-	//MONO:
-	for (samplesFound = 0; samplesFound < numberOfSamples && startPosition != bufferEnd;) {
-		resampleChannel1Buffer[samplesFound++] = audioContextSampleBuffer[startPosition++];
-		if (startPosition == webAudioMaxBufferSize) {
-			startPosition = 0;
-		}
-	}
-}
-function noresampleStereo(numberOfSamples) {
-	//STEREO:
-	for (samplesFound = 0; samplesFound < numberOfSamples && startPosition != bufferEnd;) {
-		resampleChannel1Buffer[samplesFound] = audioContextSampleBuffer[startPosition++];
-		resampleChannel2Buffer[samplesFound++] = audioContextSampleBuffer[startPosition++];
-		if (startPosition == webAudioMaxBufferSize) {
-			startPosition = 0;
-		}
+function resampleRefill() {
+	if (audioContextSampleBuffer.length > 0) {
+		//Resample a chunk of audio:
+		resampled = resampled.concat(resampleControl.resampler(audioContextSampleBuffer));
+		audioContextSampleBuffer = [];
 	}
 }
 //Initialize WebKit Audio /Flash Audio Buffer:
 function resetCallbackAPIAudioBuffer(APISampleRate, bufferAlloc) {
-	//Set up the resampling and buffering variables:
-	resetResamplingConfigs(APISampleRate, bufferAlloc);
-	audioContextSampleBuffer = getFloat32(webAudioMaxBufferSize);
-	startPosition = 0;
-	bufferEnd = webAudioMinBufferSize;
 	if (webAudioMono) {
 		//MONO Handling:
-		if (webAudioActualSampleRate < XAudioJSSampleRate) {
-			resampler = downsamplerMono;
-		}
-		else if (webAudioActualSampleRate > XAudioJSSampleRate) {
-			resampler = upsamplerMono;
-		}
-		else {
-			resampler = noresampleMono;
-		}
+		resampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, 1, 0);
 		outputConvert = generateFlashMonoString;
 	}
 	else {
 		//STEREO Handling:
-		if (webAudioActualSampleRate < XAudioJSSampleRate) {
-			resampler = downsamplerStereo;
-		}
-		else if (webAudioActualSampleRate > XAudioJSSampleRate) {
-			resampler = upsamplerStereo;
-		}
-		else {
-			resampler = noresampleStereo;
-		}
+		resampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, 2, 0);
 		outputConvert = generateFlashStereoString;
-	}
-}
-function resetResamplingConfigs(APISampleRate, bufferAlloc) {
-	//Reset the resampling:
-	var resampleAmountTemp = XAudioJSSampleRate / APISampleRate;
-	if (resampleAmountTemp != resampleAmount) {
-		resampleAmount = resampleAmountTemp;
-		resampleAmountFloor = resampleAmount | 0;
-		resampleAmountRemainder = resampleAmount - resampleAmountFloor;
-		startPositionOverflow = 0;
-		resampleChannel1Buffer = getFloat32Flat(bufferAlloc);
-		resampleChannel2Buffer = getFloat32Flat(bufferAlloc);
 	}
 }
 //Initialize WebKit Audio:
