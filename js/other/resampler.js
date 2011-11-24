@@ -11,16 +11,19 @@ Resampler.prototype.initialize = function () {
 	if (this.fromSampleRate > 0 && this.toSampleRate > 0 && this.channels > 0) {
 		if (this.fromSampleRate == this.toSampleRate) {
 			//Setup a resampler bypass:
-			this.resampler = this.bypassResampler;
+			this.resampler = this.bypassResampler;		//Resampler just returns what was passed through.
 			this.ratioWeight = 1;
 		}
 		else {
-			this.resampler = this.interpolate;
+			//Setup the interpolation resampler:
+			this.resampler = this.interpolate;			//Resampler is a custom quality interpolation algorithm.
 			this.ratioWeight = this.fromSampleRate / this.toSampleRate;
 			this.lastWeight = [];
 			this.lastOutput = [];
 			this.lastTotalWeight = [];
 		}
+		//Initialize the internal buffer:
+		this.outputBuffer = [];							//Not a typed array, due to variable length (We could use typed arrays, but we'd need to limit the max samples generated.).
 	}
 	else {
 		throw(new Error("Invalid settings specified for the resampler."));
@@ -38,7 +41,7 @@ Resampler.prototype.interpolate = function (buffer) {
 		var amountToNext = 0;
 		var incompleteRunLength = this.lastWeight.length;
 		var lockedOut = false;
-		var outputBuffer = [];
+		var outputBuffer = this.outputBuffer;
 		for (var channel = 0, outputOffset = 0, currentPosition = 0; channel < channels; ++channel) {
 			currentPosition = channel;
 			outputOffset = channel;
@@ -90,7 +93,8 @@ Resampler.prototype.interpolate = function (buffer) {
 				}
 			}
 		}
-		return outputBuffer;
+		outputBuffer.length = outputOffset;	//Make sure our buffer's size matches the data size.
+		return outputBuffer;				//Return a REFERENCE of our buffer.
 	}
 	else {
 		throw(new Error("Buffer of odd length"));

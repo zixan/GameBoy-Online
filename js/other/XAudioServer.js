@@ -475,7 +475,7 @@ function resampleRefill() {
 	if (audioContextSampleBuffer.length > 0) {
 		//Resample a chunk of audio:
 		resampled = resampled.concat(resampleControl.resampler(audioContextSampleBuffer));
-		audioContextSampleBuffer = [];
+		audioContextSampleBuffer.length = 0;
 	}
 }
 //Initialize WebKit Audio /Flash Audio Buffer:
