@@ -99,7 +99,7 @@ Resampler.prototype.interpolate = function (buffer) {
 				}
 			}
 		}
-		return this.bufferSlice(outputOffset);
+		return this.bufferSlice(outputOffset - channels + 1);
 	}
 	else {
 		throw(new Error("Buffer of odd length"));

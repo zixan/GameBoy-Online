@@ -509,22 +509,21 @@ function getBufferSamples() {
 }
 //Initialize WebKit Audio /Flash Audio Buffer:
 function resetCallbackAPIAudioBuffer(APISampleRate, bufferAlloc) {
-	audioContextSampleBuffer = getFloat32Flat(webAudioMaxBufferSize);
-	audioBufferSize = 0;
+	audioContextSampleBuffer = getFloat32(webAudioMaxBufferSize);
+	audioBufferSize = webAudioMaxBufferSize;
 	resampleBufferStart = 0;
+	resampleBufferEnd = 0;
 	if (webAudioMono) {
 		//MONO Handling:
-		resampleBufferEnd = (webAudioMinBufferSize * XAudioJSSampleRate / APISampleRate) | 0;
 		resampleBufferSize = (webAudioMaxBufferSize * XAudioJSSampleRate / APISampleRate) << 1;
-		resampled = getFloat32(resampleBufferSize);
+		resampled = getFloat32Flat(resampleBufferSize);
 		resampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, 1, resampleBufferSize, 0);
 		outputConvert = generateFlashMonoString;
 	}
 	else {
 		//STEREO Handling:
-		resampleBufferEnd = (webAudioMinBufferSize * XAudioJSSampleRate / APISampleRate) << 1;
 		resampleBufferSize = (webAudioMaxBufferSize * XAudioJSSampleRate / APISampleRate) << 2;
-		resampled = getFloat32(resampleBufferSize);
+		resampled = getFloat32Flat(resampleBufferSize);
 		resampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, 2, resampleBufferSize, 0);
 		outputConvert = generateFlashStereoString;
 	}
