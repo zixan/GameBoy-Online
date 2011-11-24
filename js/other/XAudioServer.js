@@ -43,8 +43,8 @@ XAudioServer.prototype.callbackBasedWriteAudio = function (buffer) {
 XAudioServer.prototype.callbackBasedWriteAudioNoCallback = function (buffer) {
 	//Callback-centered audio APIs:
 	var length = buffer.length;
-	for (var bufferCounter = 0; bufferCounter < length;) {
-		audioContextSampleBuffer.push(buffer[bufferCounter++]);
+	for (var bufferCounter = 0; bufferCounter < length && audioBufferSize < webAudioMaxBufferSize;) {
+		audioContextSampleBuffer[audioBufferSize++] = buffer[bufferCounter++];
 	}
 }
 XAudioServer.prototype.WAVWriteAudio = function (buffer) {
@@ -131,12 +131,12 @@ XAudioServer.prototype.remainingBuffer = function () {
 	}
 	else if (this.audioType == 1) {
 		//WebKit Audio:
-		return (((resampled.length * resampleControl.ratioWeight) >> (this.audioChannels - 1)) << (this.audioChannels - 1)) + audioContextSampleBuffer.length;
+		return (((resampledSamplesLeft() * resampleControl.ratioWeight) >> (this.audioChannels - 1)) << (this.audioChannels - 1)) + audioBufferSize;
 	}
 	else if (this.audioType == 3) {
 		if (this.checkFlashInit() || (webAudioEnabled && launchedContext)) {
 			//Webkit Audio / Flash Plugin Audio:
-			return (((resampled.length * resampleControl.ratioWeight) >> (this.audioChannels - 1)) << (this.audioChannels - 1)) + audioContextSampleBuffer.length;
+			return (((resampledSamplesLeft() * resampleControl.ratioWeight) >> (this.audioChannels - 1)) << (this.audioChannels - 1)) + audioBufferSize;
 		}
 		else if (this.mozAudioFound) {
 			//mozAudio:
@@ -400,27 +400,27 @@ function audioOutputFlashEvent() {		//The callback that flash calls...
 	return outputConvert();
 }
 function generateFlashStereoString() {	//Convert the arrays to one long string for speed.
-	var copyBinaryString = "";
-	var samplesFound = Math.min(resampled.length, samplesPerCallback << 1);
-	for (var index = 0; index < samplesFound; index += 2) {
+	var copyBinaryStringLeft = "";
+	var copyBinaryStringRight = "";
+	for (var index = 0; index < samplesPerCallback && resampleBufferStart != resampleBufferEnd; ++index) {
 		//Sanitize the buffer:
-		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampled[index] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		copyBinaryStringLeft += String.fromCharCode(((Math.min(Math.max(resampled[resampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		copyBinaryStringRight += String.fromCharCode(((Math.min(Math.max(resampled[resampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		if (resampleBufferStart == resampleBufferSize) {
+			resampleBufferStart = 0;
+		}
 	}
-	for (index = 1; index < samplesFound; index += 2) {
-		//Sanitize the buffer:
-		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampled[index] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
-	}
-	resampled.splice(0, samplesFound);
-	return copyBinaryString;
+	return copyBinaryStringLeft + copyBinaryStringRight;
 }
 function generateFlashMonoString() {	//Convert the array to one long string for speed.
 	var copyBinaryString = "";
-	var samplesFound = Math.min(resampled.length, samplesPerCallback);
-	for (var index = 0; index < samplesFound; ++index) {
+	for (var index = 0; index < samplesPerCallback && resampleBufferStart != resampleBufferEnd; ++index) {
 		//Sanitize the buffer:
-		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampled[index] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		copyBinaryString += String.fromCharCode(((Math.min(Math.max(resampled[resampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		if (resampleBufferStart == resampleBufferSize) {
+			resampleBufferStart = 0;
+		}
 	}
-	resampled.splice(0, samplesFound);
 	return copyBinaryString;
 }
 //Audio API Event Handler:
@@ -439,28 +439,33 @@ var XAudioJSSampleRate = 0;
 var webAudioMono = false;
 var defaultNeutralValue = 0;
 var resampleControl = null;
+var audioBufferSize = 0;
+var resampleBufferStart = 0;
+var resampleBufferEnd = 0;
+var resampleBufferSize = 2;
 function audioOutputEvent(event) {		//Web Audio API callback...
 	if (webAudioEnabled) {
 		var index = 0;
 		var buffer1 = event.outputBuffer.getChannelData(0);
 		var buffer2 = event.outputBuffer.getChannelData(1);
 		resampleRefill();
-		if (resampled.length > 0) {
-			if (!webAudioMono) {
-				//STEREO:
-				var samplesFound = Math.min(resampled.length >> 1, webAudioSamplesPerCallback);
-				while (index < samplesFound) {
-					buffer1[index] = resampled.shift();
-					buffer2[index] = resampled.shift();
-					++index;
+		if (!webAudioMono) {
+			//STEREO:
+			while (index < webAudioSamplesPerCallback && resampleBufferStart != resampleBufferEnd) {
+				buffer1[index] = resampled[resampleBufferStart++];
+				buffer2[index++] = resampled[resampleBufferStart++];
+				if (resampleBufferStart == resampleBufferSize) {
+					resampleBufferStart = 0;
 				}
 			}
-			else {
-				//MONO:
-				var samplesFound = Math.min(resampled.length, webAudioSamplesPerCallback);
-				while (index < samplesFound) {
-					buffer2[index] = buffer1[index] = resampled.shift();
-					++index;
+		}
+		else {
+			//MONO:
+			while (index < webAudioSamplesPerCallback && resampleBufferStart != resampleBufferEnd) {
+				buffer2[index] = buffer1[index] = resampled[resampleBufferStart++];
+				++index;
+				if (resampleBufferStart == resampleBufferSize) {
+					resampleBufferStart = 0;
 				}
 			}
 		}
@@ -474,20 +479,53 @@ function audioOutputEvent(event) {		//Web Audio API callback...
 function resampleRefill() {
 	if (audioContextSampleBuffer.length > 0) {
 		//Resample a chunk of audio:
-		resampled = resampled.concat(resampleControl.resampler(audioContextSampleBuffer));
-		audioContextSampleBuffer.length = 0;
+		var resampledResult = resampleControl.resampler(getBufferSamples());
+		var resampleLength = resampledResult.length;
+		for (var index = 0; index < resampleLength; ++index) {
+			resampled[resampleBufferEnd++] = resampledResult[index];
+			if (resampleBufferEnd == resampleBufferSize) {
+				resampleBufferEnd = 0;
+			}
+			if (resampleBufferStart == resampleBufferEnd) {
+				resampleBufferStart++;
+				if (resampleBufferStart == resampleBufferSize) {
+					resampleBufferStart = 0;
+				}
+			}
+		}
+		audioBufferSize = 0;
+	}
+}
+function resampledSamplesLeft() {
+	return ((resampleBufferStart <= resampleBufferEnd) ? 0 : resampleBufferSize) + resampleBufferEnd - resampleBufferStart;
+}
+function getBufferSamples() {
+	try {
+		return audioContextSampleBuffer.subarray(0, audioBufferSize);
+	}
+	catch (error) {
+		return audioContextSampleBuffer.slice(0, audioBufferSize);
 	}
 }
 //Initialize WebKit Audio /Flash Audio Buffer:
 function resetCallbackAPIAudioBuffer(APISampleRate, bufferAlloc) {
+	audioContextSampleBuffer = getFloat32Flat(webAudioMaxBufferSize);
+	audioBufferSize = 0;
+	resampleBufferStart = 0;
 	if (webAudioMono) {
 		//MONO Handling:
-		resampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, 1, 0);
+		resampleBufferEnd = (webAudioMinBufferSize * XAudioJSSampleRate / APISampleRate) | 0;
+		resampleBufferSize = (webAudioMaxBufferSize * XAudioJSSampleRate / APISampleRate) << 1;
+		resampled = getFloat32(resampleBufferSize);
+		resampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, 1, resampleBufferSize, 0);
 		outputConvert = generateFlashMonoString;
 	}
 	else {
 		//STEREO Handling:
-		resampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, 2, 0);
+		resampleBufferEnd = (webAudioMinBufferSize * XAudioJSSampleRate / APISampleRate) << 1;
+		resampleBufferSize = (webAudioMaxBufferSize * XAudioJSSampleRate / APISampleRate) << 2;
+		resampled = getFloat32(resampleBufferSize);
+		resampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, 2, resampleBufferSize, 0);
 		outputConvert = generateFlashStereoString;
 	}
 }

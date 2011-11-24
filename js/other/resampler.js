@@ -1,8 +1,9 @@
 //JavaScript Audio Resampler (c) 2011 - Grant Galitz
-function Resampler(fromSampleRate, toSampleRate, channels, qualityLevel) {
+function Resampler(fromSampleRate, toSampleRate, channels, outputBufferSize, qualityLevel) {
 	this.fromSampleRate = fromSampleRate;
 	this.toSampleRate = toSampleRate;
 	this.channels = channels | 0;
+	this.outputBufferSize = outputBufferSize;
 	this.qualityLevel = qualityLevel;	//Will add sinc later...
 	this.initialize();
 }
@@ -23,7 +24,12 @@ Resampler.prototype.initialize = function () {
 			this.lastTotalWeight = [];
 		}
 		//Initialize the internal buffer:
-		this.outputBuffer = [];							//Not a typed array, due to variable length (We could use typed arrays, but we'd need to limit the max samples generated.).
+		try {
+			this.outputBuffer = new Float32Array(this.outputBufferSize);
+		}
+		catch (error) {
+			this.outputBuffer = [];
+		}
 	}
 	else {
 		throw(new Error("Invalid settings specified for the resampler."));
@@ -93,8 +99,7 @@ Resampler.prototype.interpolate = function (buffer) {
 				}
 			}
 		}
-		outputBuffer.length = outputOffset;	//Make sure our buffer's size matches the data size.
-		return outputBuffer;				//Return a REFERENCE of our buffer.
+		return this.bufferSlice(outputOffset);
 	}
 	else {
 		throw(new Error("Buffer of odd length"));
@@ -102,4 +107,12 @@ Resampler.prototype.interpolate = function (buffer) {
 }
 Resampler.prototype.bypassResampler = function (buffer) {
 	return buffer;
+}
+Resampler.prototype.bufferSlice = function (sliceAmount) {
+	try {
+		return this.outputBuffer.subarray(0, sliceAmount);
+	}
+	catch (error) {
+		return this.outputBuffer.slice(0, sliceAmount);
+	}
 }
