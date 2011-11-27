@@ -129,11 +129,12 @@ Resampler.prototype.bypassResampler = function (buffer) {
 	return buffer;
 }
 Resampler.prototype.bufferSlice = function (sliceAmount) {
-	//Support typed array buffer range referencing, or fall back to array slicing:
+	//Typed array and normal array buffer section referencing:
 	try {
 		return this.outputBuffer.subarray(0, sliceAmount);
 	}
 	catch (error) {
-		return this.outputBuffer.slice(0, sliceAmount);
+		this.outputBuffer.length = sliceAmount;
+		return this.outputBuffer;
 	}
 }

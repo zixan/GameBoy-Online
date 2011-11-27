@@ -487,7 +487,7 @@ function resampleRefill() {
 				resampleBufferEnd = 0;
 			}
 			if (resampleBufferStart == resampleBufferEnd) {
-				resampleBufferStart++;
+				++resampleBufferStart;
 				if (resampleBufferStart == resampleBufferSize) {
 					resampleBufferStart = 0;
 				}
@@ -504,7 +504,8 @@ function getBufferSamples() {
 		return audioContextSampleBuffer.subarray(0, audioBufferSize);
 	}
 	catch (error) {
-		return audioContextSampleBuffer.slice(0, audioBufferSize);
+		audioContextSampleBuffer.length = audioBufferSize;
+		return audioContextSampleBuffer;
 	}
 }
 //Initialize WebKit Audio /Flash Audio Buffer:
