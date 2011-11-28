@@ -16,7 +16,7 @@ var settings = [						//Some settings.
 	10,									//Frameskip base factor
 	false,								//Enable the software scaling algorithm to be compiled through JIT.
 	256000,								//Sample Rate
-	null,								//Extra Setting Slot
+	false,								//MozBeforePaint support detected.
 	true,								//Use the GBC BIOS?
 	true,								//Colorize GB mode?
 	2048,								//Sample size for webkit audio.
@@ -269,25 +269,43 @@ function VBlankSyncHandler() {
 		gameboy.dispatchDraw();
 	}
 }
+function MozVBlankSyncHandler() {
+	settings[15] = true;
+	if (settings[11] && typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
+		//Draw out our graphics now:
+		gameboy.dispatchDraw();
+		try {
+			window.mozRequestAnimationFrame();
+		}
+		catch (error) {
+			try {
+				window.requestAnimationFrame();
+			}
+			catch (error) { }
+		}
+	}
+}
 function requestVBlank(canvasHandle) {
 	settings[11] = true;
-	try {
-		window.mozRequestAnimationFrame(VBlankSyncHandler);
-	}
-	catch (e) {
+	if (!settings[15]) {
 		try {
-			window.webkitRequestAnimationFrame(VBlankSyncHandler, canvasHandle);
+			window.mozRequestAnimationFrame(VBlankSyncHandler);
 		}
 		catch (e) {
 			try {
-				window.msRequestAnimationFrame(VBlankSyncHandler);
+				window.webkitRequestAnimationFrame(VBlankSyncHandler, canvasHandle);
 			}
 			catch (e) {
 				try {
-					window.requestAnimationFrame(VBlankSyncHandler);
+					window.msRequestAnimationFrame(VBlankSyncHandler);
 				}
 				catch (e) {
-					settings[11] = false;
+					try {
+						window.requestAnimationFrame(VBlankSyncHandler);
+					}
+					catch (e) {
+						settings[11] = false;
+					}
 				}
 			}
 		}

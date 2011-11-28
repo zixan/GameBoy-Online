@@ -289,6 +289,7 @@ function registerGUIEvents() {
 	addEvent("unload", window, function () {
 		autoSave();
 	});
+	addEvent("MozBeforePaint", window, MozVBlankSyncHandler);
 }
 function onResizeOutput() {
 	if (typeof gameboy == "object" && gameboy != null && !gameboy.canvasFallbackHappened) {
