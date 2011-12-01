@@ -82,7 +82,7 @@ Resampler.prototype.interpolate = function (buffer) {
 					while (weight > 0 && currentPosition < bufferLength) {
 						actualPosition = currentPosition | 0;
 						amountToNext = 1 + actualPosition - currentPosition;
-						if (weight > amountToNext) {
+						if (weight >= amountToNext) {
 							//Needs another loop pass for completion, so build up:
 							output += buffer[actualPosition] * amountToNext;
 							totalWeight += amountToNext;
