@@ -14,21 +14,14 @@ Resampler.prototype.initialize = function () {
 			//Setup a resampler bypass:
 			this.resampler = this.bypassResampler;		//Resampler just returns what was passed through.
 			this.ratioWeight = 1;
+			this.initializeBuffers(false);
 		}
 		else {
 			//Setup the interpolation resampler:
 			this.resampler = this.interpolate;			//Resampler is a custom quality interpolation algorithm.
 			this.ratioWeight = this.fromSampleRate / this.toSampleRate;
-			this.lastWeight = [];
-			this.lastOutput = [];
-			this.lastTotalWeight = [];
-		}
-		//Initialize the internal buffer:
-		try {
-			this.outputBuffer = new Float32Array(this.outputBufferSize);
-		}
-		catch (error) {
-			this.outputBuffer = [];
+			this.tailExists = false;
+			this.initializeBuffers(true);
 		}
 	}
 	else {
@@ -50,8 +43,9 @@ Resampler.prototype.interpolate = function (buffer) {
 			var totalWeight = 0;
 			var actualPosition = 0;
 			var amountToNext = 0;
-			var incompleteRunLength = this.lastWeight.length;
-			var lockedOut = false;
+			var tailExists = this.tailExists;		//See if a tail exists for this iteration.
+			this.tailExists = false;				//Reset tail exists state.
+			var alreadyProcessedTail = false;
 			var outputBuffer = this.outputBuffer;
 			var outputOffset = 0;
 			var currentPosition = 0;
@@ -60,11 +54,11 @@ Resampler.prototype.interpolate = function (buffer) {
 			do {
 				//Initialize our channel-specific offsets:
 				currentPosition = channel;
-				outputOffset = channel++;
-				lockedOut = false;	//Lock out the loop from getting more than one incomplete-tail set per channel computation.
+				outputOffset = channel;
+				alreadyProcessedTail = tailExists;	//Track whether we processed the tail for the working channel yet.
 				//Interpolate the current channel we're working on:
 				do {
-					if (lockedOut || incompleteRunLength == 0) {
+					if (alreadyProcessedTail) {
 						//Don't use the previous state values:
 						weight = ratioWeight;
 						output = 0;
@@ -72,11 +66,10 @@ Resampler.prototype.interpolate = function (buffer) {
 					}
 					else {
 						//Use the previous state values:
-						weight = this.lastWeight.shift();
-						output = this.lastOutput.shift();
-						totalWeight = this.lastTotalWeight.shift();
-						--incompleteRunLength;
-						lockedOut = true;
+						weight = this.lastWeight[channel];
+						output = this.lastOutput[channel];
+						totalWeight = this.lastTotalWeight[channel];
+						alreadyProcessedTail = true;
 					}
 					//Where we do the actual interpolation math:
 					while (weight > 0 && currentPosition < bufferLength) {
@@ -105,13 +98,14 @@ Resampler.prototype.interpolate = function (buffer) {
 					}
 					else {
 						//Save the tail interpolation state for the next buffer to pass through:
-						this.lastWeight.push(weight);
-						this.lastOutput.push(output);
-						this.lastTotalWeight.push(totalWeight);
+						this.lastWeight[channel] = weight;
+						this.lastOutput[channel] = output;
+						this.lastTotalWeight[channel] = totalWeight;
+						this.tailExists = true;
 						break;
 					}
 				} while (currentPosition < bufferLength);
-			} while (channel < channels);
+			} while (++channel < channels);
 			//Return our interpolated data:
 			return this.bufferSlice(outputOffset - channels + 1);
 		}
@@ -134,7 +128,33 @@ Resampler.prototype.bufferSlice = function (sliceAmount) {
 		return this.outputBuffer.subarray(0, sliceAmount);
 	}
 	catch (error) {
-		this.outputBuffer.length = sliceAmount;
-		return this.outputBuffer;
+		try {
+			//Regular array pass:
+			this.outputBuffer.length = sliceAmount;
+			return this.outputBuffer;
+		}
+		catch (error) {
+			//Nightly Firefox 4 used to have the subarray function named as slice:
+			return this.outputBuffer.slice(0, sliceAmount);
+		}
+	}
+}
+Resampler.prototype.intializeBuffers = function (generateTailCache) {
+	//Initialize the internal buffer:
+	try {
+		this.outputBuffer = new Float32Array(this.outputBufferSize);
+		if (generateTailCache) {
+			this.lastWeight = new Float32Array(this.channels);
+			this.lastOutput = new Float32Array(this.channels);
+			this.lastTotalWeight = new Float32Array(this.channels);
+		}
+	}
+	catch (error) {
+		this.outputBuffer = [];
+		if (generateTailCache) {
+			this.lastWeight = [];
+			this.lastOutput = [];
+			this.lastTotalWeight = [];
+		}
 	}
 }
