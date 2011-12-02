@@ -55,7 +55,7 @@ Resampler.prototype.interpolate = function (buffer) {
 				//Initialize our channel-specific offsets:
 				currentPosition = channel;
 				outputOffset = channel;
-				alreadyProcessedTail = tailExists;	//Track whether we processed the tail for the working channel yet.
+				alreadyProcessedTail = !tailExists;	//Track whether we processed the tail for the working channel yet.
 				//Interpolate the current channel we're working on:
 				do {
 					if (alreadyProcessedTail) {
