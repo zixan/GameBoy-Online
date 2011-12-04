@@ -251,8 +251,8 @@ function GameBoyKeyUp(e) {
 }
 function GameBoyGyroSignalHandler(e) {
 	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
-		if (e.gamma && e.beta && !e.x && !e.y) {
-			gameboy.GyroEvent(e.gamma * Math.PI / -180, e.beta * Math.PI / -180);
+		if (e.gamma || e.beta) {
+			gameboy.GyroEvent(e.gamma * Math.PI / 180, e.beta * Math.PI / 180);
 		}
 		else {
 			gameboy.GyroEvent(e.x, e.y);
