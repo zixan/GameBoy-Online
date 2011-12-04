@@ -1,10 +1,10 @@
 //JavaScript Audio Resampler (c) 2011 - Grant Galitz
-function Resampler(fromSampleRate, toSampleRate, channels, outputBufferSize, qualityLevel) {
+function Resampler(fromSampleRate, toSampleRate, channels, outputBufferSize, noReturn) {
 	this.fromSampleRate = fromSampleRate;
 	this.toSampleRate = toSampleRate;
 	this.channels = channels | 0;
 	this.outputBufferSize = outputBufferSize;
-	this.qualityLevel = qualityLevel;	//Will add sinc later...
+	this.noReturn = !!noReturn;
 	this.initialize();
 }
 Resampler.prototype.initialize = function () {
@@ -110,8 +110,7 @@ Resampler.prototype.interpolate = function (buffer) {
 			return this.bufferSlice(outputOffset - channels + 1);
 		}
 		else {
-			//Return an empty array back if given an empty buffer:
-			return [];
+			return (this.noReturn) ? 0 : [];
 		}
 	}
 	else {
@@ -123,19 +122,25 @@ Resampler.prototype.bypassResampler = function (buffer) {
 	return buffer;
 }
 Resampler.prototype.bufferSlice = function (sliceAmount) {
-	//Typed array and normal array buffer section referencing:
-	try {
-		return this.outputBuffer.subarray(0, sliceAmount);
+	if (this.noReturn) {
+		//If we're going to access the properties directly from this object:
+		return sliceAmount;
 	}
-	catch (error) {
+	else {
+		//Typed array and normal array buffer section referencing:
 		try {
-			//Regular array pass:
-			this.outputBuffer.length = sliceAmount;
-			return this.outputBuffer;
+			return this.outputBuffer.subarray(0, sliceAmount);
 		}
 		catch (error) {
-			//Nightly Firefox 4 used to have the subarray function named as slice:
-			return this.outputBuffer.slice(0, sliceAmount);
+			try {
+				//Regular array pass:
+				this.outputBuffer.length = sliceAmount;
+				return this.outputBuffer;
+			}
+			catch (error) {
+				//Nightly Firefox 4 used to have the subarray function named as slice:
+				return this.outputBuffer.slice(0, sliceAmount);
+			}
 		}
 	}
 }

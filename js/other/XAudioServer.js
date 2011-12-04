@@ -479,8 +479,8 @@ function audioOutputEvent(event) {		//Web Audio API callback...
 function resampleRefill() {
 	if (audioBufferSize > 0) {
 		//Resample a chunk of audio:
-		var resampledResult = resampleControl.resampler(getBufferSamples());
-		var resampleLength = resampledResult.length;
+		var resampleLength = resampleControl.resampler(getBufferSamples());
+		var resampledResult = resampleControl.outputBuffer;
 		for (var index = 0; index < resampleLength; ++index) {
 			resampled[resampleBufferEnd++] = resampledResult[index];
 			if (resampleBufferEnd == resampleBufferSize) {
@@ -526,14 +526,14 @@ function resetCallbackAPIAudioBuffer(APISampleRate, bufferAlloc) {
 	if (webAudioMono) {
 		//MONO Handling:
 		resampled = getFloat32Flat(resampleBufferSize);
-		resampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, 1, resampleBufferSize, 0);
+		resampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, 1, resampleBufferSize, true);
 		outputConvert = generateFlashMonoString;
 	}
 	else {
 		//STEREO Handling:
 		resampleBufferSize  <<= 1;
 		resampled = getFloat32Flat(resampleBufferSize);
-		resampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, 2, resampleBufferSize, 0);
+		resampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, 2, resampleBufferSize, true);
 		outputConvert = generateFlashStereoString;
 	}
 }
