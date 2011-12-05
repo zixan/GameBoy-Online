@@ -118,8 +118,15 @@ Resampler.prototype.interpolate = function (buffer) {
 	}
 }
 Resampler.prototype.bypassResampler = function (buffer) {
-	//Just return the buffer passsed:
-	return buffer;
+	if (this.noReturn) {
+		//Set the buffer passed as our own, as we don't need to resample it:
+		this.outputBuffer = buffer;
+		return buffer.length;
+	}
+	else {
+		//Just return the buffer passsed:
+		return buffer;
+	}
 }
 Resampler.prototype.bufferSlice = function (sliceAmount) {
 	if (this.noReturn) {
