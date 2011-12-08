@@ -5150,6 +5150,10 @@ GameBoyCore.prototype.intializeWhiteNoise = function () {
 		LSFRShifted = LSFR >> 1;
 		LSFR = LSFRShifted | (((LSFRShifted ^ LSFR) & 0x1) << 6);
 	}
+	if (!this.noiseSampleTable && this.memory.length == 0x10000) {
+		//If enabling audio for the first time after a game is already running, set up the internal table reference:
+		this.noiseSampleTable = ((this.memory[0xFF22] & 0x8) == 0x8) ? this.LSFR7Table : this.LSFR15Table;
+	}
 }
 GameBoyCore.prototype.audioUnderRun = function (samplesRequestedRaw) {
 	if (settings[0]) {
