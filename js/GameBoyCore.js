@@ -6165,7 +6165,6 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					//We reset back to the beginning:
 					parentObj.LCDTicks -= 456;
 					parentObj.actualScanLine = 0;
-					parentObj.modeSTAT = -1;
 					parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control.
 				}
 			}
