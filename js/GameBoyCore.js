@@ -6093,7 +6093,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					//Update the scanline registers and assert the LYC counter:
 					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
 					//Perform a LYC counter assert:
-					if (parentObj.memory[0xFF44] == parentObj.memory[0xFF45]) {
+					if (parentObj.actualScanLine == parentObj.memory[0xFF45]) {
 						parentObj.memory[0xFF41] |= 0x04;
 						if (parentObj.LYCMatchTriggerSTAT) {
 							parentObj.interruptsRequested |= 0x2;
@@ -6141,7 +6141,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					//Update the scanline registers and assert the LYC counter:
 					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
 					//Perform a LYC counter assert:
-					if (parentObj.memory[0xFF44] == parentObj.memory[0xFF45]) {
+					if (parentObj.actualScanLine == parentObj.memory[0xFF45]) {
 						parentObj.memory[0xFF41] |= 0x04;
 						if (parentObj.LYCMatchTriggerSTAT) {
 							parentObj.interruptsRequested |= 0x2;
@@ -6175,7 +6175,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					parentObj.LCDTicks -= 456;
 					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
 					//Perform a LYC counter assert:
-					if (parentObj.memory[0xFF44] == parentObj.memory[0xFF45]) {
+					if (parentObj.actualScanLine == parentObj.memory[0xFF45]) {
 						parentObj.memory[0xFF41] |= 0x04;
 						if (parentObj.LYCMatchTriggerSTAT) {
 							parentObj.interruptsRequested |= 0x2;
@@ -6194,7 +6194,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 				if (parentObj.STATTracker != 8 && parentObj.memory[0xFF44] == 153 && parentObj.LCDTicks >= 8) {
 					parentObj.memory[0xFF44] = 0;	//LY register resets to 0 early.
 					//Perform a LYC counter assert:
-					if (parentObj.memory[0xFF44] == parentObj.memory[0xFF45]) {
+					if (parentObj.memory[0xFF45] == 0) {
 						parentObj.memory[0xFF41] |= 0x04;
 						if (parentObj.LYCMatchTriggerSTAT) {
 							parentObj.interruptsRequested |= 0x2;
