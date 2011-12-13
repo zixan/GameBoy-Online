@@ -84,10 +84,10 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.mode1TriggerSTAT = false;				//Should we trigger an interrupt if in mode 1?
 	this.mode0TriggerSTAT = false;				//Should we trigger an interrupt if in mode 0?
 	this.LCDisOn = false;						//Is the emulated LCD controller on?
-	this.LINECONTROL = new Array(154);			//Array of functions to handle each scan line we do (onscreen + offscreen)
-	this.DISPLAYOFFCONTROL = new Array(function (parentObj) {
+	this.LINECONTROL = [];						//Array of functions to handle each scan line we do (onscreen + offscreen)
+	this.DISPLAYOFFCONTROL = [function (parentObj) {
 		//Array of line 0 function to handle the LCD controller when it's off (Do nothing!).
-	});
+	}];
 	this.LCDCONTROL = null;						//Pointer to either LINECONTROL or DISPLAYOFFCONTROL.
 	//RTC (Real Time Clock for MBC3):
 	this.RTCisLatched = false;
@@ -203,7 +203,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.tileCache = this.generateCacheArray(0xF80);
 	this.tileCacheValid = this.getTypedArray(0xF80, 0, "int8");
 	//Palettes:
-	this.colors = new Array(0xEFFFDE, 0xADD794, 0x529273, 0x183442);	//"Classic" GameBoy palette colors.
+	this.colors = [0xEFFFDE, 0xADD794, 0x529273, 0x183442];	//"Classic" GameBoy palette colors.
 	this.OBJPalette = null;
 	this.BGPalette = null;
 	this.gbcOBJRawPalette = this.getTypedArray(0x40, 0, "uint8");
@@ -232,7 +232,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.widthRatio = 160 / this.width;
 	this.heightRatio = 144 / this.height;
 }
-GameBoyCore.prototype.GBCBOOTROM = new Array(	//GBC BOOT ROM (Thanks to Costis for the binary dump that I converted to this):
+GameBoyCore.prototype.GBCBOOTROM = [	//GBC BOOT ROM (Thanks to Costis for the binary dump that I converted to this):
 	//This way of loading in the BOOT ROM reminds me of when people had to punchcard the data in. :P
 	0x31, 0xfe, 0xff, 0x3e, 0x02, 0xc3, 0x7c, 0x00, 	0xd3, 0x00, 0x98, 0xa0, 0x12, 0xd3, 0x00, 0x80, 
 	0x00, 0x40, 0x1e, 0x53, 0xd0, 0x00, 0x1f, 0x42, 	0x1c, 0x00, 0x14, 0x2a, 0x4d, 0x19, 0x8c, 0x7e, 
@@ -362,8 +362,8 @@ GameBoyCore.prototype.GBCBOOTROM = new Array(	//GBC BOOT ROM (Thanks to Costis f
 	0xff, 0x7f, 0xef, 0x1b, 0x80, 0x61, 0x00, 0x00, 	0xff, 0x7f, 0x00, 0x7c, 0xe0, 0x03, 0x1f, 0x7c, 
 	0x1f, 0x00, 0xff, 0x03, 0x40, 0x41, 0x42, 0x20, 	0x21, 0x22, 0x80, 0x81, 0x82, 0x10, 0x11, 0x12, 
 	0x12, 0xb0, 0x79, 0xb8, 0xad, 0x16, 0x17, 0x07, 	0xba, 0x05, 0x7c, 0x13, 0x00, 0x00, 0x00, 0x00
-);
-GameBoyCore.prototype.ffxxDump = new Array(	//Dump of the post-BOOT I/O register state (From gambatte):
+];
+GameBoyCore.prototype.ffxxDump = [	//Dump of the post-BOOT I/O register state (From gambatte):
 	0x0F, 0x00, 0x7C, 0xFF, 0x00, 0x00, 0x00, 0xF8, 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0x01,
 	0x80, 0xBF, 0xF3, 0xFF, 0xBF, 0xFF, 0x3F, 0x00, 	0xFF, 0xBF, 0x7F, 0xFF, 0x9F, 0xFF, 0xBF, 0xFF,
 	0xFF, 0x00, 0x00, 0xBF, 0x77, 0xF3, 0xF1, 0xFF, 	0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
@@ -380,8 +380,8 @@ GameBoyCore.prototype.ffxxDump = new Array(	//Dump of the post-BOOT I/O register
 	0x08, 0xEF, 0xF1, 0xFF, 0x86, 0x83, 0x24, 0x74, 	0x12, 0xFC, 0x00, 0x9F, 0xB4, 0xB7, 0x06, 0xD5,
 	0xD0, 0x7A, 0x00, 0x9E, 0x04, 0x5F, 0x41, 0x2F, 	0x1D, 0x77, 0x36, 0x75, 0x81, 0xAA, 0x70, 0x3A,
 	0x98, 0xD1, 0x71, 0x02, 0x4D, 0x01, 0xC1, 0xFF, 	0x0D, 0x00, 0xD3, 0x05, 0xF9, 0x00, 0x0B, 0x00
-);
-GameBoyCore.prototype.OPCODE = new Array(
+];
+GameBoyCore.prototype.OPCODE = [
 	//NOP
 	//#0x00:
 	function (parentObj) {
@@ -2410,8 +2410,8 @@ GameBoyCore.prototype.OPCODE = new Array(
 		parentObj.memoryWriter[parentObj.stackPointer](parentObj, parentObj.stackPointer, parentObj.programCounter & 0xFF);
 		parentObj.programCounter = 0x38;
 	}
-);
-GameBoyCore.prototype.CBOPCODE = new Array(
+];
+GameBoyCore.prototype.CBOPCODE = [
 	//RLC B
 	//#0x00:
 	function (parentObj) {
@@ -4035,8 +4035,8 @@ GameBoyCore.prototype.CBOPCODE = new Array(
 	,function (parentObj) {
 		parentObj.registerA |= 0x80;
 	}
-);
-GameBoyCore.prototype.TICKTable = new Array(				//Number of machine cycles for each instruction:
+];
+GameBoyCore.prototype.TICKTable = [		//Number of machine cycles for each instruction:
 /*   0,  1,  2,  3,  4,  5,  6,  7,      8,  9,  A, B,  C,  D, E,  F*/
      4, 12,  8,  8,  4,  4,  8,  4,     20,  8,  8, 8,  4,  4, 8,  4,  //0
      4, 12,  8,  8,  4,  4,  8,  4,     12,  8,  8, 8,  4,  4, 8,  4,  //1
@@ -4057,8 +4057,8 @@ GameBoyCore.prototype.TICKTable = new Array(				//Number of machine cycles for e
      8, 12, 12,  4, 12, 16,  8, 16,      8, 16, 12, 4, 12,  4, 8, 16,  //D
     12, 12,  8,  4,  4, 16,  8, 16,     16,  4, 16, 4,  4,  4, 8, 16,  //E
     12, 12,  8,  4,  4, 16,  8, 16,     12,  8, 16, 4,  0,  4, 8, 16   //F
-);
-GameBoyCore.prototype.SecondaryTICKTable = new Array(		//Number of machine cycles for each 0xCBXX instruction:
+];
+GameBoyCore.prototype.SecondaryTICKTable = [	//Number of machine cycles for each 0xCBXX instruction:
 /*  0, 1, 2, 3, 4, 5,  6, 7,        8, 9, A, B, C, D,  E, F*/
     8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8,  //0
     8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8,  //1
@@ -4079,7 +4079,7 @@ GameBoyCore.prototype.SecondaryTICKTable = new Array(		//Number of machine cycle
     8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8,  //D
     8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8,  //E
     8, 8, 8, 8, 8, 8, 16, 8,        8, 8, 8, 8, 8, 8, 16, 8   //F
-);
+];
 GameBoyCore.prototype.saveSRAMState = function () {
 	if (!this.cBATT || this.MBCRam.length == 0) {
 		//No battery backup...
@@ -4512,12 +4512,12 @@ GameBoyCore.prototype.initMemory = function () {
 	this.SecondaryTICKTable = this.toTypedArray(this.SecondaryTICKTable, "uint8");
 }
 GameBoyCore.prototype.generateCacheArray = function (tileAmount) {
-	var tileArray = new Array(tileAmount);
-	for (var tileNumber = 0; tileNumber < tileAmount; tileNumber++) {
-		tileArray[tileNumber] = new Array(8);
-		for (var y = 0; y < 8; y++) {
+	var tileArray = [];
+	for (var tileNumber = 0, x = 0, y = 0; tileNumber < tileAmount; ++tileNumber) {
+		tileArray[tileNumber] = [];
+		for (y = 0; y < 8; ++y) {
 			tileArray[tileNumber][y] = this.getTypedArray(8, 0, "uint8");
-			for (var x = 0; x < 8; x++) {
+			for (x = 0; x < 8; ++x) {
 				tileArray[tileNumber][y][x] = 0;
 			}
 		}
@@ -9321,7 +9321,7 @@ GameBoyCore.prototype.fromTypedArray = function (baseArray) {
 		if (!baseArray || !baseArray.length) {
 			return [];
 		}
-		var arrayTemp = new Array(baseArray.length);
+		var arrayTemp = [];
 		for (var index = 0; index < baseArray.length; ++index) {
 			arrayTemp[index] = baseArray[index];
 		}
@@ -9367,7 +9367,7 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 		}
 	}
 	catch (error) {
-		var arrayHandle = new Array(length);
+		var arrayHandle = [];
 		var index = 0;
 		while (index < length) {
 			arrayHandle[index++] = defaultValue;
@@ -9376,7 +9376,7 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 	return arrayHandle;
 }
 GameBoyCore.prototype.ArrayPad = function (length, defaultValue) {
-	var arrayHandle = new Array(length);
+	var arrayHandle = [];
 	var index = 0;
 	while (index < length) {
 		arrayHandle[index++] = defaultValue;
