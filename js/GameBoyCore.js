@@ -156,7 +156,8 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.firstIteration = dateVar.getTime();
 	this.iterations = 0;
 	this.actualScanLine = 0;			//Actual scan line...
-	this.haltPostClocks = 0;			//Post-Halt clocking:
+	this.haltPostClocks = 0;			//Post-Halt clocking.
+	this.reIterateLCDControl = false;	//LCD timing re-calculation request.
 	//ROM Cartridge Components:
 	this.cMBC1 = false;					//Does the cartridge use MBC1?
 	this.cMBC2 = false;					//Does the cartridge use MBC2?
@@ -4279,7 +4280,8 @@ GameBoyCore.prototype.saveState = function () {
 		this.fromTypedArray(this.BGCHRBank2),
 		this.haltPostClocks,
 		this.interruptsRequested,
-		this.interruptsEnabled
+		this.interruptsEnabled,
+		this.reIterateLCDControl
 	];
 }
 GameBoyCore.prototype.returnFromState = function (returnedFrom) {
@@ -4449,7 +4451,8 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.BGCHRBank2 = this.toTypedArray(state[index++], "uint8");
 	this.haltPostClocks = state[index++];
 	this.interruptsRequested = state[index++];
-	this.interruptsEnabled = state[index];
+	this.interruptsEnabled = state[index++];
+	this.reIterateLCDControl = state[index];
 	this.fromSaveState = true;
 	this.TICKTable = this.toTypedArray(this.TICKTable, "uint8");
 	this.SecondaryTICKTable = this.toTypedArray(this.SecondaryTICKTable, "uint8");
@@ -5885,6 +5888,11 @@ GameBoyCore.prototype.executeIteration = function () {
 		//Update the clocking for the LCD emulation:
 		this.LCDTicks += this.CPUTicks / this.multiplier;				//LCD Timing
 		this.LCDCONTROL[this.actualScanLine](this);						//Scan Line and STAT Mode Control 
+		if (this.reIterateLCDControl) {
+			//Special HDMA re-update case:
+			this.LCDCONTROL[this.actualScanLine](this);
+			this.reIterateLCDControl = false;
+		}
 		//Single-speed relative timing for A/V emulation:
 		timedTicks = this.CPUTicks / this.multiplier;					//CPU clocking can be updated from the LCD handling.
 		this.audioTicks += timedTicks;									//Audio Timing
@@ -6017,7 +6025,12 @@ GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
 GameBoyCore.prototype.updateCore = function () {
 	//Update the clocking for the LCD emulation:
 	this.LCDTicks += this.CPUTicks / this.multiplier;			//LCD Timing
-	this.LCDCONTROL[this.actualScanLine](this);					//Scan Line and STAT Mode Control 
+	this.LCDCONTROL[this.actualScanLine](this);					//Scan Line and STAT Mode Control
+	if (this.reIterateLCDControl) {
+		//Special HDMA re-update case:
+		this.LCDCONTROL[this.actualScanLine](this);
+		this.reIterateLCDControl = false;
+	}
 	//Single-speed relative timing for A/V emulation:
 	var timedTicks = this.CPUTicks / this.multiplier;			//CPU clocking can be updated from the LCD handling.
 	this.audioTicks += timedTicks;								//Audio Timing
@@ -6224,11 +6237,17 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 }
 GameBoyCore.prototype.executeHDMA = function () {
 	this.DMAWrite(1);
-	if (this.halt && (this.LCDTicks - this.spriteCount) < ((1 / this.multiplier) + 8)) {
-		//HALT clocking correction:
-		this.CPUTicks = 1 + ((8 + this.spriteCount) << this.doubleSpeedDivider);
-		this.LCDTicks = this.spriteCount + (1 / this.multiplier) + 8;
+	if (this.halt) {
+		if ((this.LCDTicks - this.spriteCount) < ((4 >> this.doubleSpeedDivider) | 0x20)) {
+			//HALT clocking correction:
+			this.CPUTicks = 4 + ((0x20 + this.spriteCount) << this.doubleSpeedDivider);
+			this.LCDTicks = this.spriteCount + (4 >> this.doubleSpeedDivider) | 0x20;
+		}
 	}
+	else {
+		this.LCDTicks += (4 >> this.doubleSpeedDivider) | 0x20;			//LCD Timing Update For HDMA.
+	}
+	this.reIterateLCDControl = true;
 	if (this.memory[0xFF55] == 0) {
 		this.hdmaRunning = false;
 		this.memory[0xFF55] = 0xFF;	//Transfer completed ("Hidden last step," since some ROMs don't imply this, but most do).
@@ -8210,8 +8229,7 @@ GameBoyCore.prototype.VRAMGBCCHRMAPWrite = function (parentObj, address, data) {
 GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 	if (!this.halt) {
 		//Clock the CPU for the DMA transfer (CPU is halted during the transfer):
-		this.CPUTicks += 1 + ((tilesToTransfer << 3) << this.doubleSpeedDivider);
-		this.LCDTicks += (1 / this.multiplier) + (tilesToTransfer << 3);			//LCD Timing Update For DMA.
+		this.CPUTicks += 4 | ((tilesToTransfer << 5) << this.doubleSpeedDivider);
 	}
 	//Source address of the transfer:
 	var source = (this.memory[0xFF51] << 8) | this.memory[0xFF52];
