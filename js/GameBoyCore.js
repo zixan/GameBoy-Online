@@ -5965,28 +5965,28 @@ GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 GameBoyCore.prototype.clocksUntilLYCMatch = function () {
 	if (this.memory[0xFF45] != 0) {
 		if (this.memory[0xFF45] > this.actualScanLine) {
-			return (456 * (this.memory[0xFF45] - this.actualScanLine));
+			return 456 * (this.memory[0xFF45] - this.actualScanLine);
 		}
-		return (456 * (154 - this.actualScanLine + this.memory[0xFF45]));
+		return 456 * (154 - this.actualScanLine + this.memory[0xFF45]);
 	}
-	return ((456 * ((this.actualScanLine == 153 && this.memory[0xFF44] == 0) ? 154 : (153 - this.actualScanLine))) + 8);
+	return (456 * ((this.actualScanLine == 153 && this.memory[0xFF44] == 0) ? 154 : (153 - this.actualScanLine))) + 8;
 }
 GameBoyCore.prototype.clocksUntilMode0 = function () {
 	switch (this.modeSTAT) {
 		case 0:
 			if (this.actualScanLine == 143) {
 				this.updateSpriteCount(0);
-				return (this.spriteCount + 5016);
+				return this.spriteCount + 5016;
 			}
 			this.updateSpriteCount(this.actualScanLine + 1);
-			return (this.spriteCount + 456);
+			return this.spriteCount + 456;
 		case 2:
 		case 3:
 			this.updateSpriteCount(this.actualScanLine);
 			return this.spriteCount;
 		case 1:
 			this.updateSpriteCount(0);
-			return (this.spriteCount + (456 * (154 - this.actualScanLine)));
+			return this.spriteCount + (456 * (154 - this.actualScanLine));
 	}
 }
 GameBoyCore.prototype.updateSpriteCount = function (line) {
@@ -6078,18 +6078,31 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					//We're on a new scan line:
 					parentObj.LCDTicks -= 456;
 					if (parentObj.STATTracker != 2) {
+						//Make sure the mode 0 handler was run at least once per scan line:
 						if (parentObj.STATTracker < 4) {
 							parentObj.renderScanLine();
+							parentObj.STATTracker |= 4
 						}
 						if (parentObj.hdmaRunning) {
 							parentObj.executeHDMA();
 						}
-						if (parentObj.mode0TriggerSTAT) {
+						if (parentObj.mode0TriggerSTAT || (parentObj.mode2TriggerSTAT && parentObj.STATTracker == 4)) {
 							parentObj.interruptsRequested |= 0x2;
 						}
 					}
+					//Update the scanline registers and assert the LYC counter:
 					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
-					parentObj.matchLYC();
+					//Perform a LYC counter assert:
+					if (parentObj.memory[0xFF44] == parentObj.memory[0xFF45]) {
+						parentObj.memory[0xFF41] |= 0x04;
+						if (parentObj.LYCMatchTriggerSTAT) {
+							parentObj.interruptsRequested |= 0x2;
+						}
+					} 
+					else {
+						parentObj.memory[0xFF41] &= 0xFB;
+					}
+					//Reset our mode contingency variables:
 					parentObj.STATTracker = 0;
 					parentObj.modeSTAT = -1;
 					parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control.
@@ -6112,25 +6125,37 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					//Starting V-Blank:
 					//Just finished the last visible scan line:
 					parentObj.LCDTicks -= 456;
-					if (parentObj.mode1TriggerSTAT) {
-						parentObj.interruptsRequested |= 0x2;
-					}
 					if (parentObj.STATTracker != 2) {
+						//Make sure the mode 0 handler was run at least once per scan line:
 						if (parentObj.STATTracker < 4) {
 							parentObj.renderScanLine();
+							parentObj.STATTracker |= 4
 						}
 						if (parentObj.hdmaRunning) {
 							parentObj.executeHDMA();
 						}
-						if (parentObj.mode0TriggerSTAT) {
+						if (parentObj.mode0TriggerSTAT || (parentObj.mode2TriggerSTAT && parentObj.STATTracker == 4)) {
 							parentObj.interruptsRequested |= 0x2;
 						}
 					}
+					//Update the scanline registers and assert the LYC counter:
 					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
-					parentObj.matchLYC();
+					//Perform a LYC counter assert:
+					if (parentObj.memory[0xFF44] == parentObj.memory[0xFF45]) {
+						parentObj.memory[0xFF41] |= 0x04;
+						if (parentObj.LYCMatchTriggerSTAT) {
+							parentObj.interruptsRequested |= 0x2;
+						}
+					} 
+					else {
+						parentObj.memory[0xFF41] &= 0xFB;
+					}
+					//Reset our mode contingency variables:
 					parentObj.STATTracker = 0;
+					//Update our state for v-blank:
 					parentObj.modeSTAT = 1;
-					parentObj.interruptsRequested |= 0x1;
+					parentObj.interruptsRequested |= (parentObj.mode1TriggerSTAT) ? 0x3 : 0x1;
+					//Attempt to blit out to our canvas:
 					if (parentObj.drewBlank > 0) {		//LCD off takes at least 2 frames.
 						--parentObj.drewBlank;
 					}
@@ -6149,7 +6174,16 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					//We're on a new scan line:
 					parentObj.LCDTicks -= 456;
 					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
-					parentObj.matchLYC();
+					//Perform a LYC counter assert:
+					if (parentObj.memory[0xFF44] == parentObj.memory[0xFF45]) {
+						parentObj.memory[0xFF41] |= 0x04;
+						if (parentObj.LYCMatchTriggerSTAT) {
+							parentObj.interruptsRequested |= 0x2;
+						}
+					} 
+					else {
+						parentObj.memory[0xFF41] &= 0xFB;
+					}
 					parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control.
 				}
 			}
@@ -6157,14 +6191,26 @@ GameBoyCore.prototype.initializeLCDController = function () {
 		else {
 			//VBlank Ending (We're on the last actual scan line)
 			this.LINECONTROL[153] = function (parentObj) {
-				if (parentObj.memory[0xFF44] == 153 && parentObj.LCDTicks >= 8) {	//TODO: Double-check to see if 2 is right.
+				if (parentObj.STATTracker != 8 && parentObj.memory[0xFF44] == 153 && parentObj.LCDTicks >= 8) {
 					parentObj.memory[0xFF44] = 0;	//LY register resets to 0 early.
-					parentObj.matchLYC();
+					//Perform a LYC counter assert:
+					if (parentObj.memory[0xFF44] == parentObj.memory[0xFF45]) {
+						parentObj.memory[0xFF41] |= 0x04;
+						if (parentObj.LYCMatchTriggerSTAT) {
+							parentObj.interruptsRequested |= 0x2;
+						}
+					} 
+					else {
+						parentObj.memory[0xFF41] &= 0xFB;
+					}
+					parentObj.STATTracker = 8;
 				}
 				if (parentObj.LCDTicks >= 456) {
 					//We reset back to the beginning:
 					parentObj.LCDTicks -= 456;
 					parentObj.actualScanLine = 0;
+					//Reset our mode contingency variables:
+					parentObj.STATTracker = 0;
 					parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control.
 				}
 			}
@@ -6178,10 +6224,10 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 }
 GameBoyCore.prototype.executeHDMA = function () {
 	this.DMAWrite(1);
-	if (this.halt && (this.LCDTicks - this.spriteCount) < ((2 >> this.doubleSpeedDivider) + 0x10)) {
+	if (this.halt && (this.LCDTicks - this.spriteCount) < ((1 / this.multiplier) + 8)) {
 		//HALT clocking correction:
-		this.CPUTicks = 2 + ((0x10 + this.spriteCount) << this.doubleSpeedDivider);
-		this.LCDTicks = this.spriteCount + (2 >> this.doubleSpeedDivider) + 0x10;
+		this.CPUTicks = 1 + ((8 + this.spriteCount) << this.doubleSpeedDivider);
+		this.LCDTicks = this.spriteCount + (1 / this.multiplier) + 8;
 	}
 	if (this.memory[0xFF55] == 0) {
 		this.hdmaRunning = false;
@@ -8164,8 +8210,8 @@ GameBoyCore.prototype.VRAMGBCCHRMAPWrite = function (parentObj, address, data) {
 GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 	if (!this.halt) {
 		//Clock the CPU for the DMA transfer (CPU is halted during the transfer):
-		this.CPUTicks += 2 + ((tilesToTransfer << 4) << this.doubleSpeedDivider);
-		this.LCDTicks += (2 >> this.doubleSpeedDivider) + (tilesToTransfer << 4);			//LCD Timing Update For DMA.
+		this.CPUTicks += 1 + ((tilesToTransfer << 3) << this.doubleSpeedDivider);
+		this.LCDTicks += (1 / this.multiplier) + (tilesToTransfer << 3);			//LCD Timing Update For DMA.
 	}
 	//Source address of the transfer:
 	var source = (this.memory[0xFF51] << 8) | this.memory[0xFF52];
