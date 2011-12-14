@@ -5937,7 +5937,7 @@ GameBoyCore.prototype.scanLineMode2 = function () {	//OAM Search Period
 }
 GameBoyCore.prototype.scanLineMode3 = function () {	//Scan Line Drawing Period
 	if (this.modeSTAT != 3) {
-		if (this.mode2TriggerSTAT && this.STATTracker == 0) {
+		if (this.STATTracker == 0 && this.mode2TriggerSTAT) {
 			this.interruptsRequested |= 0x2;
 		}
 		this.STATTracker = 1;
@@ -5946,18 +5946,21 @@ GameBoyCore.prototype.scanLineMode3 = function () {	//Scan Line Drawing Period
 }
 GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 	if (this.modeSTAT != 0) {
-		if (this.STATTracker < 4) {
+		if (this.STATTracker != 2) {
+			if (this.STATTracker == 0 && this.mode2TriggerSTAT) {
+				this.interruptsRequested |= 0x2;
+			}
 			this.renderScanLine();
-			this.STATTracker |= 4
+			this.STATTracker = 2;
 		}
 		if (this.LCDTicks >= this.spriteCount) {
 			if (this.hdmaRunning) {
 				this.executeHDMA();
 			}
-			if (this.mode0TriggerSTAT || (this.mode2TriggerSTAT && this.STATTracker == 4)) {
+			if (this.mode0TriggerSTAT) {
 				this.interruptsRequested |= 0x2;
 			}
-			this.STATTracker = 2;
+			this.STATTracker = 3;
 			this.modeSTAT = 0;
 		}
 	}
@@ -6077,16 +6080,18 @@ GameBoyCore.prototype.initializeLCDController = function () {
 				else {
 					//We're on a new scan line:
 					parentObj.LCDTicks -= 456;
-					if (parentObj.STATTracker != 2) {
+					if (parentObj.STATTracker != 3) {
 						//Make sure the mode 0 handler was run at least once per scan line:
-						if (parentObj.STATTracker < 4) {
+						if (parentObj.STATTracker != 2) {
+							if (parentObj.STATTracker == 0 && parentObj.mode2TriggerSTAT) {
+								parentObj.interruptsRequested |= 0x2;
+							}
 							parentObj.renderScanLine();
-							parentObj.STATTracker |= 4
 						}
 						if (parentObj.hdmaRunning) {
 							parentObj.executeHDMA();
 						}
-						if (parentObj.mode0TriggerSTAT || (parentObj.mode2TriggerSTAT && parentObj.STATTracker == 4)) {
+						if (parentObj.mode0TriggerSTAT) {
 							parentObj.interruptsRequested |= 0x2;
 						}
 					}
@@ -6125,16 +6130,18 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					//Starting V-Blank:
 					//Just finished the last visible scan line:
 					parentObj.LCDTicks -= 456;
-					if (parentObj.STATTracker != 2) {
+					if (parentObj.STATTracker != 3) {
 						//Make sure the mode 0 handler was run at least once per scan line:
-						if (parentObj.STATTracker < 4) {
+						if (parentObj.STATTracker != 2) {
+							if (parentObj.STATTracker == 0 && parentObj.mode2TriggerSTAT) {
+								parentObj.interruptsRequested |= 0x2;
+							}
 							parentObj.renderScanLine();
-							parentObj.STATTracker |= 4
 						}
 						if (parentObj.hdmaRunning) {
 							parentObj.executeHDMA();
 						}
-						if (parentObj.mode0TriggerSTAT || (parentObj.mode2TriggerSTAT && parentObj.STATTracker == 4)) {
+						if (parentObj.mode0TriggerSTAT) {
 							parentObj.interruptsRequested |= 0x2;
 						}
 					}
@@ -6191,7 +6198,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 		else {
 			//VBlank Ending (We're on the last actual scan line)
 			this.LINECONTROL[153] = function (parentObj) {
-				if (parentObj.STATTracker != 8 && parentObj.memory[0xFF44] == 153 && parentObj.LCDTicks >= 8) {
+				if (parentObj.STATTracker != 4 && parentObj.memory[0xFF44] == 153 && parentObj.LCDTicks >= 8) {
 					parentObj.memory[0xFF44] = 0;	//LY register resets to 0 early.
 					//Perform a LYC counter assert:
 					if (parentObj.memory[0xFF45] == 0) {
@@ -6203,14 +6210,12 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					else {
 						parentObj.memory[0xFF41] &= 0xFB;
 					}
-					parentObj.STATTracker = 8;
+					parentObj.STATTracker = 4;
 				}
 				if (parentObj.LCDTicks >= 456) {
 					//We reset back to the beginning:
 					parentObj.LCDTicks -= 456;
-					parentObj.actualScanLine = 0;
-					//Reset our mode contingency variables:
-					parentObj.STATTracker = 0;
+					parentObj.STATTracker = parentObj.actualScanLine = 0;
 					parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control.
 				}
 			}
