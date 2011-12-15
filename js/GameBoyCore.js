@@ -7350,7 +7350,7 @@ GameBoyCore.prototype.calculateHALTPeriod = function () {
 		var maxClocks = (this.CPUCyclesPerIteration - this.emulatorTicks) * this.multiplier;
 		if (currentClocks <= maxClocks) {
 			//Exit out of HALT normally:
-			this.CPUTicks += currentClocks;
+			this.CPUTicks = Math.max(currentClocks, this.CPUTicks);
 			this.updateCore();
 			this.halt = false;
 			this.CPUTicks = 0;
