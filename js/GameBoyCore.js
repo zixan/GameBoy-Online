@@ -1146,7 +1146,6 @@ GameBoyCore.prototype.OPCODE = [
 	//HALT
 	//#0x76:
 	function (parentObj) {
-		parentObj.halt = true;
 		//See if we're taking an interrupt already:
 		if ((parentObj.interruptsEnabled & parentObj.interruptsRequested & 0x1F) > 0) {
 			//If an IRQ is already going to launch:
@@ -1161,6 +1160,7 @@ GameBoyCore.prototype.OPCODE = [
 			}
 			return;
 		}
+		parentObj.halt = true;
 		parentObj.calculateHALTPeriod();
 	},
 	//LD (HL), A
