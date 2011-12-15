@@ -5927,7 +5927,7 @@ GameBoyCore.prototype.updateSpriteCount = function (line) {
 		for (var OAMAddress = 0xFE00; OAMAddress < 0xFEA0 && this.spriteCount < 312; OAMAddress += 4) {
 			yoffset = lineAdjusted - this.memory[OAMAddress];
 			if (yoffset > -1 && yoffset < yCap) {
-				this.spriteCount += 6;
+				this.spriteCount += (this.spriteCount == 252) ? 5 : 6;
 			}
 		}
 	}
@@ -6072,9 +6072,9 @@ GameBoyCore.prototype.initializeLCDController = function () {
 						}
 					}
 					//Update the scanline registers and assert the LYC counter:
-					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
+					parentObj.actualScanLine = parentObj.memory[0xFF44] = 144;
 					//Perform a LYC counter assert:
-					if (parentObj.actualScanLine == parentObj.memory[0xFF45]) {
+					if (parentObj.memory[0xFF45] == 144) {
 						parentObj.memory[0xFF41] |= 0x04;
 						if (parentObj.LYCMatchTriggerSTAT) {
 							parentObj.interruptsRequested |= 0x2;
@@ -6089,14 +6089,15 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					parentObj.modeSTAT = 1;
 					parentObj.interruptsRequested |= (parentObj.mode1TriggerSTAT) ? 0x3 : 0x1;
 					//Attempt to blit out to our canvas:
-					if (parentObj.drewBlank > 0) {		//LCD off takes at least 2 frames.
-						--parentObj.drewBlank;
-					}
-					else {
+					if (parentObj.drewBlank == 0) {
 						//Draw the frame:
 						parentObj.drawToCanvas();
 					}
-					parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control.
+					else {
+						//LCD off takes at least 2 frames:
+						--parentObj.drewBlank;
+					}
+					parentObj.LINECONTROL[144](parentObj);	//Scan Line and STAT Mode Control.
 				}
 			}
 		}
@@ -6124,25 +6125,27 @@ GameBoyCore.prototype.initializeLCDController = function () {
 		else {
 			//VBlank Ending (We're on the last actual scan line)
 			this.LINECONTROL[153] = function (parentObj) {
-				if (parentObj.STATTracker != 4 && parentObj.memory[0xFF44] == 153 && parentObj.LCDTicks >= 8) {
-					parentObj.memory[0xFF44] = 0;	//LY register resets to 0 early.
-					//Perform a LYC counter assert:
-					if (parentObj.memory[0xFF45] == 0) {
-						parentObj.memory[0xFF41] |= 0x04;
-						if (parentObj.LYCMatchTriggerSTAT) {
-							parentObj.interruptsRequested |= 0x2;
+				if (parentObj.LCDTicks >= 8) {
+					if (parentObj.STATTracker != 4 && parentObj.memory[0xFF44] == 153) {
+						parentObj.memory[0xFF44] = 0;	//LY register resets to 0 early.
+						//Perform a LYC counter assert:
+						if (parentObj.memory[0xFF45] == 0) {
+							parentObj.memory[0xFF41] |= 0x04;
+							if (parentObj.LYCMatchTriggerSTAT) {
+								parentObj.interruptsRequested |= 0x2;
+							}
+						} 
+						else {
+							parentObj.memory[0xFF41] &= 0x7B;
 						}
-					} 
-					else {
-						parentObj.memory[0xFF41] &= 0x7B;
+						parentObj.STATTracker = 4;
 					}
-					parentObj.STATTracker = 4;
-				}
-				if (parentObj.LCDTicks >= 456) {
-					//We reset back to the beginning:
-					parentObj.LCDTicks -= 456;
-					parentObj.STATTracker = parentObj.actualScanLine = 0;
-					parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control.
+					if (parentObj.LCDTicks >= 456) {
+						//We reset back to the beginning:
+						parentObj.LCDTicks -= 456;
+						parentObj.STATTracker = parentObj.actualScanLine = 0;
+						parentObj.LINECONTROL[0](parentObj);	//Scan Line and STAT Mode Control.
+					}
 				}
 			}
 		}
