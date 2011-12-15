@@ -6350,13 +6350,13 @@ GameBoyCore.prototype.renderScanLine = function () {
 	this.midScanlineOffset = -1;
 }
 GameBoyCore.prototype.renderMidScanLine = function () {
-	if (this.actualScanLine < 144 && this.LCDTicks >= 82 && this.modeSTAT == 3 && (settings[4] == 0 || this.frameCount > 0)) {
+	if (this.actualScanLine < 144 && this.LCDTicks >= 74 && this.modeSTAT == 3 && (settings[4] == 0 || this.frameCount > 0)) {
 		//TODO: Get this accurate:
 		if (this.midScanlineOffset == -1) {
 			this.midScanlineOffset = this.memory[0xFF43] & 0x7;
 		}
-		if (this.LCDTicks >= 90) {
-			var pixelEnd = this.LCDTicks - 82;
+		if (this.LCDTicks >= 82) {
+			var pixelEnd = this.LCDTicks - 74;
 			pixelEnd = Math.min(pixelEnd - this.midScanlineOffset - (pixelEnd % 0x8), 160);
 			if (this.bgEnabled) {
 				this.pixelStart = this.actualScanLine * 160;
