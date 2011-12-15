@@ -1146,100 +1146,22 @@ GameBoyCore.prototype.OPCODE = [
 	//HALT
 	//#0x76:
 	function (parentObj) {
-		if (!parentObj.halt) {
-			parentObj.halt = true;
-			if (parentObj.cGBC) {
-				parentObj.CPUTicks += 4;	//CGB adds a hidden NOP.
-			}
-			//See if we're taking an interrupt already:
-			if ((parentObj.interruptsEnabled & parentObj.interruptsRequested & 0x1F) > 0) {
+		parentObj.halt = true;
+		//See if we're taking an interrupt already:
+		if ((parentObj.interruptsEnabled & parentObj.interruptsRequested & 0x1F) > 0) {
+			//If an IRQ is already going to launch:
+			if (!parentObj.IME) {
+				if (!parentObj.cGBC && !parentObj.usedBootROM) {
+					//HALT bug in the DMG CPU model (Program Counter fails to increment for one instruction after HALT):
+					parentObj.skipPCIncrement = true;
+					return;
+				}
+				//CGB gets around the HALT PC bug by doubling the hidden NOP.
 				parentObj.CPUTicks += 4;
-				//If an IRQ is already going to launch:
-				if (!parentObj.IME) {
-					if (!parentObj.cGBC && !parentObj.usedBootROM) {
-						//HALT bug in the DMG CPU model (Program Counter fails to increment for one instruction after HALT):
-						parentObj.skipPCIncrement = true;
-						return;
-					}
-					//CGB gets around the HALT PC bug by doubling the hidden NOP.
-					parentObj.CPUTicks += 4;
-				}
-				return;
 			}
-			//Make sure we minimally clock 1:
-			parentObj.haltPostClocks = parentObj.CPUTicks;
-			var originalHaltClock = 4;
+			return;
 		}
-		else {
-			var originalHaltClock = 0;
-		}
-		//Prepare the short-circuit directly to the next IRQ event:
-		var currentClocks = (parentObj.CPUCyclesPerIteration - parentObj.emulatorTicks) * parentObj.multiplier;
-		var temp_var = 0;
-		if (parentObj.LCDisOn) {
-			if ((parentObj.interruptsEnabled & 0x1) == 0x1) {
-				temp_var = ((456 * (((parentObj.modeSTAT == 1) ? 298 : 144) - parentObj.actualScanLine)) - parentObj.LCDTicks) * parentObj.multiplier;
-				if (temp_var <= currentClocks) {
-					parentObj.halt = false;
-					currentClocks = temp_var;
-				}
-			}
-			if ((parentObj.interruptsEnabled & 0x2) == 0x2) {
-				if (parentObj.mode0TriggerSTAT) {
-					temp_var = (parentObj.clocksUntilMode0() - parentObj.LCDTicks) * parentObj.multiplier;
-					if (temp_var <= currentClocks) {
-						parentObj.halt = false;
-						currentClocks = temp_var;
-					}
-				}
-				if (parentObj.mode1TriggerSTAT && (parentObj.interruptsEnabled & 0x1) == 0) {
-					temp_var = ((456 * (((parentObj.modeSTAT == 1) ? 298 : 144) - parentObj.actualScanLine)) - parentObj.LCDTicks) * parentObj.multiplier;
-					if (temp_var <= currentClocks) {
-						parentObj.halt = false;
-						currentClocks = temp_var;
-					}
-				}
-				if (parentObj.mode2TriggerSTAT) {
-					temp_var = (((parentObj.actualScanLine >= 143) ? (456 * (154 - parentObj.actualScanLine)) : 456) - parentObj.LCDTicks) * parentObj.multiplier;
-					if (temp_var <= currentClocks) {
-						parentObj.halt = false;
-						currentClocks = temp_var;
-					}
-				}
-				if (parentObj.LYCMatchTriggerSTAT && parentObj.memory[0xFF45] <= 153) {
-					temp_var = (parentObj.clocksUntilLYCMatch() - parentObj.LCDTicks) * parentObj.multiplier;
-					if (temp_var <= currentClocks) {
-						parentObj.halt = false;
-						currentClocks = temp_var;
-					}
-				}
-			}
-		}
-		if (parentObj.TIMAEnabled && (parentObj.interruptsEnabled & 0x4) == 0x4) {
-			temp_var = ((0x100 - parentObj.memory[0xFF05]) * parentObj.TACClocker) - parentObj.timerTicks;
-			if (temp_var <= currentClocks) {
-				parentObj.halt = false;
-				currentClocks = temp_var;
-			}
-		}
-		if (parentObj.serialTimer > 0 && (parentObj.interruptsEnabled & 0x8) == 0x8) {
-			if (parentObj.serialTimer <= currentClocks) {
-				parentObj.halt = false;
-				currentClocks = parentObj.serialTimer;
-			}
-		}
-		if (!parentObj.halt) {
-			//Exit out of HALT normally:
-			parentObj.CPUTicks = (currentClocks > originalHaltClock) ? currentClocks : originalHaltClock;
-			parentObj.halt = true;
-			parentObj.updateCore();
-			parentObj.halt = false;
-			parentObj.CPUTicks = parentObj.haltPostClocks;
-		}
-		else {
-			//We have to bail out of HALT since the clocking is so large:
-			parentObj.CPUTicks = currentClocks;
-		}
+		parentObj.calculateHALTPeriod();
 	},
 	//LD (HL), A
 	//#0x77:
@@ -4046,7 +3968,7 @@ GameBoyCore.prototype.TICKTable = [		//Number of machine cycles for each instruc
      4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //4
      4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //5
      4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //6
-     8,  8,  8,  8,  8,  8,  0,  8,      4,  4,  4, 4,  4,  4, 8,  4,  //7
+     8,  8,  8,  8,  8,  8,  4,  8,      4,  4,  4, 4,  4,  4, 8,  4,  //7
 
      4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //8
      4,  4,  4,  4,  4,  4,  8,  4,      4,  4,  4, 4,  4,  4, 8,  4,  //9
@@ -4513,14 +4435,18 @@ GameBoyCore.prototype.initMemory = function () {
 }
 GameBoyCore.prototype.generateCacheArray = function (tileAmount) {
 	var tileArray = [];
-	for (var tileNumber = 0, x = 0, y = 0; tileNumber < tileAmount; ++tileNumber) {
-		tileArray[tileNumber] = [];
-		for (y = 0; y < 8; ++y) {
-			tileArray[tileNumber][y] = this.getTypedArray(8, 0, "uint8");
-			for (x = 0; x < 8; ++x) {
-				tileArray[tileNumber][y][x] = 0;
-			}
-		}
+	var tileNumber = 0;
+	while (tileNumber < tileAmount) {
+		tileArray[tileNumber++] = [
+			this.getTypedArray(8, 0, "uint8"),
+			this.getTypedArray(8, 0, "uint8"),
+			this.getTypedArray(8, 0, "uint8"),
+			this.getTypedArray(8, 0, "uint8"),
+			this.getTypedArray(8, 0, "uint8"),
+			this.getTypedArray(8, 0, "uint8"),
+			this.getTypedArray(8, 0, "uint8"),
+			this.getTypedArray(8, 0, "uint8")
+		];
 	}
 	return tileArray;
 }
@@ -5814,7 +5740,7 @@ GameBoyCore.prototype.run = function () {
 			this.clockUpdate();			//Frame skip and RTC code.
 			if (this.halt) {			//Finish the HALT rundown execution.
 				this.CPUTicks = 0;
-				this.OPCODE[0x76](this);
+				this.calculateHALTPeriod();
 				this.updateCore();
 			}
 			this.executeIteration();
@@ -7369,6 +7295,72 @@ GameBoyCore.prototype.generateGBOAMTile = function (map, tile) {
 	this.tileCacheValid[tile] = 1;
 	//Return the obtained tile to the rendering path:
 	return tileBlock;
+}
+//HALT clock through procedure:
+GameBoyCore.prototype.calculateHALTPeriod = function () {
+	//Calculate how many clocks we can do at most:
+	var currentClocks = (this.CPUCyclesPerIteration - this.emulatorTicks) * this.multiplier;
+	var temp_var = 0;
+	if (this.LCDisOn) {
+		if ((this.interruptsEnabled & 0x1) == 0x1) {
+			temp_var = ((456 * (((this.modeSTAT == 1) ? 298 : 144) - this.actualScanLine)) - this.LCDTicks) * this.multiplier;
+			if (temp_var <= currentClocks) {
+				this.halt = false;
+				currentClocks = temp_var;
+			}
+		}
+		if ((this.interruptsEnabled & 0x2) == 0x2) {
+			if (this.mode0TriggerSTAT) {
+				temp_var = (this.clocksUntilMode0() - this.LCDTicks) * this.multiplier;
+				if (temp_var <= currentClocks) {
+					this.halt = false;
+					currentClocks = temp_var;
+				}
+			}
+			if (this.mode1TriggerSTAT && (this.interruptsEnabled & 0x1) == 0) {
+				temp_var = ((456 * (((this.modeSTAT == 1) ? 298 : 144) - this.actualScanLine)) - this.LCDTicks) * this.multiplier;
+				if (temp_var <= currentClocks) {
+					this.halt = false;
+					currentClocks = temp_var;
+				}
+			}
+			if (this.mode2TriggerSTAT) {
+				temp_var = (((this.actualScanLine >= 143) ? (456 * (154 - this.actualScanLine)) : 456) - this.LCDTicks) * this.multiplier;
+				if (temp_var <= currentClocks) {
+					this.halt = false;
+					currentClocks = temp_var;
+				}
+			}
+			if (this.LYCMatchTriggerSTAT && this.memory[0xFF45] <= 153) {
+				temp_var = (this.clocksUntilLYCMatch() - this.LCDTicks) * this.multiplier;
+				if (temp_var <= currentClocks) {
+					this.halt = false;
+					currentClocks = temp_var;
+				}
+			}
+		}
+	}
+	if (this.TIMAEnabled && (this.interruptsEnabled & 0x4) == 0x4) {
+		temp_var = ((0x100 - this.memory[0xFF05]) * this.TACClocker) - this.timerTicks;
+		if (temp_var <= currentClocks) {
+			this.halt = false;
+			currentClocks = temp_var;
+		}
+	}
+	if (this.serialTimer > 0 && (this.interruptsEnabled & 0x8) == 0x8) {
+		if (this.serialTimer <= currentClocks) {
+			this.halt = false;
+			currentClocks = this.serialTimer;
+		}
+	}
+	this.CPUTicks += currentClocks;
+	if (!this.halt) {
+		//Exit out of HALT normally:
+		this.halt = true;
+		this.updateCore();
+		this.halt = false;
+		this.CPUTicks = 0;
+	}
 }
 //Memory Reading:
 GameBoyCore.prototype.memoryRead = function (address) {
