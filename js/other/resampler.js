@@ -40,7 +40,6 @@ Resampler.prototype.interpolate = function (buffer) {
 			var ratioWeight = this.ratioWeight;
 			var weight = 0;
 			var output = 0;
-			var totalWeight = 0;
 			var actualPosition = 0;
 			var amountToNext = 0;
 			var tailExists = this.tailExists;		//See if a tail exists for this iteration.
@@ -62,13 +61,11 @@ Resampler.prototype.interpolate = function (buffer) {
 						//Don't use the previous state values:
 						weight = ratioWeight;
 						output = 0;
-						totalWeight = 0;
 					}
 					else {
 						//Use the previous state values:
 						weight = this.lastWeight[channel];
 						output = this.lastOutput[channel];
-						totalWeight = this.lastTotalWeight[channel];
 						alreadyProcessedTail = true;
 					}
 					//Where we do the actual interpolation math:
@@ -78,14 +75,12 @@ Resampler.prototype.interpolate = function (buffer) {
 						if (weight >= amountToNext) {
 							//Needs another loop pass for completion, so build up:
 							output += buffer[actualPosition] * amountToNext;
-							totalWeight += amountToNext;
 							currentPosition = actualPosition + channels;
 							weight -= amountToNext;
 						}
 						else {
 							//Iteration was able to complete fully:
 							output += buffer[actualPosition] * weight;
-							totalWeight += weight;
 							currentPosition += weight;
 							weight = 0;
 							break;
@@ -93,14 +88,13 @@ Resampler.prototype.interpolate = function (buffer) {
 					}
 					if (weight == 0) {
 						//Single iteration completed fully:
-						outputBuffer[outputOffset] = output / totalWeight;	//Divide by the spanning amount.
+						outputBuffer[outputOffset] = output / ratioWeight;	//Divide by the spanning amount.
 						outputOffset += channels;							//Go to the next frame (NOT sample).
 					}
 					else {
 						//Save the tail interpolation state for the next buffer to pass through:
 						this.lastWeight[channel] = weight;
 						this.lastOutput[channel] = output;
-						this.lastTotalWeight[channel] = totalWeight;
 						this.tailExists = true;
 						break;
 					}
@@ -158,7 +152,6 @@ Resampler.prototype.initializeBuffers = function (generateTailCache) {
 		if (generateTailCache) {
 			this.lastWeight = new Float32Array(this.channels);
 			this.lastOutput = new Float32Array(this.channels);
-			this.lastTotalWeight = new Float32Array(this.channels);
 		}
 	}
 	catch (error) {
@@ -166,7 +159,6 @@ Resampler.prototype.initializeBuffers = function (generateTailCache) {
 		if (generateTailCache) {
 			this.lastWeight = [];
 			this.lastOutput = [];
-			this.lastTotalWeight = [];
 		}
 	}
 }
