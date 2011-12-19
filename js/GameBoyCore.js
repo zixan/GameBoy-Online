@@ -6069,7 +6069,6 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					}
 					//Reset our mode contingency variables:
 					parentObj.STATTracker = 0;
-					parentObj.modeSTAT = -1;
 					parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control.
 				}
 			}
