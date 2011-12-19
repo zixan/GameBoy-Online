@@ -7329,7 +7329,14 @@ GameBoyCore.prototype.generateGBOAMTile = function (map, tile) {
 	//Return the obtained tile to the rendering path:
 	return tileBlock;
 }
-//HALT clock through procedure:
+/*
+	Handle the HALT opcode by predicting all IRQ cases correctly,
+	then selecting the next closest IRQ firing from the prediction to
+	clock up to. This prevents hacky looping that doesn't predict, but
+	instead just clocks through the core update procedure by one which
+	is very slow. Not many emulators do this because they have to cover
+	all the IRQ prediction cases and they usually get them wrong.
+*/
 GameBoyCore.prototype.calculateHALTPeriod = function () {
 	//Initialize our variables and start our prediction:
 	var currentClocks = -1;
@@ -7379,8 +7386,8 @@ GameBoyCore.prototype.calculateHALTPeriod = function () {
 			currentClocks = this.serialTimer;
 		}
 	}
+	var maxClocks = (this.CPUCyclesPerIteration - this.emulatorTicks) * this.multiplier;
 	if (currentClocks >= 0) {
-		var maxClocks = (this.CPUCyclesPerIteration - this.emulatorTicks) * this.multiplier;
 		if (currentClocks <= maxClocks) {
 			//Exit out of HALT normally:
 			this.CPUTicks = Math.max(currentClocks, this.CPUTicks);
@@ -7389,10 +7396,14 @@ GameBoyCore.prototype.calculateHALTPeriod = function () {
 			this.CPUTicks = 0;
 		}
 		else {
+			//Still in HALT, clock only up to the clocks specified per iteration:
 			this.CPUTicks += maxClocks;
 		}
 	}
 	else {
+		//Still in HALT, clock only up to the clocks specified per iteration:
+		//Will stay in HALT forever (Stuck in HALT forever), but the APU and LCD are still clocked, so don't pause:
+		this.CPUTicks += maxClocks;
 		cout("Emulated CPU is stuck on the HALT opcode.", 1);
 	}
 }
