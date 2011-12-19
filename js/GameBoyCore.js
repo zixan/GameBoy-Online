@@ -36,6 +36,9 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.programCounter = 0x0100;				//Program Counter
 	//Some CPU Emulation State Variables:
 	this.CPUCyclesPerIteration = 0;				//Relative CPU clocking to speed set.
+	this.CPUCyclesTotal = 0;					//Relative CPU clocking to speed set, rounded appropriately.
+	this.CPUCyclesTotalCurrent = 0;				//Relative CPU clocking to speed set, the directly used value.
+	this.CPUCyclesTotalRoundoff = 0;			//Clocking per iteration rounding catch.
 	this.baseCPUCyclesPerIteration	= 0;		//CPU clocks per iteration at 1x speed.
 	this.inBootstrap = true;					//Whether we're in the GBC boot ROM.
 	this.usedBootROM = false;					//Updated upon ROM loading...
@@ -47,7 +50,6 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.interruptsEnabled = 0;					//IE Register
 	this.hdmaRunning = false;					//HDMA Transfer Flag - GBC only
 	this.CPUTicks = 0;							//The number of clock cycles emulated.
-	this.multiplier = 1;						//GBC Speed Multiplier
 	this.doubleSpeedDivider = 0;				//GBC double speed clocking divider.
 	this.JoyPad = 0xFF;							//Joypad State (two four-bit states actually)
 	//Main RAM, MBC RAM, GBC Main RAM, VRAM, etc.
@@ -506,15 +508,14 @@ GameBoyCore.prototype.OPCODE = [
 			if ((parentObj.memory[0xFF4D] & 0x01) == 0x01) {		//Speed change requested.
 				if (parentObj.memory[0xFF4D] > 0x7F) {				//Go back to single speed mode.
 					cout("Going into single clock speed mode.", 0);
-					parentObj.multiplier = 1;						//TODO: Move this into the delay done code.
+					parentObj.doubleSpeedDivider = 0;
 					parentObj.memory[0xFF4D] &= 0x7F;				//Clear the double speed mode flag.
 				}
 				else {												//Go to double speed mode.
 					cout("Going into double clock speed mode.", 0);
-					parentObj.multiplier = 2;						//TODO: Move this into the delay done code.
+					parentObj.doubleSpeedDivider = 1;
 					parentObj.memory[0xFF4D] |= 0x80;				//Set the double speed mode flag.
 				}
-				parentObj.doubleSpeedDivider = parentObj.multiplier - 1;
 				parentObj.memory[0xFF4D] &= 0xFE;					//Reset the request bit.
 			}
 		}
@@ -4062,7 +4063,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.IME,
 		this.hdmaRunning,
 		this.CPUTicks,
-		this.multiplier,
+		this.doubleSpeedDivider,
 		this.fromTypedArray(this.memory),
 		this.fromTypedArray(this.MBCRam),
 		this.fromTypedArray(this.VRAM),
@@ -4237,8 +4238,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.IME = state[index++];
 	this.hdmaRunning = state[index++];
 	this.CPUTicks = state[index++];
-	this.multiplier = state[index++];
-	this.doubleSpeedDivider = this.multiplier - 1;
+	this.doubleSpeedDivider = state[index++];
 	this.memory = this.toTypedArray(state[index++], "uint8");
 	this.MBCRam = this.toTypedArray(state[index++], "uint8");
 	this.VRAM = this.toTypedArray(state[index++], "uint8");
@@ -4880,6 +4880,9 @@ GameBoyCore.prototype.initializeTiming = function () {
 }
 GameBoyCore.prototype.setEmulatorSpeed = function(speed) {
 	this.CPUCyclesPerIteration = this.baseCPUCyclesPerIteration * speed;
+	this.CPUCyclesTotalRoundoff = this.CPUCyclesPerIteration % 4;
+	this.CPUCyclesTotal = (this.CPUCyclesPerIteration - this.CPUCyclesTotalRoundoff) | 0;
+	this.CPUCyclesTotalCurrent = this.CPUCyclesTotal;
 	this.setAudioSpeed(speed);
 }
 GameBoyCore.prototype.setAudioSpeed = function (speed) {
@@ -5839,10 +5842,10 @@ GameBoyCore.prototype.executeIteration = function () {
 		//Timing:
 		////updateCore function inlining:
 		//Update the clocking for the LCD emulation:
-		this.LCDTicks += this.CPUTicks / this.multiplier;				//LCD Timing
+		this.LCDTicks += this.CPUTicks >> this.doubleSpeedDivider;		//LCD Timing
 		this.LCDCONTROL[this.actualScanLine](this);						//Scan Line and STAT Mode Control 
 		//Single-speed relative timing for A/V emulation:
-		timedTicks = this.CPUTicks / this.multiplier;					//CPU clocking can be updated from the LCD handling.
+		timedTicks = this.CPUTicks >> this.doubleSpeedDivider;			//CPU clocking can be updated from the LCD handling.
 		this.audioTicks += timedTicks;									//Audio Timing
 		this.emulatorTicks += timedTicks;								//Emulator Timing
 		//CPU Timers:
@@ -5871,16 +5874,22 @@ GameBoyCore.prototype.executeIteration = function () {
 			}
 		}
 		//End of iteration routine:
-		if (this.emulatorTicks >= this.CPUCyclesPerIteration) {
-			this.audioJIT();	//Make sure we at least output once per iteration.
-			//Update DIV Alignment (Integer overflow safety):
-			this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 8)) & 0xFF;
-			this.DIVTicks &= 0xFF;
-			//Update emulator flags:
-			this.stopEmulator |= 1;			//End current loop.
-			this.emulatorTicks -= this.CPUCyclesPerIteration;
+		if (this.emulatorTicks >= this.CPUCyclesTotal) {
+			this.iterationEndRoutine();
 		}
 	}
+}
+GameBoyCore.prototype.iterationEndRoutine = function () {
+	this.audioJIT();	//Make sure we at least output once per iteration.
+	//Update DIV Alignment (Integer overflow safety):
+	this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 8)) & 0xFF;
+	this.DIVTicks &= 0xFF;
+	//Update emulator flags:
+	this.stopEmulator |= 1;			//End current loop.
+	this.emulatorTicks -= this.CPUCyclesTotal;
+	this.CPUCyclesTotalCurrent += this.CPUCyclesTotalRoundoff;
+	this.CPUCyclesTotal = this.CPUCyclesTotalCurrent | 0;
+	this.CPUCyclesTotalCurrent %= 1;
 }
 GameBoyCore.prototype.scanLineMode2 = function () {	//OAM Search Period
 	if (this.STATTracker != 1) {
@@ -5975,10 +5984,10 @@ GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
 }
 GameBoyCore.prototype.updateCore = function () {
 	//Update the clocking for the LCD emulation:
-	this.LCDTicks += this.CPUTicks / this.multiplier;			//LCD Timing
+	this.LCDTicks += this.CPUTicks >> this.doubleSpeedDivider;	//LCD Timing
 	this.LCDCONTROL[this.actualScanLine](this);					//Scan Line and STAT Mode Control
 	//Single-speed relative timing for A/V emulation:
-	var timedTicks = this.CPUTicks / this.multiplier;			//CPU clocking can be updated from the LCD handling.
+	var timedTicks = this.CPUTicks >> this.doubleSpeedDivider;	//CPU clocking can be updated from the LCD handling.
 	this.audioTicks += timedTicks;								//Audio Timing
 	this.emulatorTicks += timedTicks;							//Emulator Timing
 	//CPU Timers:
@@ -6007,14 +6016,8 @@ GameBoyCore.prototype.updateCore = function () {
 		}
 	}
 	//End of iteration routine:
-	if (this.emulatorTicks >= this.CPUCyclesPerIteration) {
-		this.audioJIT();	//Make sure we at least output once per iteration.
-		//Update DIV Alignment (Integer overflow safety):
-		this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 8)) & 0xFF;
-		this.DIVTicks &= 0xFF;
-		//Update emulator flags:
-		this.stopEmulator |= 1;			//End current loop.
-		this.emulatorTicks -= this.CPUCyclesPerIteration;
+	if (this.emulatorTicks >= this.CPUCyclesTotal) {
+		this.iterationEndRoutine();
 	}
 }
 GameBoyCore.prototype.initializeLCDController = function () {
@@ -7344,29 +7347,29 @@ GameBoyCore.prototype.calculateHALTPeriod = function () {
 	if (this.LCDisOn) {
 		//If the LCD is enabled, then predict the LCD IRQs enabled:
 		if ((this.interruptsEnabled & 0x1) == 0x1) {
-			currentClocks = ((456 * (((this.modeSTAT == 1) ? 298 : 144) - this.actualScanLine)) - this.LCDTicks) * this.multiplier;
+			currentClocks = ((456 * (((this.modeSTAT == 1) ? 298 : 144) - this.actualScanLine)) - this.LCDTicks) << this.doubleSpeedDivider;
 		}
 		if ((this.interruptsEnabled & 0x2) == 0x2) {
 			if (this.mode0TriggerSTAT) {
-				temp_var = (this.clocksUntilMode0() - this.LCDTicks) * this.multiplier;
+				temp_var = (this.clocksUntilMode0() - this.LCDTicks) << this.doubleSpeedDivider;
 				if (temp_var <= currentClocks || currentClocks == -1) {
 					currentClocks = temp_var;
 				}
 			}
 			if (this.mode1TriggerSTAT && (this.interruptsEnabled & 0x1) == 0) {
-				temp_var = ((456 * (((this.modeSTAT == 1) ? 298 : 144) - this.actualScanLine)) - this.LCDTicks) * this.multiplier;
+				temp_var = ((456 * (((this.modeSTAT == 1) ? 298 : 144) - this.actualScanLine)) - this.LCDTicks) << this.doubleSpeedDivider;
 				if (temp_var <= currentClocks || currentClocks == -1) {
 					currentClocks = temp_var;
 				}
 			}
 			if (this.mode2TriggerSTAT) {
-				temp_var = (((this.actualScanLine >= 143) ? (456 * (154 - this.actualScanLine)) : 456) - this.LCDTicks) * this.multiplier;
+				temp_var = (((this.actualScanLine >= 143) ? (456 * (154 - this.actualScanLine)) : 456) - this.LCDTicks) << this.doubleSpeedDivider;
 				if (temp_var <= currentClocks || currentClocks == -1) {
 					currentClocks = temp_var;
 				}
 			}
 			if (this.LYCMatchTriggerSTAT && this.memory[0xFF45] <= 153) {
-				temp_var = (this.clocksUntilLYCMatch() - this.LCDTicks) * this.multiplier;
+				temp_var = (this.clocksUntilLYCMatch() - this.LCDTicks) << this.doubleSpeedDivider;
 				if (temp_var <= currentClocks || currentClocks == -1) {
 					currentClocks = temp_var;
 				}
@@ -7386,7 +7389,7 @@ GameBoyCore.prototype.calculateHALTPeriod = function () {
 			currentClocks = this.serialTimer;
 		}
 	}
-	var maxClocks = (this.CPUCyclesPerIteration - this.emulatorTicks) * this.multiplier;
+	var maxClocks = (this.CPUCyclesTotal - this.emulatorTicks) << this.doubleSpeedDivider;
 	if (currentClocks >= 0) {
 		if (currentClocks <= maxClocks) {
 			//Exit out of HALT normally:
