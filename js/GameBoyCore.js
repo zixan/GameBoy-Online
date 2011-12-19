@@ -37,6 +37,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	//Some CPU Emulation State Variables:
 	this.CPUCyclesPerIteration = 0;				//Relative CPU clocking to speed set.
 	this.CPUCyclesTotal = 0;					//Relative CPU clocking to speed set, rounded appropriately.
+	this.CPUCyclesTotalBase = 0;				//Relative CPU clocking to speed set base.
 	this.CPUCyclesTotalCurrent = 0;				//Relative CPU clocking to speed set, the directly used value.
 	this.CPUCyclesTotalRoundoff = 0;			//Clocking per iteration rounding catch.
 	this.baseCPUCyclesPerIteration	= 0;		//CPU clocks per iteration at 1x speed.
@@ -4881,8 +4882,8 @@ GameBoyCore.prototype.initializeTiming = function () {
 GameBoyCore.prototype.setEmulatorSpeed = function(speed) {
 	this.CPUCyclesPerIteration = this.baseCPUCyclesPerIteration * speed;
 	this.CPUCyclesTotalRoundoff = this.CPUCyclesPerIteration % 4;
-	this.CPUCyclesTotal = (this.CPUCyclesPerIteration - this.CPUCyclesTotalRoundoff) | 0;
-	this.CPUCyclesTotalCurrent = this.CPUCyclesTotal;
+	this.CPUCyclesTotalBase = this.CPUCyclesTotal = (this.CPUCyclesPerIteration - this.CPUCyclesTotalRoundoff) | 0;
+	this.CPUCyclesTotalCurrent = 0;
 	this.setAudioSpeed(speed);
 }
 GameBoyCore.prototype.setAudioSpeed = function (speed) {
@@ -5888,7 +5889,7 @@ GameBoyCore.prototype.iterationEndRoutine = function () {
 	this.stopEmulator |= 1;			//End current loop.
 	this.emulatorTicks -= this.CPUCyclesTotal;
 	this.CPUCyclesTotalCurrent += this.CPUCyclesTotalRoundoff;
-	this.CPUCyclesTotal = this.CPUCyclesTotalCurrent | 0;
+	this.CPUCyclesTotal = this.CPUCyclesTotalBase + (this.CPUCyclesTotalCurrent | 0);
 	this.CPUCyclesTotalCurrent %= 1;
 }
 GameBoyCore.prototype.scanLineMode2 = function () {	//OAM Search Period
