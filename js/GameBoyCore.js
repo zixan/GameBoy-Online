@@ -52,7 +52,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.interruptsEnabled = 0;					//IE Register
 	this.hdmaRunning = false;					//HDMA Transfer Flag - GBC only
 	this.CPUTicks = 0;							//The number of clock cycles emulated.
-	this.multiplier = 0;						//GBC double speed clocking multiplier.
+	this.doubleSpeedShifter = 0;				//GBC double speed clocking shifter.
 	this.JoyPad = 0xFF;							//Joypad State (two four-bit states actually)
 	//Main RAM, MBC RAM, GBC Main RAM, VRAM, etc.
 	this.memoryReader = [];						//Array of functions mapped to read back memory
