@@ -1161,15 +1161,18 @@ GameBoyCore.prototype.OPCODE = [
 				if (!parentObj.cGBC && !parentObj.usedBootROM) {
 					//HALT bug in the DMG CPU model (Program Counter fails to increment for one instruction after HALT):
 					parentObj.skipPCIncrement = true;
-					return;
 				}
-				//CGB gets around the HALT PC bug by doubling the hidden NOP.
-				parentObj.CPUTicks += 4;
+				else {
+					//CGB gets around the HALT PC bug by doubling the hidden NOP.
+					parentObj.CPUTicks += 4;
+				}
 			}
-			return;
 		}
-		parentObj.halt = true;
-		parentObj.calculateHALTPeriod();
+		else {
+			//CPU is stalled until the next IRQ match:
+			parentObj.halt = true;
+			parentObj.calculateHALTPeriod();
+		}
 	},
 	//LD (HL), A
 	//#0x77:
@@ -5881,16 +5884,18 @@ GameBoyCore.prototype.executeIteration = function () {
 	}
 }
 GameBoyCore.prototype.iterationEndRoutine = function () {
-	this.audioJIT();	//Make sure we at least output once per iteration.
-	//Update DIV Alignment (Integer overflow safety):
-	this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 8)) & 0xFF;
-	this.DIVTicks &= 0xFF;
-	//Update emulator flags:
-	this.stopEmulator |= 1;			//End current loop.
-	this.emulatorTicks -= this.CPUCyclesTotal;
-	this.CPUCyclesTotalCurrent += this.CPUCyclesTotalRoundoff;
-	this.CPUCyclesTotal = this.CPUCyclesTotalBase + (this.CPUCyclesTotalCurrent | 0);
-	this.CPUCyclesTotalCurrent %= 1;
+	if ((this.stopEmulator & 0x1) == 0) {
+		this.audioJIT();	//Make sure we at least output once per iteration.
+		//Update DIV Alignment (Integer overflow safety):
+		this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 8)) & 0xFF;
+		this.DIVTicks &= 0xFF;
+		//Update emulator flags:
+		this.stopEmulator |= 1;			//End current loop.
+		this.emulatorTicks -= this.CPUCyclesTotal;
+		this.CPUCyclesTotalCurrent += this.CPUCyclesTotalRoundoff;
+		this.CPUCyclesTotal = this.CPUCyclesTotalBase + (this.CPUCyclesTotalCurrent | 0);
+		this.CPUCyclesTotalCurrent %= 1;
+	}
 }
 GameBoyCore.prototype.scanLineMode2 = function () {	//OAM Search Period
 	if (this.STATTracker != 1) {
