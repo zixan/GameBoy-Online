@@ -5913,8 +5913,11 @@ GameBoyCore.prototype.scanLineMode3 = function () {	//Scan Line Drawing Period
 GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 	if (this.modeSTAT != 0) {
 		if (this.STATTracker != 2) {
-			if (this.STATTracker == 0 && this.mode2TriggerSTAT) {
-				this.interruptsRequested |= 0x2;
+			if (this.STATTracker == 0) {
+				if (this.mode2TriggerSTAT) {
+					this.interruptsRequested |= 0x2;
+				}
+				this.modeSTAT = 3;
 			}
 			this.renderScanLine();
 			this.STATTracker = 2;
@@ -6069,6 +6072,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					}
 					//Reset our mode contingency variables:
 					parentObj.STATTracker = 0;
+					parentObj.modeSTAT = 2;
 					parentObj.LINECONTROL[parentObj.actualScanLine](parentObj);	//Scan Line and STAT Mode Control.
 				}
 			}
