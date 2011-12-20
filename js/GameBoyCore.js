@@ -41,6 +41,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.CPUCyclesTotalCurrent = 0;				//Relative CPU clocking to speed set, the directly used value.
 	this.CPUCyclesTotalRoundoff = 0;			//Clocking per iteration rounding catch.
 	this.baseCPUCyclesPerIteration	= 0;		//CPU clocks per iteration at 1x speed.
+	this.remainingClocks = 0;					//HALT clocking overrun carry over.
 	this.inBootstrap = true;					//Whether we're in the GBC boot ROM.
 	this.usedBootROM = false;					//Updated upon ROM loading...
 	this.halt = false;							//Has the CPU been suspended until the next interrupt?
@@ -4218,7 +4219,8 @@ GameBoyCore.prototype.saveState = function () {
 		this.fromTypedArray(this.BGCHRBank2),
 		this.haltPostClocks,
 		this.interruptsRequested,
-		this.interruptsEnabled
+		this.interruptsEnabled,
+		this.remainingClocks
 	];
 }
 GameBoyCore.prototype.returnFromState = function (returnedFrom) {
@@ -4393,7 +4395,8 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.BGCHRBank2 = this.toTypedArray(state[index++], "uint8");
 	this.haltPostClocks = state[index++];
 	this.interruptsRequested = state[index++];
-	this.interruptsEnabled = state[index];
+	this.interruptsEnabled = state[index++];
+	this.remainingClocks = state[index];
 	this.fromSaveState = true;
 	this.TICKTable = this.toTypedArray(this.TICKTable, "uint8");
 	this.SecondaryTICKTable = this.toTypedArray(this.SecondaryTICKTable, "uint8");
@@ -5778,7 +5781,9 @@ GameBoyCore.prototype.run = function () {
 			if (this.halt) {			//Finish the HALT rundown execution.
 				this.CPUTicks = 0;
 				this.calculateHALTPeriod();
-				this.updateCore();
+				if (this.halt) {
+					this.updateCore();
+				}
 			}
 			this.executeIteration();
 		}
@@ -7351,51 +7356,53 @@ GameBoyCore.prototype.generateGBOAMTile = function (map, tile) {
 */
 GameBoyCore.prototype.calculateHALTPeriod = function () {
 	//Initialize our variables and start our prediction:
-	var currentClocks = -1;
-	var temp_var = 0;
-	if (this.LCDisOn) {
-		//If the LCD is enabled, then predict the LCD IRQs enabled:
-		if ((this.interruptsEnabled & 0x1) == 0x1) {
-			currentClocks = ((456 * (((this.modeSTAT == 1) ? 298 : 144) - this.actualScanLine)) - this.LCDTicks) << this.doubleSpeedDivider;
+	var currentClocks = (this.remainingClocks > 0) ? this.remainingClocks : -1;
+	if (currentClocks < 0) {
+		var temp_var = 0;
+		if (this.LCDisOn) {
+			//If the LCD is enabled, then predict the LCD IRQs enabled:
+			if ((this.interruptsEnabled & 0x1) == 0x1) {
+				currentClocks = ((456 * (((this.modeSTAT == 1) ? 298 : 144) - this.actualScanLine)) - this.LCDTicks) << this.doubleSpeedDivider;
+			}
+			if ((this.interruptsEnabled & 0x2) == 0x2) {
+				if (this.mode0TriggerSTAT) {
+					temp_var = (this.clocksUntilMode0() - this.LCDTicks) << this.doubleSpeedDivider;
+					if (temp_var <= currentClocks || currentClocks == -1) {
+						currentClocks = temp_var;
+					}
+				}
+				if (this.mode1TriggerSTAT && (this.interruptsEnabled & 0x1) == 0) {
+					temp_var = ((456 * (((this.modeSTAT == 1) ? 298 : 144) - this.actualScanLine)) - this.LCDTicks) << this.doubleSpeedDivider;
+					if (temp_var <= currentClocks || currentClocks == -1) {
+						currentClocks = temp_var;
+					}
+				}
+				if (this.mode2TriggerSTAT) {
+					temp_var = (((this.actualScanLine >= 143) ? (456 * (154 - this.actualScanLine)) : 456) - this.LCDTicks) << this.doubleSpeedDivider;
+					if (temp_var <= currentClocks || currentClocks == -1) {
+						currentClocks = temp_var;
+					}
+				}
+				if (this.LYCMatchTriggerSTAT && this.memory[0xFF45] <= 153) {
+					temp_var = (this.clocksUntilLYCMatch() - this.LCDTicks) << this.doubleSpeedDivider;
+					if (temp_var <= currentClocks || currentClocks == -1) {
+						currentClocks = temp_var;
+					}
+				}
+			}
 		}
-		if ((this.interruptsEnabled & 0x2) == 0x2) {
-			if (this.mode0TriggerSTAT) {
-				temp_var = (this.clocksUntilMode0() - this.LCDTicks) << this.doubleSpeedDivider;
-				if (temp_var <= currentClocks || currentClocks == -1) {
-					currentClocks = temp_var;
-				}
-			}
-			if (this.mode1TriggerSTAT && (this.interruptsEnabled & 0x1) == 0) {
-				temp_var = ((456 * (((this.modeSTAT == 1) ? 298 : 144) - this.actualScanLine)) - this.LCDTicks) << this.doubleSpeedDivider;
-				if (temp_var <= currentClocks || currentClocks == -1) {
-					currentClocks = temp_var;
-				}
-			}
-			if (this.mode2TriggerSTAT) {
-				temp_var = (((this.actualScanLine >= 143) ? (456 * (154 - this.actualScanLine)) : 456) - this.LCDTicks) << this.doubleSpeedDivider;
-				if (temp_var <= currentClocks || currentClocks == -1) {
-					currentClocks = temp_var;
-				}
-			}
-			if (this.LYCMatchTriggerSTAT && this.memory[0xFF45] <= 153) {
-				temp_var = (this.clocksUntilLYCMatch() - this.LCDTicks) << this.doubleSpeedDivider;
-				if (temp_var <= currentClocks || currentClocks == -1) {
-					currentClocks = temp_var;
-				}
+		if (this.TIMAEnabled && (this.interruptsEnabled & 0x4) == 0x4) {
+			//CPU timer IRQ prediction:
+			temp_var = ((0x100 - this.memory[0xFF05]) * this.TACClocker) - this.timerTicks;
+			if (temp_var <= currentClocks || currentClocks == -1) {
+				currentClocks = temp_var;
 			}
 		}
-	}
-	if (this.TIMAEnabled && (this.interruptsEnabled & 0x4) == 0x4) {
-		//CPU timer IRQ prediction:
-		temp_var = ((0x100 - this.memory[0xFF05]) * this.TACClocker) - this.timerTicks;
-		if (temp_var <= currentClocks || currentClocks == -1) {
-			currentClocks = temp_var;
-		}
-	}
-	if (this.serialTimer > 0 && (this.interruptsEnabled & 0x8) == 0x8) {
-		//Serial IRQ prediction:
-		if (this.serialTimer <= currentClocks || currentClocks == -1) {
-			currentClocks = this.serialTimer;
+		if (this.serialTimer > 0 && (this.interruptsEnabled & 0x8) == 0x8) {
+			//Serial IRQ prediction:
+			if (this.serialTimer <= currentClocks || currentClocks == -1) {
+				currentClocks = this.serialTimer;
+			}
 		}
 	}
 	var maxClocks = (this.CPUCyclesTotal - this.emulatorTicks) << this.doubleSpeedDivider;
@@ -7405,17 +7412,19 @@ GameBoyCore.prototype.calculateHALTPeriod = function () {
 			this.CPUTicks = Math.max(currentClocks, this.CPUTicks);
 			this.updateCore();
 			this.halt = false;
-			this.CPUTicks = 0;
+			this.remainingClocks = this.CPUTicks = 0;
 		}
 		else {
 			//Still in HALT, clock only up to the clocks specified per iteration:
 			this.CPUTicks += maxClocks;
+			this.remainingClocks = currentClocks - maxClocks;
 		}
 	}
 	else {
 		//Still in HALT, clock only up to the clocks specified per iteration:
 		//Will stay in HALT forever (Stuck in HALT forever), but the APU and LCD are still clocked, so don't pause:
 		this.CPUTicks += maxClocks;
+		this.remainingClocks = 0;
 		cout("Emulated CPU is stuck on the HALT opcode.", 1);
 	}
 }
