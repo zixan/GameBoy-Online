@@ -6406,7 +6406,7 @@ GameBoyCore.prototype.renderScanLine = function () {
 	this.midScanlineOffset = -1;
 }
 GameBoyCore.prototype.renderMidScanLine = function () {
-	if (this.actualScanLine < 144 && this.LCDTicks >= 74 && this.modeSTAT == 3 && (settings[4] == 0 || this.frameCount > 0)) {
+	if (this.actualScanLine < 144 && this.modeSTAT == 3 && (settings[4] == 0 || this.frameCount > 0)) {
 		//TODO: Get this accurate:
 		if (this.midScanlineOffset == -1) {
 			this.midScanlineOffset = this.memory[0xFF43] & 0x7;
@@ -7426,8 +7426,8 @@ GameBoyCore.prototype.calculateHALTPeriod = function () {
 		}
 		else {
 			//Still in HALT, clock only up to the clocks specified per iteration:
-			this.CPUTicks += maxClocks;
-			this.remainingClocks = currentClocks - maxClocks;
+			this.CPUTicks = Math.max(maxClocks, this.CPUTicks);
+			this.remainingClocks = currentClocks - this.CPUTicks;
 		}
 	}
 	else {
