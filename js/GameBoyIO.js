@@ -23,9 +23,7 @@ var settings = [						//Some settings.
 	false,								//Whether to display the canvas at 144x160 on fullscreen or as stretched.
 	16,									//Interval for the emulator loop.
 	false,								//Render nearest-neighbor scaling in javascript?
-	false,								//Disallow typed arrays?
-	25000,								//Audio Buffer Low Limit.
-	75000								//Audio Buffer High Limit
+	false								//Disallow typed arrays?
 ];
 function start(canvas, canvasAlt, ROM) {
 	clearLastEmulation();

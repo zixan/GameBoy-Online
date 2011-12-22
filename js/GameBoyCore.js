@@ -120,6 +120,7 @@ function GameBoyCore(canvas, canvasAlt, ROMImage) {
 	this.dutyLookup = [0.125, 0.25, 0.5, 0.75];	//Map the duty values given to ones we can work with.
 	this.currentBuffer = [];					//The audio buffer we're working on.
 	this.audioInternalBuffer = [];				//A temporary buffer used in output management.
+	this.bufferContainAmount = 0;				//Buffer maintenance metric.
 	this.LSFR15Table = null;
 	this.LSFR7Table = null;
 	this.noiseSampleTable = null;
@@ -5027,7 +5028,8 @@ GameBoyCore.prototype.initSound = function () {
 		this.soundFrameShifter = this.soundChannelsAllocated - 1;
 		try {
 			var parentObj = this;
-			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], settings[23] << this.soundFrameShifter, settings[24] << this.soundFrameShifter, function (sampleCount) {
+			this.sampleSize = settings[14] / 1000 * settings[20];
+			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], (this.sampleSize * 4) << this.soundFrameShifter, (this.sampleSize * 20) << this.soundFrameShifter, function (sampleCount) {
 				return parentObj.audioUnderRun(sampleCount);
 			}, -1);
 			cout("...Audio Channels: " + this.soundChannelsAllocated, 0);
@@ -5051,7 +5053,7 @@ GameBoyCore.prototype.initSound = function () {
 }
 GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioTicks = this.audioIndex = 0;
-	this.sampleSize = settings[14] / 1000 * settings[20];
+	this.bufferContainAmount = (this.sampleSize * 5) << this.soundFrameShifter;
 	cout("...Samples per interpreter loop iteration (Per Channel): " + this.sampleSize, 0);
 	this.samplesOut = this.sampleSize / this.CPUCyclesPerIteration;
 	cout("...Samples per clock cycle (Per Channel): " + this.samplesOut, 0);
@@ -5160,6 +5162,15 @@ GameBoyCore.prototype.audioUnderRun = function (samplesRequestedRaw) {
 		//Return nothing just in case the callback is still hooked:
 		return [];
 	}
+}
+GameBoyCore.prototype.audioUnderrunAdjustment = function () {
+	if (settings[0]) {
+		var underrunAmount = this.bufferContainAmount - this.audioHandle.remainingBuffer();
+		if (underrunAmount > 0) {
+			return (underrunAmount >> this.soundFrameShifter) * this.samplesOut;
+		}
+	}
+	return 0;
 }
 GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 	if (resetType) {
@@ -5902,7 +5913,7 @@ GameBoyCore.prototype.iterationEndRoutine = function () {
 		//Update emulator flags:
 		this.stopEmulator |= 1;			//End current loop.
 		this.emulatorTicks -= this.CPUCyclesTotal;
-		this.CPUCyclesTotalCurrent += this.CPUCyclesTotalRoundoff;
+		this.CPUCyclesTotalCurrent += this.CPUCyclesTotalRoundoff + this.audioUnderrunAdjustment();
 		var endModulus = this.CPUCyclesTotalCurrent % 4;
 		this.CPUCyclesTotal = this.CPUCyclesTotalBase + this.CPUCyclesTotalCurrent - endModulus;
 		this.CPUCyclesTotalCurrent = endModulus;
