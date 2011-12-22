@@ -5167,10 +5167,9 @@ GameBoyCore.prototype.audioUnderrunAdjustment = function () {
 	if (settings[0]) {
 		var underrunAmount = this.bufferContainAmount - this.audioHandle.remainingBuffer();
 		if (underrunAmount > 0) {
-			return (underrunAmount >> this.soundFrameShifter) * this.samplesOut;
+			this.CPUCyclesTotalCurrent += (underrunAmount >> this.soundFrameShifter) * this.samplesOut;
 		}
 	}
-	return 0;
 }
 GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 	if (resetType) {
@@ -5787,6 +5786,7 @@ GameBoyCore.prototype.run = function () {
 		if ((this.stopEmulator & 1) == 1) {
 			this.stopEmulator = 0;
 			this.drewFrame = false;
+			this.audioUnderrunAdjustment();
 			this.clockUpdate();			//Frame skip and RTC code.
 			if (!this.halt) {
 				this.executeIteration();
@@ -5913,7 +5913,7 @@ GameBoyCore.prototype.iterationEndRoutine = function () {
 		//Update emulator flags:
 		this.stopEmulator |= 1;			//End current loop.
 		this.emulatorTicks -= this.CPUCyclesTotal;
-		this.CPUCyclesTotalCurrent += this.CPUCyclesTotalRoundoff + this.audioUnderrunAdjustment();
+		this.CPUCyclesTotalCurrent += this.CPUCyclesTotalRoundoff;
 		var endModulus = this.CPUCyclesTotalCurrent % 4;
 		this.CPUCyclesTotal = this.CPUCyclesTotalBase + this.CPUCyclesTotalCurrent - endModulus;
 		this.CPUCyclesTotalCurrent = endModulus;
