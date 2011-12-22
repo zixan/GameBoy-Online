@@ -5168,6 +5168,7 @@ GameBoyCore.prototype.audioUnderrunAdjustment = function () {
 		var underrunAmount = this.bufferContainAmount - this.audioHandle.remainingBuffer();
 		if (underrunAmount > 0) {
 			this.CPUCyclesTotalCurrent += (underrunAmount >> this.soundFrameShifter) * this.samplesOut;
+			this.recalculateIterationClockLimit();
 		}
 	}
 }
@@ -5914,10 +5915,13 @@ GameBoyCore.prototype.iterationEndRoutine = function () {
 		this.stopEmulator |= 1;			//End current loop.
 		this.emulatorTicks -= this.CPUCyclesTotal;
 		this.CPUCyclesTotalCurrent += this.CPUCyclesTotalRoundoff;
-		var endModulus = this.CPUCyclesTotalCurrent % 4;
-		this.CPUCyclesTotal = this.CPUCyclesTotalBase + this.CPUCyclesTotalCurrent - endModulus;
-		this.CPUCyclesTotalCurrent = endModulus;
+		this.recalculateIterationClockLimit();
 	}
+}
+GameBoyCore.prototype.recalculateIterationClockLimit = function () {
+	var endModulus = this.CPUCyclesTotalCurrent % 4;
+	this.CPUCyclesTotal = this.CPUCyclesTotalBase + this.CPUCyclesTotalCurrent - endModulus;
+	this.CPUCyclesTotalCurrent = endModulus;
 }
 GameBoyCore.prototype.scanLineMode2 = function () {	//OAM Search Period
 	if (this.STATTracker != 1) {
