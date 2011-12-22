@@ -5817,8 +5817,6 @@ GameBoyCore.prototype.executeIteration = function () {
 	var interrupts = 0;
 	var timedTicks = 0;
 	while (this.stopEmulator == 0) {
-		//Reset clocking:
-		this.CPUTicks = 0;
 		//Interrupt Arming:
 		switch (this.IRQEnableDelay) {
 			case 1:
@@ -5845,7 +5843,9 @@ GameBoyCore.prototype.executeIteration = function () {
 					//Set the program counter to the interrupt's address:
 					this.programCounter = 0x40 | (bitShift << 3);
 					//Interrupts have a certain clock cycle length:
-					this.CPUTicks += 20;					//People say it's around 20.
+					this.CPUTicks = 20;
+					//Clock the core for mid-instruction updates:
+					this.updateCore();
 					break;									//We only want the highest priority interrupt.
 				}
 				testbit = 1 << ++bitShift;
@@ -5861,7 +5861,7 @@ GameBoyCore.prototype.executeIteration = function () {
 			this.skipPCIncrement = false;
 		}
 		//Get how many CPU cycles the current op code counts for:
-		this.CPUTicks += this.TICKTable[op];
+		this.CPUTicks = this.TICKTable[op];
 		//Execute the OP code instruction:
 		this.OPCODE[op](this);
 		//Timing:
