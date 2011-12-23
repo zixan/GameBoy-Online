@@ -5836,6 +5836,8 @@ GameBoyCore.prototype.executeIteration = function () {
 				if ((testbit & interrupts) == testbit) {
 					this.IME = false;						//Reset the interrupt enabling.
 					this.interruptsRequested -= testbit;	//Reset the interrupt request.
+					//Interrupts have a certain clock cycle length:
+					this.CPUTicks = 20;
 					//Set the stack pointer to the current program counter value:
 					this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
 					this.memoryWriter[this.stackPointer](this, this.stackPointer, this.programCounter >> 8);
@@ -5843,8 +5845,6 @@ GameBoyCore.prototype.executeIteration = function () {
 					this.memoryWriter[this.stackPointer](this, this.stackPointer, this.programCounter & 0xFF);
 					//Set the program counter to the interrupt's address:
 					this.programCounter = 0x40 | (bitShift << 3);
-					//Interrupts have a certain clock cycle length:
-					this.CPUTicks = 20;
 					//Clock the core for mid-instruction updates:
 					this.updateCore();
 					break;									//We only want the highest priority interrupt.
