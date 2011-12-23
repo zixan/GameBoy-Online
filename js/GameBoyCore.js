@@ -7439,7 +7439,7 @@ GameBoyCore.prototype.calculateHALTPeriod = function () {
 		if (currentClocks <= maxClocks) {
 			//Exit out of HALT normally:
 			this.CPUTicks = Math.max(currentClocks, this.CPUTicks);
-			this.updateCore();
+			this.updateCoreFull();
 			this.halt = false;
 			this.CPUTicks = 0;
 		}
