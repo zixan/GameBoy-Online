@@ -5796,7 +5796,7 @@ GameBoyCore.prototype.run = function () {
 				this.CPUTicks = 0;
 				this.calculateHALTPeriod();
 				if (this.halt) {
-					this.updateCore();
+					this.updateCoreFull();
 				}
 				else {
 					this.executeIteration();
@@ -5866,7 +5866,7 @@ GameBoyCore.prototype.executeIteration = function () {
 		//Execute the OP code instruction:
 		this.OPCODE[op](this);
 		//Timing:
-		////updateCore function inlining:
+		////updateCoreFull manual function inlining:
 		//Update the clocking for the LCD emulation:
 		this.LCDTicks += this.CPUTicks >> this.doubleSpeedShifter;		//LCD Timing
 		this.LCDCONTROL[this.actualScanLine](this);						//Scan Line and STAT Mode Control 
@@ -6050,6 +6050,10 @@ GameBoyCore.prototype.updateCore = function () {
 			this.memory[0xFF01] = ((this.memory[0xFF01] << 1) & 0xFE) | 0x01;	//We could shift in actual link data here if we were to implement such!!!
 		}
 	}
+}
+GameBoyCore.prototype.updateCoreFull = function () {
+	//Update the state machine:
+	this.updateCore();
 	//End of iteration routine:
 	if (this.emulatorTicks >= this.CPUCyclesTotal) {
 		this.iterationEndRoutine();
