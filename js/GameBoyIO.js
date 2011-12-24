@@ -42,7 +42,11 @@ function run() {
 			var dateObj = new Date();
 			gameboy.firstIteration = dateObj.getTime();
 			gameboy.iterations = 0;
-			gbRunInterval = setInterval(function () { gameboy.run(); }, settings[20]);
+			gbRunInterval = setInterval(function () {
+				if (!document.hidden) {
+					gameboy.run();
+				}
+			}, settings[20]);
 		}
 		else {
 			cout("The GameBoy core is already running.", 1);
