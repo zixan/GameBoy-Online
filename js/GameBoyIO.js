@@ -43,7 +43,7 @@ function run() {
 			gameboy.firstIteration = dateObj.getTime();
 			gameboy.iterations = 0;
 			gbRunInterval = setInterval(function () {
-				if (!document.hidden) {
+				if (!document.hidden && !document.msHidden && !document.mozHidden && !document.webkitHidden) {
 					gameboy.run();
 				}
 			}, settings[20]);
