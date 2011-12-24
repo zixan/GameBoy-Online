@@ -25,44 +25,48 @@ var settings = [						//Some settings.
 	false,								//Render nearest-neighbor scaling in javascript?
 	false								//Disallow typed arrays?
 ];
-function start(canvas, canvasAlt, ROM) {
+function start(canvas, ROM) {
 	clearLastEmulation();
 	autoSave();	//If we are about to load a new game, then save the last one...
-	gameboy = new GameBoyCore(canvas, canvasAlt, ROM);
+	gameboy = new GameBoyCore(canvas, ROM);
 	gameboy.openMBC = openSRAM;
 	gameboy.openRTC = openRTC;
 	gameboy.start();
 	run();
 }
 function run() {
-	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 2) {
-		gameboy.stopEmulator &= 1;
-		cout("Starting the iterator.", 0);
-		var dateObj = new Date();
-		gameboy.firstIteration = dateObj.getTime();
-		gameboy.iterations = 0;
-		gbRunInterval = setInterval(function () { gameboy.run(); }, settings[20]);
-	}
-	else if ((gameboy.stopEmulator & 2) == 0) {
-		cout("The GameBoy core is already running.", 1);
+	if (GameBoyEmulatorInitialized()) {
+		if (!GameBoyEmulatorPlaying()) {
+			gameboy.stopEmulator &= 1;
+			cout("Starting the iterator.", 0);
+			var dateObj = new Date();
+			gameboy.firstIteration = dateObj.getTime();
+			gameboy.iterations = 0;
+			gbRunInterval = setInterval(function () { gameboy.run(); }, settings[20]);
+		}
+		else {
+			cout("The GameBoy core is already running.", 1);
+		}
 	}
 	else {
 		cout("GameBoy core cannot run while it has not been initialized.", 1);
 	}
 }
 function pause() {
-	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
-		clearLastEmulation();
-	}
-	else if ((gameboy.stopEmulator & 2) == 2) {
-		cout("GameBoy core has already been paused.", 1);
+	if (GameBoyEmulatorInitialized()) {
+		if (GameBoyEmulatorPlaying()) {
+			clearLastEmulation();
+		}
+		else {
+			cout("GameBoy core has already been paused.", 1);
+		}
 	}
 	else {
 		cout("GameBoy core cannot be paused while it has not been initialized.", 1);
 	}
 }
 function clearLastEmulation() {
-	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
+	if (GameBoyEmulatorInitialized() && GameBoyEmulatorPlaying()) {
 		clearInterval(gbRunInterval);
 		gameboy.stopEmulator |= 2;
 		cout("The previous emulation has been cleared.", 0);
@@ -72,7 +76,7 @@ function clearLastEmulation() {
 	}
 }
 function save() {
-	if (typeof gameboy == "object" && gameboy != null) {
+	if (GameBoyEmulatorInitialized()) {
 		try {
 			var state_suffix = 0;
 			while (findValue(gameboy.name + "_" + state_suffix) != null) {
@@ -100,7 +104,7 @@ function save() {
 	}
 }
 function saveSRAM() {
-	if (typeof gameboy == "object" && gameboy != null) {
+	if (GameBoyEmulatorInitialized()) {
 		if (gameboy.cBATT) {
 			try {
 				var sram = gameboy.saveSRAMState();
@@ -126,7 +130,7 @@ function saveSRAM() {
 	}
 }
 function saveRTC() {	//Execute this when SRAM is being saved as well.
-	if (typeof gameboy == "object" && gameboy != null) {
+	if (GameBoyEmulatorInitialized()) {
 		if (gameboy.cTIMER) {
 			try {
 				cout("Saving the RTC...", 0);
@@ -142,7 +146,7 @@ function saveRTC() {	//Execute this when SRAM is being saved as well.
 	}
 }
 function autoSave() {
-	if (typeof gameboy == "object" && gameboy != null) {
+	if (GameBoyEmulatorInitialized()) {
 		cout("Automatically saving the SRAM.", 0);
 		saveSRAM();
 		saveRTC();
@@ -178,13 +182,13 @@ function openRTC(filename) {
 	}
 	return [];
 }
-function openState(filename, canvas, canvasAlt) {
+function openState(filename, canvas) {
 	try {
 		if (findValue(filename) != null) {
 			try {
 				clearLastEmulation();
 				cout("Attempting to run a saved emulation state.", 0);
-				gameboy = new GameBoyCore(canvas, canvasAlt, "");
+				gameboy = new GameBoyCore(canvas, "");
 				gameboy.savedStateFileName = filename;
 				gameboy.returnFromState(findValue(filename));
 				run();
@@ -208,11 +212,16 @@ function matchKey(key) {	//Maps a keyboard key to a gameboy key.
 			return index;
 		}
 	}
-	cout("Keyboard key #" + key + " was pressed or released, but is not being utilized by the emulator.", 0);
 	return -1;
 }
+function GameBoyEmulatorInitialized() {
+	return (typeof gameboy == "object" && gameboy != null);
+}
+function GameBoyEmulatorPlaying() {
+	return ((gameboy.stopEmulator & 2) == 0);
+}
 function GameBoyKeyDown(e) {
-	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
+	if (GameBoyEmulatorInitialized() && GameBoyEmulatorPlaying()) {
 		var keycode = matchKey(e.keyCode);
 		if (keycode >= 0 && keycode < 8) {
 			gameboy.JoyPadEvent(keycode, true);
@@ -221,16 +230,10 @@ function GameBoyKeyDown(e) {
 			}
 			catch (error) { }
 		}
-		else {
-			cout("Keyboard key press ignored", 1);
-		}
-	}
-	else {
-		cout("Keyboard key press ignored, since the core is not running.", 1);
 	}
 }
 function GameBoyKeyUp(e) {
-	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
+	if (GameBoyEmulatorInitialized() && GameBoyEmulatorPlaying()) {
 		var keycode = matchKey(e.keyCode);
 		if (keycode >= 0 && keycode < 8) {
 			gameboy.JoyPadEvent(keycode, false);
@@ -239,16 +242,10 @@ function GameBoyKeyUp(e) {
 			}
 			catch (error) { }
 		}
-		else {
-			cout("Keyboard key release ignored", 1);
-		}
-	}
-	else {
-		cout("Keyboard key release ignored, since the core is not running.", 1);
 	}
 }
 function GameBoyGyroSignalHandler(e) {
-	if (typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
+	if (GameBoyEmulatorInitialized() && GameBoyEmulatorPlaying()) {
 		if (e.gamma || e.beta) {
 			gameboy.GyroEvent(e.gamma * Math.PI / 180, e.beta * Math.PI / 180);
 		}
@@ -262,14 +259,14 @@ function GameBoyGyroSignalHandler(e) {
 	}
 }
 function VBlankSyncHandler() {
-	if (settings[11] && typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
+	if (settings[11] && GameBoyEmulatorInitialized() && GameBoyEmulatorPlaying()) {
 		//Draw out our graphics now:
 		gameboy.dispatchDraw();
 	}
 }
 function MozVBlankSyncHandler() {
 	settings[15] = true;
-	if (settings[11] && typeof gameboy == "object" && gameboy != null && (gameboy.stopEmulator & 2) == 0) {
+	if (settings[11] && GameBoyEmulatorInitialized() && GameBoyEmulatorPlaying()) {
 		//Draw out our graphics now:
 		gameboy.dispatchDraw();
 		try {

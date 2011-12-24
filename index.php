@@ -13,7 +13,6 @@ DEBUG_WINDOWING = false;
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/windowStack.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/terminal.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/gui.js'),
-			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/BMPCanvas.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/base64.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/transportHandler.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/waveAudio.js'),
@@ -82,9 +81,6 @@ catch (error) {
 		$this->writeAttribute('id', 'gfx');
 		$this->startElement('canvas');
 		$this->writeAttribute('id', 'mainCanvas');
-		$this->endElement();
-		$this->startElement('div');
-		$this->writeAttribute('id', 'canvasAltContainer');
 		$this->endElement();
 		$this->startElement('span');
 		$this->writeAttribute('id', 'title');

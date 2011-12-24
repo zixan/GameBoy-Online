@@ -14,11 +14,9 @@
  * GNU General Public License for more details.
  *
  */
-function GameBoyCore(canvas, canvasAlt, ROMImage) {
+function GameBoyCore(canvas, ROMImage) {
 	//Params, etc...
 	this.canvas = canvas;						//Canvas DOM object for drawing out the graphics to.
-	this.canvasAlt = canvasAlt;					//Image DOM object for drawing out the graphics to as an alternate means.
-	this.canvasFallbackHappened = false;		//Used for external scripts to tell if we're really using the canvas or not (Helpful with fullscreen switching).
 	this.drawContext = null;					// LCD Context
 	this.ROMImage = ROMImage;					//The game's ROM. 
 	//CPU Registers and Flags:
@@ -4980,24 +4978,11 @@ GameBoyCore.prototype.initLCD = function () {
 			this.canvasBuffer.data[index + 3] = 0xFF;
 		}
 		this.drawContext.putImageData(this.canvasBuffer, 0, 0);		//Throws any browser that won't support this later on.
-		this.canvasAlt.style.visibility = "hidden";	//Make sure, if restarted, that the fallback images aren't going cover the canvas.
 		this.canvas.style.visibility = "visible";
-		this.canvasFallbackHappened = false;
 		this.prepareFrame();
 	}
 	catch (error) {
-		//Falling back to an experimental data URI BMP file canvas alternative:
-		cout("Falling back to BMP imaging as a canvas alternative: " + error.message, 1);
-		this.width = 160;
-		this.height = 144;
-		this.canvasFallbackHappened = true;
-		this.drawContext = new BMPCanvas(this.canvasAlt, 160, 144, settings[6][0], settings[6][1]);
-		this.canvasBuffer = new Object();
-		this.canvasBuffer.data = this.ArrayPad(92160, 0xF8);
-		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
-		//Make visible only after the images have been initialized.
-		this.canvasAlt.style.visibility = "visible";
-		this.canvas.style.visibility = "hidden";			//Speedier layout in some browsers.
+		throw(new Error("HTML5 Canvas support required."));
 	}
 }
 GameBoyCore.prototype.JoyPadEvent = function (key, down) {

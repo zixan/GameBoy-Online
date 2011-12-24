@@ -255,30 +255,7 @@ body<?php echo($Adjacent_OP); ?> div#fullscreenContainer<?php echo($Adjacent_OP)
 	margin: -72px 0px 0px -80px;
 	padding: 0px;
 }
-div#GameBoy<?php echo($Adjacent_OP); ?> div#gfx<?php echo($Adjacent_OP); ?> canvas, body<?php echo($Adjacent_OP); ?> div#fullscreenContainer<?php echo($Adjacent_OP); ?> canvas#fullscreen, div#GameBoy<?php echo($Adjacent_OP); ?> div#gfx<?php echo($Adjacent_OP); ?> div#canvasAltContainer<?php echo($Adjacent_OP); ?> img {
-	image-rendering: optimizeSpeed;				/*Give priority to the nearest-neighbor algorithm when rendering*/
-	image-rendering: optimize-contrast;			/*Give priority to the nearest-neighbor algorithm when rendering*/
-	image-rendering: crisp-edges;				/*Give priority to the nearest-neighbor algorithm when rendering*/
-	image-rendering: -moz-crisp-edges;			/*Forces firefox to stay in nearest-neighbor mode, which is what we want.*/
-	image-rendering: -webkit-optimize-contrast;	/*Here for when WebKit supports this.*/
-	-ms-interpolation-mode: nearest-neighbor;	/*MS-proprietary CSS version of image-rendering*/
-	shape-rendering: geometricPrecision;		/*We don't want the background leaking through*/
-}
-div#GameBoy<?php echo($Adjacent_OP); ?> div#gfx<?php echo($Adjacent_OP); ?> div#canvasAltContainer {
-<?php
-	if ($UA->browser() == 'MSIE' && $UA->int_version() < 9) {
-		if ($UA->int_version() < 8) {
-?>	filter: alpha(opacity=100);
-<?php
-		}
-		else {
-?>	-ms-filter: "alpha(opacity=100)";
-<?php
-		}
-	}
-?>
-}
-div#GameBoy<?php echo($Adjacent_OP); ?> div#gfx<?php echo($Adjacent_OP); ?> canvas, div#GameBoy<?php echo($Adjacent_OP); ?> div#gfx<?php echo($Adjacent_OP); ?> div#canvasAltContainer {
+div#GameBoy<?php echo($Adjacent_OP); ?> div#gfx<?php echo($Adjacent_OP); ?> canvas {
 	position: absolute;
 	z-index: 5;
 	visibility: hidden;
@@ -289,11 +266,6 @@ div#GameBoy<?php echo($Adjacent_OP); ?> div#gfx<?php echo($Adjacent_OP); ?> canv
 	width: 100%;
 	height: 100%;
 	background-color: rgb(255, 255, 255);
-}
-div#GameBoy<?php echo($Adjacent_OP); ?> div#gfx<?php echo($Adjacent_OP); ?> div#canvasAltContainer<?php echo($Adjacent_OP); ?> img {
-	display: block;
-	display: inline-block;
-	float: left;	/*Float and don't absolutely position, due to width & height rounding by many browsers*/
 }
 div#GameBoy<?php echo($Adjacent_OP); ?> div#gfx<?php echo($Adjacent_OP); ?> span#title {
 	position: absolute;
