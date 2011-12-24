@@ -255,6 +255,12 @@ body<?php echo($Adjacent_OP); ?> div#fullscreenContainer<?php echo($Adjacent_OP)
 	margin: -72px 0px 0px -80px;
 	padding: 0px;
 }
+div#GameBoy<?php echo($Adjacent_OP); ?> div#gfx<?php echo($Adjacent_OP); ?> canvas, body<?php echo($Adjacent_OP); ?> div#fullscreenContainer<?php echo($Adjacent_OP); ?> canvas#fullscreen {
+	/*The firefox specific prop was removed, as firefox doesn't slow down with rendering bi-linear.*/
+	image-rendering: optimizeSpeed;
+	image-rendering: optimize-contrast;
+	image-rendering: -webkit-optimize-contrast;
+}
 div#GameBoy<?php echo($Adjacent_OP); ?> div#gfx<?php echo($Adjacent_OP); ?> canvas {
 	position: absolute;
 	z-index: 5;
