@@ -6,9 +6,9 @@ var settings = [						//Some settings.
 	false,								//Give priority to GameBoy mode
 	[39, 37, 38, 40, 88, 90, 16, 13],	//Keyboard button map.
 	0,									//Frameskip Amount (Auto frameskip setting allows the script to change this.)
-	false,								//Use the data URI BMP method over the canvas tag method?
+	false,								//Empty slot
 	[16, 12],							//How many tiles in each direction when using the BMP method (width * height).
-	true,								//Auto Frame Skip
+	false,								//Auto Frame Skip
 	29,									//Maximum Frame Skip
 	false,								//Override to allow for MBC1 instead of ROM only (compatibility for broken 3rd-party cartridges).
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.

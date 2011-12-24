@@ -126,7 +126,7 @@ catch (error) {
 		$this->text('This is a GameBoy Color emulator written purely in JavaScript by Grant Galitz.');
 		$this->endElement();
 		$this->startElement('p');
-		$this->text('The video is done either through HTML5 canvas or by a fallback of creating BMP binary picture format data URI strings and appending the result to regular HTML img tags.');
+		$this->text('The graphics out is done through HTML5 canvas, with the putImageData function.');
 		$this->endElement();
 		$this->startElement('p');
 		$this->text('Save states are implemented through the window.localStorage object, and are serialized/deserialized through JSON.');
@@ -199,16 +199,6 @@ catch (error) {
 		$this->writeAttribute('type', 'checkbox');
 		$this->writeAttribute('checked', 'checked');
 		$this->writeAttribute('id', 'enable_gbc_bios');
-		$this->endElement();
-		$this->endElement();
-		$this->startElement('div');
-		$this->writeAttribute('class', 'setting');
-		$this->startElement('span');
-		$this->text('The data URI BMP method has priority over the canvas tag method:');
-		$this->endElement();
-		$this->startElement('input');
-		$this->writeAttribute('type', 'checkbox');
-		$this->writeAttribute('id', 'bmp_method');
 		$this->endElement();
 		$this->endElement();
 		$this->startElement('div');

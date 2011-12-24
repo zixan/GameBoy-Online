@@ -4957,10 +4957,6 @@ GameBoyCore.prototype.initLCD = function () {
 	this.completeFrame = this.getTypedArray(this.pixelCount, 0, "int32");	//Used for double-buffering and the target for software-side rescaling.
 	this.compileResizeFrameBufferFunction();
 	try {
-		if (settings[5]) {
-			//Nasty since we are throwing on purpose to force a try/catch fallback
-			throw(new Error("Canvas 2D API path disabled."));
-		}
 		this.drawContext = this.canvas.getContext("2d");
 		//Get a CanvasPixelArray buffer:
 		try {

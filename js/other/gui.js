@@ -236,12 +236,6 @@ function registerGUIEvents() {
 	addEvent("click", document.getElementById("disable_colors"), function () {
 		settings[2] = document.getElementById("disable_colors").checked;
 	});
-	addEvent("click", document.getElementById("bmp_method"), function () {
-		settings[5] = document.getElementById("bmp_method").checked;
-		if (GameBoyEmulatorInitialized()) {
-			gameboy.initLCD();
-		}
-	});
 	addEvent("click", document.getElementById("auto_frameskip"), function () {
 		settings[7] = document.getElementById("auto_frameskip").checked;
 		settings[4] = 0;	//Reset the frame skipping amount.
