@@ -15,8 +15,6 @@ DEBUG_WINDOWING = false;
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/gui.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/base64.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/transportHandler.js'),
-			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/waveAudio.js'),
-			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/audioRunner.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/json2.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/swfobject.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/resampler.js'),
