@@ -43,7 +43,6 @@ function windowingInitialize() {
 	document.getElementById("enable_sound").checked = settings[0];
 	document.getElementById("enable_mono_sound").checked = settings[1];
 	document.getElementById("disable_colors").checked = settings[2];
-	document.getElementById("bmp_method").checked = settings[5];
 	document.getElementById("auto_frameskip").checked = settings[7];
 	document.getElementById("rom_only_override").checked = settings[9];
 	document.getElementById("mbc_enable_override").checked = settings[10];

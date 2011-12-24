@@ -209,7 +209,6 @@ catch (error) {
 		$this->startElement('input');
 		$this->writeAttribute('type', 'checkbox');
 		$this->writeAttribute('id', 'auto_frameskip');
-		$this->writeAttribute('checked', 'checked');
 		$this->endElement();
 		$this->endElement();
 		$this->startElement('div');
