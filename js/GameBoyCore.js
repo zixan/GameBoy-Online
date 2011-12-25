@@ -5796,10 +5796,7 @@ GameBoyCore.prototype.run = function () {
 }
 GameBoyCore.prototype.executeIteration = function () {
 	//Iterate the interpreter loop:
-	var op = 0;
-	var bitShift = 0;
-	var testbit = 1;
-	var timedTicks = 0;
+	var opcodeToExecute = 0;
 	while (this.stopEmulator == 0) {
 		//Interrupt Arming:
 		switch (this.IRQEnableDelay) {
@@ -5809,35 +5806,13 @@ GameBoyCore.prototype.executeIteration = function () {
 			case 2:
 				--this.IRQEnableDelay;
 		}
-		//Are IRQs Masked?
+		//Is an IRQ set to fire?:
 		if (this.IRQLineMatched > 0) {
-			//Check for IRQ:
-			bitShift = 0;
-			testbit = 1;
-			do {
-				//Check to see if an interrupt is enabled AND requested.
-				if ((testbit & this.IRQLineMatched) == testbit) {
-					this.IME = false;						//Reset the interrupt enabling.
-					this.interruptsRequested -= testbit;	//Reset the interrupt request.
-					this.IRQLineMatched = 0;				//Reset the IRQ assertion.
-					//Interrupts have a certain clock cycle length:
-					this.CPUTicks = 20;
-					//Set the stack pointer to the current program counter value:
-					this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
-					this.memoryWriter[this.stackPointer](this, this.stackPointer, this.programCounter >> 8);
-					this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
-					this.memoryWriter[this.stackPointer](this, this.stackPointer, this.programCounter & 0xFF);
-					//Set the program counter to the interrupt's address:
-					this.programCounter = 0x40 | (bitShift << 3);
-					//Clock the core for mid-instruction updates:
-					this.updateCore();
-					break;									//We only want the highest priority interrupt.
-				}
-				testbit = 1 << ++bitShift;
-			} while (bitShift < 5);
+			//IME is true and and interrupt was matched:
+			this.launchIRQ();
 		}
-		//Fetch the current opcode.
-		op = this.memoryReader[this.programCounter](this, this.programCounter);
+		//Fetch the current opcode:
+		opcodeToExecute = this.memoryReader[this.programCounter](this, this.programCounter);
 		//Increment the program counter to the next instruction:
 		this.programCounter = (this.programCounter + 1) & 0xFFFF;
 		//Check for the program counter quirk:
@@ -5845,50 +5820,12 @@ GameBoyCore.prototype.executeIteration = function () {
 			this.programCounter = (this.programCounter - 1) & 0xFFFF;
 			this.skipPCIncrement = false;
 		}
-		//Get how many CPU cycles the current op code counts for:
-		this.CPUTicks = this.TICKTable[op];
-		//Execute the OP code instruction:
-		this.OPCODE[op](this);
-		//Timing:
-		////updateCoreFull manual function inlining:
-		//Update the clocking for the LCD emulation:
-		this.LCDTicks += this.CPUTicks >> this.doubleSpeedShifter;		//LCD Timing
-		this.LCDCONTROL[this.actualScanLine](this);						//Scan Line and STAT Mode Control 
-		//Single-speed relative timing for A/V emulation:
-		timedTicks = this.CPUTicks >> this.doubleSpeedShifter;			//CPU clocking can be updated from the LCD handling.
-		this.audioTicks += timedTicks;									//Audio Timing
-		this.emulatorTicks += timedTicks;								//Emulator Timing
-		//CPU Timers:
-		this.DIVTicks += this.CPUTicks;									//DIV Timing
-		if (this.TIMAEnabled) {											//TIMA Timing
-			this.timerTicks += this.CPUTicks;
-			while (this.timerTicks >= this.TACClocker) {
-				this.timerTicks -= this.TACClocker;
-				if (++this.memory[0xFF05] == 0x100) {
-					this.memory[0xFF05] = this.memory[0xFF06];
-					this.interruptsRequested |= 0x4;
-					this.checkIRQMatching();
-				}
-			}
-		}
-		if (this.serialTimer > 0) {										//Serial Timing
-			//IRQ Counter:
-			this.serialTimer -= this.CPUTicks;
-			if (this.serialTimer <= 0) {
-				this.interruptsRequested |= 0x8;
-				this.checkIRQMatching();
-			}
-			//Bit Shit Counter:
-			this.serialShiftTimer -= this.CPUTicks;
-			if (this.serialShiftTimer <= 0) {
-				this.serialShiftTimer = this.serialShiftTimerAllocated;
-				this.memory[0xFF01] = ((this.memory[0xFF01] << 1) & 0xFE) | 0x01;	//We could shift in actual link data here if we were to implement such!!!
-			}
-		}
-		//End of iteration routine:
-		if (this.emulatorTicks >= this.CPUCyclesTotal) {
-			this.iterationEndRoutine();
-		}
+		//Get how many CPU cycles the current instruction counts for:
+		this.CPUTicks = this.TICKTable[opcodeToExecute];
+		//Execute the current instruction:
+		this.OPCODE[opcodeToExecute](this);
+		//Update the state:
+		this.updateCoreFull();
 	}
 }
 GameBoyCore.prototype.iterationEndRoutine = function () {
@@ -7367,6 +7304,32 @@ GameBoyCore.prototype.generateGBOAMTile = function (map, tile) {
 	this.tileCacheValid[tile] = 1;
 	//Return the obtained tile to the rendering path:
 	return tileBlock;
+}
+//Check for the highest priority IRQ to fire:
+GameBoyCore.prototype.launchIRQ = function () {
+	var bitShift = 0;
+	var testbit = 1;
+	do {
+		//Check to see if an interrupt is enabled AND requested.
+		if ((testbit & this.IRQLineMatched) == testbit) {
+			this.IME = false;						//Reset the interrupt enabling.
+			this.interruptsRequested -= testbit;	//Reset the interrupt request.
+			this.IRQLineMatched = 0;				//Reset the IRQ assertion.
+			//Interrupts have a certain clock cycle length:
+			this.CPUTicks = 20;
+			//Set the stack pointer to the current program counter value:
+			this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
+			this.memoryWriter[this.stackPointer](this, this.stackPointer, this.programCounter >> 8);
+			this.stackPointer = (this.stackPointer - 1) & 0xFFFF;
+			this.memoryWriter[this.stackPointer](this, this.stackPointer, this.programCounter & 0xFF);
+			//Set the program counter to the interrupt's address:
+			this.programCounter = 0x40 | (bitShift << 3);
+			//Clock the core for mid-instruction updates:
+			this.updateCore();
+			return;									//We only want the highest priority interrupt.
+		}
+		testbit = 1 << ++bitShift;
+	} while (bitShift < 5);
 }
 /*
 	Check for IRQs to be fired while not in HALT:
