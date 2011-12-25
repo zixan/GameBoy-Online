@@ -1155,9 +1155,8 @@ GameBoyCore.prototype.OPCODE = [
 	//HALT
 	//#0x76:
 	function (parentObj) {
-		//See if we're taking an interrupt already:
+		//See if there's already an IRQ match:
 		if ((parentObj.interruptsEnabled & parentObj.interruptsRequested & 0x1F) > 0) {
-			//If an IRQ is already going to launch:
 			if (!parentObj.cGBC && !parentObj.usedBootROM) {
 				//HALT bug in the DMG CPU model (Program Counter fails to increment for one instruction after HALT):
 				parentObj.skipPCIncrement = true;
