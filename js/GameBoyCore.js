@@ -46,6 +46,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.skipPCIncrement = false;				//Did we trip the DMG Halt bug?
 	this.stopEmulator = 3;						//Has the emulation been paused or a frame has ended?
 	this.IME = true;							//Are interrupts enabled?
+	this.IRQLineMatched = 0;					//CPU IRQ assertion.
 	this.interruptsRequested = 0;				//IF Register
 	this.interruptsEnabled = 0;					//IE Register
 	this.hdmaRunning = false;					//HDMA Transfer Flag - GBC only
@@ -1157,15 +1158,13 @@ GameBoyCore.prototype.OPCODE = [
 		//See if we're taking an interrupt already:
 		if ((parentObj.interruptsEnabled & parentObj.interruptsRequested & 0x1F) > 0) {
 			//If an IRQ is already going to launch:
-			if (!parentObj.IME) {
-				if (!parentObj.cGBC && !parentObj.usedBootROM) {
-					//HALT bug in the DMG CPU model (Program Counter fails to increment for one instruction after HALT):
-					parentObj.skipPCIncrement = true;
-				}
-				else {
-					//CGB gets around the HALT PC bug by doubling the hidden NOP.
-					parentObj.CPUTicks += 4;
-				}
+			if (!parentObj.cGBC && !parentObj.usedBootROM) {
+				//HALT bug in the DMG CPU model (Program Counter fails to increment for one instruction after HALT):
+				parentObj.skipPCIncrement = true;
+			}
+			else {
+				//CGB gets around the HALT PC bug by doubling the hidden NOP.
+				parentObj.CPUTicks += 4;
 			}
 		}
 		else {
@@ -4394,6 +4393,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.haltPostClocks = state[index++];
 	this.interruptsRequested = state[index++];
 	this.interruptsEnabled = state[index++];
+	this.checkIRQMatching();
 	this.remainingClocks = state[index];
 	this.fromSaveState = true;
 	this.TICKTable = this.toTypedArray(this.TICKTable, "uint8");
@@ -4617,6 +4617,8 @@ GameBoyCore.prototype.ROMLoad = function () {
 	}
 	//Set up the emulator for the cartidge specifics:
 	this.interpretCartridge();
+	//Check for IRQ matching upon initialization:
+	this.checkIRQMatching();
 }
 GameBoyCore.prototype.getROMImage = function () {
 	//Return the binary version of the ROM image currently running:
@@ -4986,6 +4988,7 @@ GameBoyCore.prototype.JoyPadEvent = function (key, down) {
 		this.JoyPad &= 0xFF ^ (1 << key);
 		/*if (!this.cGBC) {
 			this.interruptsRequested |= 0x10;	//A real GBC doesn't set this!
+			this.checkIRQMatching();
 		}*/
 	}
 	else {
@@ -5796,27 +5799,27 @@ GameBoyCore.prototype.executeIteration = function () {
 	var op = 0;
 	var bitShift = 0;
 	var testbit = 1;
-	var interrupts = 0;
 	var timedTicks = 0;
 	while (this.stopEmulator == 0) {
 		//Interrupt Arming:
 		switch (this.IRQEnableDelay) {
 			case 1:
 				this.IME = true;
+				this.checkIRQMatching();
 			case 2:
 				--this.IRQEnableDelay;
 		}
 		//Are IRQs Masked?
-		if (this.IME) {
+		if (this.IRQLineMatched > 0) {
 			//Check for IRQ:
 			bitShift = 0;
 			testbit = 1;
-			interrupts = this.interruptsEnabled & this.interruptsRequested;
 			do {
 				//Check to see if an interrupt is enabled AND requested.
-				if ((testbit & interrupts) == testbit) {
+				if ((testbit & this.IRQLineMatched) == testbit) {
 					this.IME = false;						//Reset the interrupt enabling.
 					this.interruptsRequested -= testbit;	//Reset the interrupt request.
+					this.IRQLineMatched = 0;				//Reset the IRQ assertion.
 					//Interrupts have a certain clock cycle length:
 					this.CPUTicks = 20;
 					//Set the stack pointer to the current program counter value:
@@ -5864,6 +5867,7 @@ GameBoyCore.prototype.executeIteration = function () {
 				if (++this.memory[0xFF05] == 0x100) {
 					this.memory[0xFF05] = this.memory[0xFF06];
 					this.interruptsRequested |= 0x4;
+					this.checkIRQMatching();
 				}
 			}
 		}
@@ -5872,6 +5876,7 @@ GameBoyCore.prototype.executeIteration = function () {
 			this.serialTimer -= this.CPUTicks;
 			if (this.serialTimer <= 0) {
 				this.interruptsRequested |= 0x8;
+				this.checkIRQMatching();
 			}
 			//Bit Shit Counter:
 			this.serialShiftTimer -= this.CPUTicks;
@@ -5908,6 +5913,7 @@ GameBoyCore.prototype.scanLineMode2 = function () {	//OAM Search Period
 	if (this.STATTracker != 1) {
 		if (this.mode2TriggerSTAT) {
 			this.interruptsRequested |= 0x2;
+			this.checkIRQMatching();
 		}
 		this.STATTracker = 1;
 		this.modeSTAT = 2;
@@ -5917,6 +5923,7 @@ GameBoyCore.prototype.scanLineMode3 = function () {	//Scan Line Drawing Period
 	if (this.modeSTAT != 3) {
 		if (this.STATTracker == 0 && this.mode2TriggerSTAT) {
 			this.interruptsRequested |= 0x2;
+			this.checkIRQMatching();
 		}
 		this.STATTracker = 1;
 		this.modeSTAT = 3;
@@ -5928,6 +5935,7 @@ GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 			if (this.STATTracker == 0) {
 				if (this.mode2TriggerSTAT) {
 					this.interruptsRequested |= 0x2;
+					this.checkIRQMatching();
 				}
 				this.modeSTAT = 3;
 			}
@@ -5940,6 +5948,7 @@ GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 			}
 			if (this.mode0TriggerSTAT) {
 				this.interruptsRequested |= 0x2;
+				this.checkIRQMatching();
 			}
 			this.STATTracker = 3;
 			this.modeSTAT = 0;
@@ -5992,6 +6001,7 @@ GameBoyCore.prototype.matchLYC = function () {	//LYC Register Compare
 		this.memory[0xFF41] |= 0x04;
 		if (this.LYCMatchTriggerSTAT) {
 			this.interruptsRequested |= 0x2;
+			this.checkIRQMatching();
 		}
 	} 
 	else {
@@ -6015,6 +6025,7 @@ GameBoyCore.prototype.updateCore = function () {
 			if (++this.memory[0xFF05] == 0x100) {
 				this.memory[0xFF05] = this.memory[0xFF06];
 				this.interruptsRequested |= 0x4;
+				this.checkIRQMatching();
 			}
 		}
 	}
@@ -6023,6 +6034,7 @@ GameBoyCore.prototype.updateCore = function () {
 		this.serialTimer -= this.CPUTicks;
 		if (this.serialTimer <= 0) {
 			this.interruptsRequested |= 0x8;
+			this.checkIRQMatching();
 		}
 		//Bit Shit Counter:
 		this.serialShiftTimer -= this.CPUTicks;
@@ -6086,6 +6098,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					else {
 						parentObj.memory[0xFF41] &= 0x7B;
 					}
+					parentObj.checkIRQMatching();
 					//Reset our mode contingency variables:
 					parentObj.STATTracker = 0;
 					parentObj.modeSTAT = 2;
@@ -6141,6 +6154,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					//Update our state for v-blank:
 					parentObj.modeSTAT = 1;
 					parentObj.interruptsRequested |= (parentObj.mode1TriggerSTAT) ? 0x3 : 0x1;
+					parentObj.checkIRQMatching();
 					//Attempt to blit out to our canvas:
 					if (parentObj.drewBlank == 0) {
 						//Draw the frame:
@@ -6166,6 +6180,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 						parentObj.memory[0xFF41] |= 0x04;
 						if (parentObj.LYCMatchTriggerSTAT) {
 							parentObj.interruptsRequested |= 0x2;
+							parentObj.checkIRQMatching();
 						}
 					} 
 					else {
@@ -6186,6 +6201,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 							parentObj.memory[0xFF41] |= 0x04;
 							if (parentObj.LYCMatchTriggerSTAT) {
 								parentObj.interruptsRequested |= 0x2;
+								parentObj.checkIRQMatching();
 							}
 						} 
 						else {
@@ -7353,6 +7369,14 @@ GameBoyCore.prototype.generateGBOAMTile = function (map, tile) {
 	return tileBlock;
 }
 /*
+	Check for IRQs to be fired while not in HALT:
+*/
+GameBoyCore.prototype.checkIRQMatching = function () {
+	if (this.IME) {
+		this.IRQLineMatched = this.interruptsEnabled & this.interruptsRequested & 0x1F;
+	}
+}
+/*
 	Handle the HALT opcode by predicting all IRQ cases correctly,
 	then selecting the next closest IRQ firing from the prediction to
 	clock up to. This prevents hacky looping that doesn't predict, but
@@ -8435,6 +8459,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	//IF (Interrupt Request)
 	this.memoryHighWriter[0xF] = this.memoryWriter[0xFF0F] = function (parentObj, address, data) {
 		parentObj.interruptsRequested = data;
+		parentObj.checkIRQMatching();
 	}
 	this.memoryHighWriter[0x10] = this.memoryWriter[0xFF10] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
@@ -9061,6 +9086,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	//IE (Interrupt Enable)
 	this.memoryHighWriter[0xFF] = this.memoryWriter[0xFFFF] = function (parentObj, address, data) {
 		parentObj.interruptsEnabled = data;
+		parentObj.checkIRQMatching();
 	}
 	if (this.cGBC) {
 		//GameBoy Color Specific I/O:
@@ -9284,6 +9310,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.memory[0xFF41] = data & 0x78;
 			if (!parentObj.usedBootROM && parentObj.LCDisOn && parentObj.modeSTAT < 2) {
 				parentObj.interruptsRequested |= 0x2;
+				parentObj.checkIRQMatching();
 			}
 		}
 		this.memoryHighWriter[0x46] = this.memoryWriter[0xFF46] = function (parentObj, address, data) {
