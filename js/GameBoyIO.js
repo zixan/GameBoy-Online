@@ -6,7 +6,7 @@ var settings = [						//Some settings.
 	false,								//Give priority to GameBoy mode
 	[39, 37, 38, 40, 88, 90, 16, 13],	//Keyboard button map.
 	0,									//Frameskip Amount (Auto frameskip setting allows the script to change this.)
-	false,								//Empty slot
+	false,								//Disallow typed arrays?
 	[16, 12],							//How many tiles in each direction when using the BMP method (width * height).
 	false,								//Auto Frame Skip
 	29,									//Maximum Frame Skip
@@ -19,11 +19,10 @@ var settings = [						//Some settings.
 	false,								//MozBeforePaint support detected.
 	true,								//Use the GBC BIOS?
 	true,								//Colorize GB mode?
-	2048,								//Sample size for webkit audio.
-	false,								//Whether to display the canvas at 144x160 on fullscreen or as stretched.
-	16,									//Interval for the emulator loop.
 	false,								//Render nearest-neighbor scaling in javascript?
-	false								//Disallow typed arrays?
+	false,								//Whether to display the canvas at 144x160 on fullscreen or as stretched.
+	16									//Interval for the emulator loop.
+	
 ];
 function start(canvas, ROM) {
 	clearLastEmulation();

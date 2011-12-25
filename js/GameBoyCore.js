@@ -6296,7 +6296,7 @@ GameBoyCore.prototype.drawToCanvas = function () {
 }
 GameBoyCore.prototype.prepareFrame = function () {
 	if (this.drewBlank == 0) {
-		if (settings[21] && this.width != 160 && this.height != 144) {
+		if (settings[18] && this.width != 160 && this.height != 144) {
 			this.resizeFrameBuffer();
 		}
 		else {
@@ -9368,7 +9368,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 //Helper Functions
 GameBoyCore.prototype.toTypedArray = function (baseArray, memtype) {
 	try {
-		if (settings[22]) {
+		if (settings[5]) {
 			return baseArray;
 		}
 		if (!baseArray || !baseArray.length) {
@@ -9420,7 +9420,7 @@ GameBoyCore.prototype.fromTypedArray = function (baseArray) {
 }
 GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType) {
 	try {
-		if (settings[22]) {
+		if (settings[5]) {
 			throw(new Error(""));
 		}
 		switch (numberType) {

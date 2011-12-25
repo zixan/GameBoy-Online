@@ -49,7 +49,7 @@ function windowingInitialize() {
 	document.getElementById("enable_gbc_bios").checked = settings[16];
 	document.getElementById("enable_colorization").checked = settings[17];
 	document.getElementById("do_minimal").checked = settings[19];
-	document.getElementById("software_resizing").checked = settings[21];
+	document.getElementById("software_resizing").checked = settings[18];
 	document.getElementById("typed_arrays_disallow").checked = settings[22];
 }
 function registerGUIEvents() {
@@ -259,7 +259,7 @@ function registerGUIEvents() {
 		fullscreenCanvas.className = (settings[19]) ? "minimum" : "maximum";
 	});
 	addEvent("click", document.getElementById("software_resizing"), function () {
-		settings[21] = document.getElementById("software_resizing").checked;
+		settings[18] = document.getElementById("software_resizing").checked;
 		if (GameBoyEmulatorInitialized()) {
 			initNewCanvas();
 		}
@@ -290,7 +290,7 @@ function onResizeOutput() {
 	}
 }
 function initNewCanvasSize() {
-	if (!settings[21]) {
+	if (!settings[18]) {
 		if (gameboy.width != 160 || gameboy.height != 144 || gameboy.canvas.width != 160 || gameboy.canvas.height != 144) {
 			gameboy.canvas.width = gameboy.width = 160;
 			gameboy.canvas.height = gameboy.height = 144;
@@ -305,7 +305,7 @@ function initNewCanvasSize() {
 	}
 }
 function initNewCanvas() {
-	if (!settings[21]) {
+	if (!settings[18]) {
 		gameboy.canvas.width = gameboy.width = 160;
 		gameboy.canvas.height = gameboy.height = 144;
 	}
