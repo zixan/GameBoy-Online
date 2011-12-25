@@ -5022,7 +5022,7 @@ GameBoyCore.prototype.initSound = function () {
 			settings[0] = false;
 		}
 	}
-	else {
+	else if (this.audioHandle) {
 		//Neutralize the audio output:
 		try {
 			this.audioHandle = new XAudioServer(1, 1000, 5000, 20000, function (sampleCount) {
