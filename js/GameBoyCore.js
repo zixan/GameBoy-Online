@@ -4881,7 +4881,7 @@ GameBoyCore.prototype.disableBootROM = function () {
 }
 GameBoyCore.prototype.initializeTiming = function () {
 	//Emulator Timing:
-	this.baseCPUCyclesPerIteration = 4194.3 * settings[20];
+	this.baseCPUCyclesPerIteration = 4194.3 * settings[6];
 	this.setEmulatorSpeed(1);
 }
 GameBoyCore.prototype.setEmulatorSpeed = function(speed) {
@@ -5011,7 +5011,7 @@ GameBoyCore.prototype.initSound = function () {
 		this.soundFrameShifter = this.soundChannelsAllocated - 1;
 		try {
 			var parentObj = this;
-			this.sampleSize = settings[14] / 1000 * settings[20];
+			this.sampleSize = settings[14] / 1000 * settings[6];
 			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], (this.sampleSize * 4) << this.soundFrameShifter, (this.sampleSize * 20) << this.soundFrameShifter, function (sampleCount) {
 				return parentObj.audioUnderRun(sampleCount);
 			}, -1);
@@ -6211,7 +6211,7 @@ GameBoyCore.prototype.clockUpdate = function () {
 		if (settings[7]) {
 			//Auto Frame Skip:
 			++this.iterations;
-			if (timeElapsed > settings[20] && ((newTime - this.firstIteration) / this.iterations) > (settings[20] + 1 + (settings[20] / this.iterations))) {
+			if (timeElapsed > settings[6] && ((newTime - this.firstIteration) / this.iterations) > (settings[6] + 1 + (settings[6] / this.iterations))) {
 				//Did not finish in time...
 				if (settings[4] < settings[8]) {
 					++settings[4];
