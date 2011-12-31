@@ -228,6 +228,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.cachedOBJPaletteConversion = null;
 	this.updateGBBGPalette = this.updateGBRegularBGPalette;
 	this.updateGBOBJPalette = this.updateGBRegularOBJPalette;
+	this.colorizedGBPalettes = false;
 	this.BGLayerRender = null;			//Reference to the BG rendering function.
 	this.WindowLayerRender = null;		//Reference to the window rendering function.
 	this.SpriteLayerRender = null;		//Reference to the OAM rendering function.
@@ -4218,7 +4219,8 @@ GameBoyCore.prototype.saveState = function () {
 		this.haltPostClocks,
 		this.interruptsRequested,
 		this.interruptsEnabled,
-		this.remainingClocks
+		this.remainingClocks,
+		this.colorizedGBPalettes
 	];
 }
 GameBoyCore.prototype.returnFromState = function (returnedFrom) {
@@ -4395,7 +4397,8 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.interruptsRequested = state[index++];
 	this.interruptsEnabled = state[index++];
 	this.checkIRQMatching();
-	this.remainingClocks = state[index];
+	this.remainingClocks = state[index++];
+	this.colorizedGBPalettes = state[index];
 	this.fromSaveState = true;
 	this.TICKTable = this.toTypedArray(this.TICKTable, "uint8");
 	this.SecondaryTICKTable = this.toTypedArray(this.SecondaryTICKTable, "uint8");
@@ -6404,6 +6407,7 @@ GameBoyCore.prototype.GBCtoGBModeAdjust = function () {
 		this.cachedOBJPaletteConversion = this.getTypedArray(8, 0, "int32");
 		this.BGPalette = this.gbBGColorizedPalette;
 		this.OBJPalette = this.gbOBJColorizedPalette;
+		this.gbOBJPalette = this.gbBGPalette = null;
 		this.getGBCColor();
 	}
 	else {
@@ -6428,9 +6432,11 @@ GameBoyCore.prototype.renderPathBuild = function () {
 GameBoyCore.prototype.initializeReferencesFromSaveState = function () {
 	this.LCDCONTROL = (this.LCDisOn) ? this.LINECONTROL : this.DISPLAYOFFCONTROL;
 	if (!this.cGBC) {
-		if (this.usedBootROM && settings[17]) {
+		if (this.colorizedGBPalettes) {
 			this.BGPalette = this.gbBGColorizedPalette;
 			this.OBJPalette = this.gbOBJColorizedPalette;
+			this.updateGBBGPalette = this.updateGBColorizedBGPalette;
+			this.updateGBOBJPalette = this.updateGBColorizedOBJPalette;
 		}
 		else {
 			this.BGPalette = this.gbBGPalette;
@@ -6470,6 +6476,7 @@ GameBoyCore.prototype.getGBCColor = function () {
 	this.updateGBBGPalette(this.memory[0xFF47]);
 	this.updateGBOBJPalette(0, this.memory[0xFF48]);
 	this.updateGBOBJPalette(1, this.memory[0xFF49]);
+	this.colorizedGBPalettes = true;
 }
 GameBoyCore.prototype.updateGBRegularBGPalette = function (data) {
 	this.gbBGPalette[0] = this.colors[data & 0x03] | 0x2000000;
