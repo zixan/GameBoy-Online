@@ -250,9 +250,6 @@ function registerGUIEvents() {
 	});
 	addEvent("click", document.getElementById("enable_colorization"), function () {
 		settings[17] = document.getElementById("enable_colorization").checked;
-		if (GameBoyEmulatorInitialized()) {
-			gameboy.consoleModeAdjust();
-		}
 	});
 	addEvent("click", document.getElementById("do_minimal"), function () {
 		settings[19] = document.getElementById("do_minimal").checked;
