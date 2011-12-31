@@ -6411,6 +6411,8 @@ GameBoyCore.prototype.GBCtoGBModeAdjust = function () {
 		this.getGBCColor();
 	}
 	else {
+		this.gbOBJPalette = this.getTypedArray(8, 0x1000000, "int32");
+		this.gbBGPalette = this.getTypedArray(4, 0, "int32");
 		this.BGPalette = this.gbBGPalette;
 		this.OBJPalette = this.gbOBJPalette;
 	}
