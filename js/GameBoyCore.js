@@ -7491,7 +7491,7 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 			this.memoryReader[index] = (this.cGBC) ? this.VRAMDATAReadCGBCPU : this.VRAMDATAReadDMGCPU;
 		}
 		else if (index < 0xA000) {
-			this.memoryReader[index] = this.VRAMCHRReadCPU;
+			this.memoryReader[index] = (this.cGBC) ? this.VRAMCHRReadCGBCPU : this.VRAMCHRReadDMGCPU;
 		}
 		else if (index >= 0xA000 && index < 0xC000) {
 			if ((this.numRAMBanks == 1 / 16 && index < 0xA200) || this.numRAMBanks >= 1) {
@@ -7879,9 +7879,13 @@ GameBoyCore.prototype.VRAMDATAReadDMGCPU = function (parentObj, address) {
 	//CPU Side Reading The VRAM (Optimized for classic GameBoy)
 	return (parentObj.modeSTAT > 2) ? 0xFF : parentObj.memory[address];
 }
-GameBoyCore.prototype.VRAMCHRReadCPU = function (parentObj, address) {
+GameBoyCore.prototype.VRAMCHRReadCGBCPU = function (parentObj, address) {
 	//CPU Side Reading the Character Data Map:
 	return (parentObj.modeSTAT > 2) ? 0xFF : parentObj.BGCHRCurrentBank[address & 0x7FF];
+}
+GameBoyCore.prototype.VRAMCHRReadDMGCPU = function (parentObj, address) {
+	//CPU Side Reading the Character Data Map:
+	return (parentObj.modeSTAT > 2) ? 0xFF : parentObj.BGCHRBank1[address & 0x7FF];
 }
 GameBoyCore.prototype.setCurrentMBC1ROMBank = function () {
 	//Read the cartridge ROM data from RAM memory:
