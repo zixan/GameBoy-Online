@@ -6279,7 +6279,7 @@ GameBoyCore.prototype.swizzleFrameBuffer = function () {
 	this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 }
 GameBoyCore.prototype.drawBlankScreen = function () {
-	this.drawContext.fillStyle = (this.cGBC || (this.usedBootROM && settings[17])) ? "rgb(248, 248, 248)" : "rgb(239, 255, 222)";
+	this.drawContext.fillStyle = (this.cGBC || this.colorizedGBPalettes) ? "rgb(248, 248, 248)" : "rgb(239, 255, 222)";
 	this.drawContext.fillRect(0, 0, this.width, this.height);
 }
 GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
@@ -6333,7 +6333,7 @@ GameBoyCore.prototype.renderScanLine = function () {
 		}
 		else {
 			var pixelLine = (this.actualScanLine + 1) * 160;
-			var defaultColor = (this.cGBC || (this.usedBootROM && settings[17])) ? 0xF8F8F8 : 0xEFFFDE;
+			var defaultColor = (this.cGBC || this.colorizedGBPalettes) ? 0xF8F8F8 : 0xEFFFDE;
 			for (var pixelPosition = (this.actualScanLine * 160) + this.currentX; pixelPosition < pixelLine; pixelPosition++) {
 				this.frameBuffer[pixelPosition] = defaultColor;
 			}
@@ -6364,7 +6364,7 @@ GameBoyCore.prototype.renderMidScanLine = function () {
 			}
 			else {
 				var pixelLine = (this.actualScanLine * 160) + pixelEnd;
-				var defaultColor = (this.cGBC || (this.usedBootROM && settings[17])) ? 0xF8F8F8 : 0xEFFFDE;
+				var defaultColor = (this.cGBC || this.colorizedGBPalettes) ? 0xF8F8F8 : 0xEFFFDE;
 				for (var pixelPosition = (this.actualScanLine * 160) + this.currentX; pixelPosition < pixelLine; pixelPosition++) {
 					this.frameBuffer[pixelPosition] = defaultColor;
 				}
