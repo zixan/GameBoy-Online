@@ -4472,7 +4472,7 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	cout("Starting without the GBC boot ROM.", 0);
 	this.programCounter = 0x100;
 	this.stackPointer = 0xFFFE;
-	this.IME = true;
+	this.IME = false;
 	this.DIVTicks = 56;
 	this.registerA = (this.cGBC) ? 0x11 : 0x1;
 	this.registerB = 0;
