@@ -3,10 +3,7 @@ CACHE:
 js/other/windowStack.js
 js/other/terminal.js
 js/other/gui.js
-js/other/waveAudio.js
-js/other/BMPCanvas.js
 js/other/base64.js
-js/other/audioRunner.js
 js/other/resampler.js
 js/other/XAudioServer.js
 js/other/transportHandler.js
