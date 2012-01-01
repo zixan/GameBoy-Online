@@ -9432,7 +9432,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.mode1TriggerSTAT = ((data & 0x10) == 0x10);
 			parentObj.mode0TriggerSTAT = ((data & 0x08) == 0x08);
 			parentObj.memory[0xFF41] = data & 0x78;
-			if ((!parentObj.usedBootROM || !this.usedGBCBootROM) && parentObj.LCDisOn && parentObj.modeSTAT < 2) {
+			if ((!parentObj.usedBootROM || !parentObj.usedGBCBootROM) && parentObj.LCDisOn && parentObj.modeSTAT < 2) {
 				parentObj.interruptsRequested |= 0x2;
 				parentObj.checkIRQMatching();
 			}
