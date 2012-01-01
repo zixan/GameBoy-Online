@@ -8688,9 +8688,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			//Pre-calculate the frequency computation outside the waveform generator for speed:
 			parentObj.channel1adjustedFrequencyPrep = parentObj.preChewedAudioComputationMultiplier / (0x800 - parentObj.channel1frequency);
 			parentObj.memory[0xFF14] = data & 0x40;
-			if (parentObj.inBootstrap) {
-				cout(data, 0);
-			}
 		}
 	}
 	this.memoryHighWriter[0x16] = this.memoryWriter[0xFF16] = function (parentObj, address, data) {
