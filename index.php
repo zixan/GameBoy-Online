@@ -193,7 +193,7 @@ catch (error) {
 		$this->startElement('div');
 		$this->writeAttribute('class', 'setting');
 		$this->startElement('span');
-		$this->text('Use GBC BIOS (Note: Overrides GB priority):');
+		$this->text('Use the BIOS ROM:');
 		$this->endElement();
 		$this->startElement('input');
 		$this->writeAttribute('type', 'checkbox');
