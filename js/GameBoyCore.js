@@ -42,6 +42,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.remainingClocks = 0;					//HALT clocking overrun carry over.
 	this.inBootstrap = true;					//Whether we're in the GBC boot ROM.
 	this.usedBootROM = false;					//Updated upon ROM loading...
+	this.usedGBCBootROM = false;				//Did we boot to the GBC boot ROM?
 	this.halt = false;							//Has the CPU been suspended until the next interrupt?
 	this.skipPCIncrement = false;				//Did we trip the DMG Halt bug?
 	this.stopEmulator = 3;						//Has the emulation been paused or a frame has ended?
@@ -243,6 +244,25 @@ function GameBoyCore(canvas, ROMImage) {
 	this.widthRatio = 160 / this.width;
 	this.heightRatio = 144 / this.height;
 }
+GameBoyCore.prototype.GBBOOTROM = [		//GB BOOT ROM
+	//Copied from an internet mirror:
+	0x31, 0xFE, 0xFF, 0xAF, 0x21, 0xFF, 0x9F, 0x32,		0xCB, 0x7C, 0x20, 0xFB, 0x21, 0x26, 0xFF, 0x0E,
+    0x11, 0x3E, 0x80, 0x32, 0xE2, 0x0C, 0x3E, 0xF3,		0xE2, 0x32, 0x3E, 0x77, 0x77, 0x3E, 0xFC, 0xE0,
+    0x47, 0x11, 0x04, 0x01, 0x21, 0x10, 0x80, 0x1A,		0xCD, 0x95, 0x00, 0xCD, 0x96, 0x00, 0x13, 0x7B,
+    0xFE, 0x34, 0x20, 0xF3, 0x11, 0xD8, 0x00, 0x06,		0x08, 0x1A, 0x13, 0x22, 0x23, 0x05, 0x20, 0xF9,
+    0x3E, 0x19, 0xEA, 0x10, 0x99, 0x21, 0x2F, 0x99,		0x0E, 0x0C, 0x3D, 0x28, 0x08, 0x32, 0x0D, 0x20,
+    0xF9, 0x2E, 0x0F, 0x18, 0xF3, 0x67, 0x3E, 0x64,		0x57, 0xE0, 0x42, 0x3E, 0x91, 0xE0, 0x40, 0x04,
+    0x1E, 0x02, 0x0E, 0x0C, 0xF0, 0x44, 0xFE, 0x90,		0x20, 0xFA, 0x0D, 0x20, 0xF7, 0x1D, 0x20, 0xF2,
+    0x0E, 0x13, 0x24, 0x7C, 0x1E, 0x83, 0xFE, 0x62,		0x28, 0x06, 0x1E, 0xC1, 0xFE, 0x64, 0x20, 0x06,
+    0x7B, 0xE2, 0x0C, 0x3E, 0x87, 0xF2, 0xF0, 0x42,		0x90, 0xE0, 0x42, 0x15, 0x20, 0xD2, 0x05, 0x20,
+    0x4F, 0x16, 0x20, 0x18, 0xCB, 0x4F, 0x06, 0x04,		0xC5, 0xCB, 0x11, 0x17, 0xC1, 0xCB, 0x11, 0x17,
+    0x05, 0x20, 0xF5, 0x22, 0x23, 0x22, 0x23, 0xC9,		0xCE, 0xED, 0x66, 0x66, 0xCC, 0x0D, 0x00, 0x0B,
+    0x03, 0x73, 0x00, 0x83, 0x00, 0x0C, 0x00, 0x0D,		0x00, 0x08, 0x11, 0x1F, 0x88, 0x89, 0x00, 0x0E,
+    0xDC, 0xCC, 0x6E, 0xE6, 0xDD, 0xDD, 0xD9, 0x99,		0xBB, 0xBB, 0x67, 0x63, 0x6E, 0x0E, 0xEC, 0xCC,
+    0xDD, 0xDC, 0x99, 0x9F, 0xBB, 0xB9, 0x33, 0x3E,		0x3c, 0x42, 0xB9, 0xA5, 0xB9, 0xA5, 0x42, 0x4C,
+    0x21, 0x04, 0x01, 0x11, 0xA8, 0x00, 0x1A, 0x13,		0xBE, 0x20, 0xFE, 0x23, 0x7D, 0xFE, 0x34, 0x20,
+    0xF5, 0x06, 0x19, 0x78, 0x86, 0x23, 0x05, 0x20,		0xFB, 0x86, 0x20, 0xFE, 0x3E, 0x01, 0xE0, 0x50
+];
 GameBoyCore.prototype.GBCBOOTROM = [	//GBC BOOT ROM (Thanks to Costis for the binary dump that I converted to this):
 	//This way of loading in the BOOT ROM reminds me of when people had to punchcard the data in. :P
 	0x31, 0xfe, 0xff, 0x3e, 0x02, 0xc3, 0x7c, 0x00, 	0xd3, 0x00, 0x98, 0xa0, 0x12, 0xd3, 0x00, 0x80, 
@@ -4653,30 +4673,40 @@ GameBoyCore.prototype.ROMLoad = function () {
 	this.ROM = this.getTypedArray(maxLength, 0, "uint8");
 	var romIndex = 0;
 	if (this.usedBootROM) {
-		//Patch in the GBC boot ROM into the memory map:
-		for (; romIndex < 0x100; romIndex++) {
-			this.memory[romIndex] = this.GBCBOOTROM[romIndex];											//Load in the GameBoy Color BOOT ROM.
-			this.ROM[romIndex] = (this.ROMImage.charCodeAt(romIndex) & 0xFF);							//Decode the ROM binary for the switch out.
+		if (!settings[20]) {
+			//Patch in the GBC boot ROM into the memory map:
+			for (; romIndex < 0x100; ++romIndex) {
+				this.memory[romIndex] = this.GBCBOOTROM[romIndex];											//Load in the GameBoy Color BOOT ROM.
+				this.ROM[romIndex] = (this.ROMImage.charCodeAt(romIndex) & 0xFF);							//Decode the ROM binary for the switch out.
+			}
+			for (; romIndex < 0x200; ++romIndex) {
+				this.memory[romIndex] = this.ROM[romIndex] = (this.ROMImage.charCodeAt(romIndex) & 0xFF);	//Load in the game ROM.
+			}
+			for (; romIndex < 0x900; ++romIndex) {
+				this.memory[romIndex] = this.GBCBOOTROM[romIndex - 0x100];									//Load in the GameBoy Color BOOT ROM.
+				this.ROM[romIndex] = (this.ROMImage.charCodeAt(romIndex) & 0xFF);							//Decode the ROM binary for the switch out.
+			}
+			this.usedGBCBootROM = true;
 		}
-		for (; romIndex < 0x200; romIndex++) {
-			this.memory[romIndex] = this.ROM[romIndex] = (this.ROMImage.charCodeAt(romIndex) & 0xFF);	//Load in the game ROM.
+		else {
+			//Patch in the GBC boot ROM into the memory map:
+			for (; romIndex < 0x100; ++romIndex) {
+				this.memory[romIndex] = this.GBBOOTROM[romIndex];											//Load in the GameBoy Color BOOT ROM.
+				this.ROM[romIndex] = (this.ROMImage.charCodeAt(romIndex) & 0xFF);							//Decode the ROM binary for the switch out.
+			}
 		}
-		for (; romIndex < 0x900; romIndex++) {
-			this.memory[romIndex] = this.GBCBOOTROM[romIndex - 0x100];									//Load in the GameBoy Color BOOT ROM.
-			this.ROM[romIndex] = (this.ROMImage.charCodeAt(romIndex) & 0xFF);							//Decode the ROM binary for the switch out.
-		}
-		for (; romIndex < 0x4000; romIndex++) {
+		for (; romIndex < 0x4000; ++romIndex) {
 			this.memory[romIndex] = this.ROM[romIndex] = (this.ROMImage.charCodeAt(romIndex) & 0xFF);	//Load in the game ROM.
 		}
 	}
 	else {
 		//Don't load in the boot ROM:
-		for (; romIndex < 0x4000; romIndex++) {
+		for (; romIndex < 0x4000; ++romIndex) {
 			this.memory[romIndex] = this.ROM[romIndex] = (this.ROMImage.charCodeAt(romIndex) & 0xFF);	//Load in the game ROM.
 		}
 	}
 	//Finish the decoding of the ROM binary:
-	for (; romIndex < maxLength; romIndex++) {
+	for (; romIndex < maxLength; ++romIndex) {
 		this.ROM[romIndex] = (this.ROMImage.charCodeAt(romIndex) & 0xFF);
 	}
 	//Set up the emulator for the cartidge specifics:
@@ -4908,7 +4938,7 @@ GameBoyCore.prototype.interpretCartridge = function () {
 		this.initSkipBootstrap();
 	}
 	else {
-		this.cGBC = true;	//Allow the GBC boot ROM to run in GBC mode...
+		this.cGBC = this.usedGBCBootROM;	//Allow the GBC boot ROM to run in GBC mode...
 		this.setupRAM();	//CPU/(V)RAM initialization.
 		this.initBootstrap();
 	}
@@ -4928,17 +4958,20 @@ GameBoyCore.prototype.interpretCartridge = function () {
 }
 GameBoyCore.prototype.disableBootROM = function () {
 	//Remove any traces of the boot ROM from ROM memory.
-	for (var index = 0; index < 0x900; index++) {
-		if (index < 0x100 || index >= 0x200) {		//Skip the already loaded in ROM header.
+	for (var index = 0; index < 0x100; ++index) {
+		this.memory[index] = this.ROM[index];	//Replace the GameBoy or GameBoy Color boot ROM with the game ROM.
+	}
+	if (this.usedGBCBootROM) {
+		//Remove any traces of the boot ROM from ROM memory.
+		for (index = 0x200; index < 0x900; ++index) {
 			this.memory[index] = this.ROM[index];	//Replace the GameBoy Color boot ROM with the game ROM.
 		}
+		if (!this.cGBC) {
+			//Clean up the post-boot (GB mode only) state:
+			this.GBCtoGBModeAdjust();
+		}
 	}
-	if (!this.cGBC) {
-		//Clean up the post-boot (GB mode only) state:
-		this.GBCtoGBModeAdjust();
-	}
-	this.memoryReadJumpCompile();
-	this.memoryWriteJumpCompile();
+	this.recompileBootHandling();
 }
 GameBoyCore.prototype.initializeTiming = function () {
 	//Emulator Timing:
@@ -6487,6 +6520,8 @@ GameBoyCore.prototype.GBCtoGBModeAdjust = function () {
 	}
 	this.resetOAMXCache();
 	this.renderPathBuild();
+	this.memoryReadJumpCompile();
+	this.memoryWriteJumpCompile();
 }
 GameBoyCore.prototype.renderPathBuild = function () {
 	if (!this.cGBC) {
@@ -9448,6 +9483,9 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		this.memoryHighWriter[0x70] = this.memoryWriter[0xFF70] = this.cartIgnoreWrite;
 		this.memoryHighWriter[0x74] = this.memoryWriter[0xFF74] = this.cartIgnoreWrite;
 	}
+	this.recompileBootHandling();
+}
+GameBoyCore.prototype.recompileBootHandling = function () {
 	//Boot I/O Registers:
 	if (this.inBootstrap) {
 		this.memoryHighWriter[0x50] = this.memoryWriter[0xFF50] = function (parentObj, address, data) {

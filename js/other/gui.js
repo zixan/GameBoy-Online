@@ -50,7 +50,8 @@ function windowingInitialize() {
 	document.getElementById("enable_colorization").checked = settings[17];
 	document.getElementById("do_minimal").checked = settings[19];
 	document.getElementById("software_resizing").checked = settings[18];
-	document.getElementById("typed_arrays_disallow").checked = settings[22];
+	document.getElementById("typed_arrays_disallow").checked = settings[5];
+	document.getElementById("gb_boot_rom_utilized").checked = settings[20];
 }
 function registerGUIEvents() {
 	cout("In registerGUIEvents() : Registering GUI Events.", -1);
@@ -268,7 +269,10 @@ function registerGUIEvents() {
 		}
 	});
 	addEvent("click", document.getElementById("typed_arrays_disallow"), function () {
-		settings[22] = document.getElementById("typed_arrays_disallow").checked;
+		settings[5] = document.getElementById("typed_arrays_disallow").checked;
+	});
+	addEvent("click", document.getElementById("gb_boot_rom_utilized"), function () {
+		settings[20] = document.getElementById("gb_boot_rom_utilized").checked;
 	});
 	addEvent("click", document.getElementById("view_fullscreen"), fullscreenPlayer);
 	new popupMenu(document.getElementById("GameBoy_view_menu"), document.getElementById("GameBoy_view_popup"));

@@ -285,6 +285,16 @@ catch (error) {
 		$this->writeAttribute('id', 'typed_arrays_disallow');
 		$this->endElement();
 		$this->endElement();
+		$this->startElement('div');
+		$this->writeAttribute('class', 'setting');
+		$this->startElement('span');
+		$this->text('Use the DMG boot ROM instead of CGB:');
+		$this->endElement();
+		$this->startElement('input');
+		$this->writeAttribute('type', 'checkbox');
+		$this->writeAttribute('id', 'gb_boot_rom_utilized');
+		$this->endElement();
+		$this->endElement();
 		$this->endElement();
 		$this->startElement('div');
 		$this->writeAttribute('class', 'button_rack');
