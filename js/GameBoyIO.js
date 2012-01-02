@@ -7,7 +7,7 @@ var settings = [						//Some settings.
 	[39, 37, 38, 40, 88, 90, 16, 13],	//Keyboard button map.
 	0,									//Frameskip Amount (Auto frameskip setting allows the script to change this.)
 	false,								//Disallow typed arrays?
-	10,									//Interval for the emulator loop.
+	16,									//Interval for the emulator loop.
 	false,								//Auto Frame Skip
 	29,									//Maximum Frame Skip
 	false,								//Override to allow for MBC1 instead of ROM only (compatibility for broken 3rd-party cartridges).
