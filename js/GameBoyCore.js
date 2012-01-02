@@ -4971,11 +4971,11 @@ GameBoyCore.prototype.disableBootROM = function () {
 			this.GBCtoGBModeAdjust();
 		}
 		else {
-			this.recompileBootHandling();
+			this.recompileBootWriteHandling();
 		}
 	}
 	else {
-		this.recompileBootHandling();
+		this.recompileBootWriteHandling();
 	}
 }
 GameBoyCore.prototype.initializeTiming = function () {
@@ -6526,7 +6526,8 @@ GameBoyCore.prototype.GBCtoGBModeAdjust = function () {
 	this.resetOAMXCache();
 	this.renderPathBuild();
 	this.memoryReadJumpCompile();
-	this.memoryWriteJumpCompile();
+	this.recompileModelSpecificWriteHandling();
+	this.recompileBootWriteHandling();
 }
 GameBoyCore.prototype.renderPathBuild = function () {
 	if (!this.cGBC) {
@@ -9212,6 +9213,10 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		parentObj.interruptsEnabled = data;
 		parentObj.checkIRQMatching();
 	}
+	this.recompileModelSpecificWriteHandling();
+	this.recompileBootWriteHandling();
+}
+GameBoyCore.prototype.recompileModelSpecificWriteHandling = function () {
 	if (this.cGBC) {
 		//GameBoy Color Specific I/O:
 		//SC (Serial Transfer Control Register)
@@ -9488,9 +9493,8 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		this.memoryHighWriter[0x70] = this.memoryWriter[0xFF70] = this.cartIgnoreWrite;
 		this.memoryHighWriter[0x74] = this.memoryWriter[0xFF74] = this.cartIgnoreWrite;
 	}
-	this.recompileBootHandling();
 }
-GameBoyCore.prototype.recompileBootHandling = function () {
+GameBoyCore.prototype.recompileBootWriteHandling = function () {
 	//Boot I/O Registers:
 	if (this.inBootstrap) {
 		this.memoryHighWriter[0x50] = this.memoryWriter[0xFF50] = function (parentObj, address, data) {
