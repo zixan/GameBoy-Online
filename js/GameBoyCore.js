@@ -5026,8 +5026,6 @@ GameBoyCore.prototype.setupRAM = function () {
 		this.GBCMemory = this.getTypedArray(0x7000, 0, "uint8");
 	}
 	else {
-		this.tileCache = this.generateCacheArray(0x700);
-		this.tileCacheValid = this.getTypedArray(0x700, 0, "int8");
 		this.resetOAMXCache();
 	}
 	this.memoryReadJumpCompile();
