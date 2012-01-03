@@ -93,6 +93,7 @@ function GameBoyCore(canvas, ROMImage) {
 		//Array of line 0 function to handle the LCD controller when it's off (Do nothing!).
 	}];
 	this.LCDCONTROL = null;						//Pointer to either LINECONTROL or DISPLAYOFFCONTROL.
+	this.initializeLCDController();				//Compile the LCD controller functions.
 	//RTC (Real Time Clock for MBC3):
 	this.RTCisLatched = false;
 	this.latchedSeconds = 0;					//RTC latched seconds.
@@ -4420,7 +4421,6 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.fromSaveState = true;
 	this.TICKTable = this.toTypedArray(this.TICKTable, "uint8");
 	this.SecondaryTICKTable = this.toTypedArray(this.SecondaryTICKTable, "uint8");
-	this.initializeLCDController();
 	this.initializeReferencesFromSaveState();
 	this.memoryReadJumpCompile();
 	this.memoryWriteJumpCompile();
@@ -4451,7 +4451,6 @@ GameBoyCore.prototype.returnFromRTCState = function () {
 }
 GameBoyCore.prototype.start = function () {
 	settings[4] = 0;	//Reset the frame skip setting.
-	this.initializeLCDController();	//Compile the LCD controller functions.
 	this.initMemory();	//Write the startup memory.
 	this.ROMLoad();		//Load the ROM into memory and get cartridge information from it.
 	this.initLCD();		//Initialize the graphics.
