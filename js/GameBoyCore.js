@@ -7369,13 +7369,13 @@ GameBoyCore.prototype.generateGBOAMTile = function (map, tile) {
 	var tileRawLine = 0;							//Unconverted line data.
 	if ((map & 0x40) == 0x40) {
 		//Normal Y:
-		var y = 7;
-		var yINC = -1;
+		var y = 56;
+		var yINC = -8;
 	}
 	else {
 		//Flipped Y:
 		var y = 0;
-		var yINC = 1;
+		var yINC = 8;
 	}
 	var lineIndex = 0;	//Line line we're working on.
 	if ((map & 0x20) == 0) {
