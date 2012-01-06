@@ -5133,7 +5133,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	cout("...Samples per clock cycle (Per Channel): " + this.samplesOut, 0);
 	this.numSamplesTotal = this.sampleSize << this.soundFrameShifter;
 	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, -1, "float32");
-	this.capacitorFactor = Math.pow(0.999958, (4194304 / 2) / settings[14]);
+	this.capacitorFactor = Math.pow(0.999958, 4194304 / settings[14]);
 	this.intializeWhiteNoise();
 }
 GameBoyCore.prototype.intializeWhiteNoise = function () {
