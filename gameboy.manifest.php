@@ -1,4 +1,6 @@
-CACHE MANIFEST
+<?php
+header('Content-Type: text/cache-manifest');
+?>CACHE MANIFEST
 CACHE:
 js/other/windowStack.js
 js/other/terminal.js
