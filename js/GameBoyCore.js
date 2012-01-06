@@ -129,6 +129,8 @@ function GameBoyCore(canvas, ROMImage) {
 	//Vin Shit:
 	this.VinLeftChannelMasterVolume = 1;		//Computed post-mixing volume.
 	this.VinRightChannelMasterVolume = 1;		//Computed post-mixing volume.
+	this.capacitorCharge = 0;
+	this.capacitorFactor = 0;
 	//Channel paths enabled:
 	this.leftChannel0 = false;
 	this.leftChannel1 = false;
@@ -4239,7 +4241,8 @@ GameBoyCore.prototype.saveState = function () {
 		this.interruptsRequested,
 		this.interruptsEnabled,
 		this.remainingClocks,
-		this.colorizedGBPalettes
+		this.colorizedGBPalettes,
+		this.capacitorCharge
 	];
 }
 GameBoyCore.prototype.returnFromState = function (returnedFrom) {
@@ -4417,7 +4420,8 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.interruptsEnabled = state[index++];
 	this.checkIRQMatching();
 	this.remainingClocks = state[index++];
-	this.colorizedGBPalettes = state[index];
+	this.colorizedGBPalettes = state[index++];
+	this.capacitorCharge = state[index];
 	this.fromSaveState = true;
 	this.TICKTable = this.toTypedArray(this.TICKTable, "uint8");
 	this.SecondaryTICKTable = this.toTypedArray(this.SecondaryTICKTable, "uint8");
@@ -5101,7 +5105,7 @@ GameBoyCore.prototype.initSound = function () {
 			this.sampleSize = settings[14] / 1000 * settings[6];
 			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], (this.sampleSize * 4) << this.soundFrameShifter, (this.sampleSize * 20) << this.soundFrameShifter, function (sampleCount) {
 				return parentObj.audioUnderRun(sampleCount);
-			}, -1);
+			}, 0);
 			cout("...Audio Channels: " + this.soundChannelsAllocated, 0);
 			cout("...Sample Rate: " + settings[14], 0);
 			this.initAudioBuffer();
@@ -5129,6 +5133,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	cout("...Samples per clock cycle (Per Channel): " + this.samplesOut, 0);
 	this.numSamplesTotal = this.sampleSize << this.soundFrameShifter;
 	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, -1, "float32");
+	this.capacitorFactor = Math.pow(0.999958, (4194304 / 2) / settings[14]);
 	this.intializeWhiteNoise();
 }
 GameBoyCore.prototype.intializeWhiteNoise = function () {
@@ -5297,6 +5302,11 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 	this.VinLeftChannelMasterVolume = 1;
 	this.VinRightChannelMasterVolume = 1;
 }
+GameBoyCore.prototype.highPass = function (signalIn) {
+	var out = signalIn - this.capacitorCharge;
+	this.capacitorCharge = signalIn - out * this.capacitorFactor;
+	return out;
+}
 //Below are the audio generation functions timed against the CPU:
 GameBoyCore.prototype.generateAudio = function (numSamples) {
 	if (this.soundMasterEnabled) {
@@ -5304,8 +5314,8 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			while (--numSamples > -1) {
 				//STEREO
 				this.audioChannelsComputeStereo();
-				this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1;
-				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
+				this.currentBuffer[this.audioIndex++] = this.highPass(this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1);
+				this.currentBuffer[this.audioIndex++] = this.highPass(this.currentSampleRight * this.VinRightChannelMasterVolume - 1);
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
 					this.audioHandle.writeAudio(this.currentBuffer);
@@ -5316,7 +5326,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			while (--numSamples > -1) {
 				//MONO
 				this.audioChannelsComputeMono();
-				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
+				this.currentBuffer[this.audioIndex++] = this.highPass(this.currentSampleRight * this.VinRightChannelMasterVolume - 1);
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
 					this.audioHandle.writeAudio(this.currentBuffer);
@@ -5329,8 +5339,8 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 		if (!settings[1]) {
 			while (--numSamples > -1) {
 				//STEREO
-				this.currentBuffer[this.audioIndex++] = -1;
-				this.currentBuffer[this.audioIndex++] = -1;
+				this.currentBuffer[this.audioIndex++] = 0;
+				this.currentBuffer[this.audioIndex++] = 0;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
 					this.audioHandle.writeAudio(this.currentBuffer);
@@ -5340,7 +5350,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 		else {
 			while (--numSamples > -1) {
 				//MONO
-				this.currentBuffer[this.audioIndex++] = -1;
+				this.currentBuffer[this.audioIndex++] = 0;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
 					this.audioHandle.writeAudio(this.currentBuffer);
@@ -5707,15 +5717,15 @@ GameBoyCore.prototype.generateAudioSafe = function (tempBuffer, numSamples) {
 			while (--numSamples >= 0) {
 				//STEREO
 				this.audioChannelsComputeStereoSafe();
-				tempBuffer.push(this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1);
-				tempBuffer.push(this.currentSampleRight * this.VinRightChannelMasterVolume - 1);
+				tempBuffer.push(this.highPass(this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1));
+				tempBuffer.push(this.highPass(this.currentSampleRight * this.VinRightChannelMasterVolume - 1));
 			}
 		}
 		else {
 			while (--numSamples >= 0) {
 				//MONO
 				this.audioChannelsComputeMonoSafe();
-				tempBuffer.push(this.currentSampleRight * this.VinRightChannelMasterVolume - 1);
+				tempBuffer.push(this.highPass(this.currentSampleRight * this.VinRightChannelMasterVolume - 1));
 			}
 		}
 	}
@@ -5724,14 +5734,14 @@ GameBoyCore.prototype.generateAudioSafe = function (tempBuffer, numSamples) {
 		if (!settings[1]) {
 			while (--numSamples >= 0) {
 				//STEREO
-				tempBuffer.push(-1);
-				tempBuffer.push(-1);
+				tempBuffer.push(0);
+				tempBuffer.push(0);
 			}
 		}
 		else {
 			while (--numSamples >= 0) {
 				//MONO
-				tempBuffer.push(-1);
+				tempBuffer.push(0);
 			}
 		}
 	}
