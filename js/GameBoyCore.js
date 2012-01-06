@@ -5161,7 +5161,7 @@ GameBoyCore.prototype.intializeWhiteNoise = function () {
 		this.LSFR15Table[0x60000 | index] = randomFactor * 0xC / 0x3C;
 		this.LSFR15Table[0x68000 | index] = randomFactor * 0xD / 0x3C;
 		this.LSFR15Table[0x70000 | index] = randomFactor * 0xE / 0x3C;
-		this.LSFR15Table[0x78000 | index] = randomFactor / 2;
+		this.LSFR15Table[0x78000 | index] = randomFactor / 4;
 		//Recompute the LSFR algorithm:
 		LSFRShifted = LSFR >> 1;
 		LSFR = LSFRShifted | (((LSFRShifted ^ LSFR) & 0x1) << 14);
@@ -5187,7 +5187,7 @@ GameBoyCore.prototype.intializeWhiteNoise = function () {
 		this.LSFR7Table[0x600 | index] = randomFactor * 0xC / 0x3C;
 		this.LSFR7Table[0x680 | index] = randomFactor * 0xD / 0x3C;
 		this.LSFR7Table[0x700 | index] = randomFactor * 0xE / 0x3C;
-		this.LSFR7Table[0x780 | index] = randomFactor / 2;
+		this.LSFR7Table[0x780 | index] = randomFactor / 4;
 		//Recompute the LSFR algorithm:
 		LSFRShifted = LSFR >> 1;
 		LSFR = LSFRShifted | (((LSFRShifted ^ LSFR) & 0x1) << 6);
