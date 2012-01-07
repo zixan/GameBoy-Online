@@ -5105,7 +5105,7 @@ GameBoyCore.prototype.initSound = function () {
 			this.sampleSize = settings[14] / 1000 * settings[6];
 			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], (this.sampleSize * 4) << this.soundFrameShifter, (this.sampleSize * 20) << this.soundFrameShifter, function (sampleCount) {
 				return parentObj.audioUnderRun(sampleCount);
-			}, (this.capacitorCharge != 0) ? -1 : this.capacitorCharge);
+			}, 0);
 			cout("...Audio Channels: " + this.soundChannelsAllocated, 0);
 			cout("...Sample Rate: " + settings[14], 0);
 			this.initAudioBuffer();
@@ -5925,7 +5925,6 @@ GameBoyCore.prototype.executeIteration = function () {
 GameBoyCore.prototype.iterationEndRoutine = function () {
 	if ((this.stopEmulator & 0x1) == 0) {
 		this.audioJIT();	//Make sure we at least output once per iteration.
-		defaultNeutralValue = -this.capacitorCharge;
 		//Update DIV Alignment (Integer overflow safety):
 		this.memory[0xFF04] = (this.memory[0xFF04] + (this.DIVTicks >> 8)) & 0xFF;
 		this.DIVTicks &= 0xFF;
