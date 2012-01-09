@@ -6453,9 +6453,15 @@ GameBoyCore.prototype.BGGBLayerRender = function (pixelEnd) {
 			chrCode |= 0x100;
 		}
 		tile = (this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBTile(chrCode);
-		for (texel = 0; texel < 8; ++texel) {
-			this.frameBuffer[pixelPosition++] = this.BGPalette[tile[tileYLine | texel]];
-		}
+		texel = tileYLine;
+		this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+		this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+		this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+		this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+		this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+		this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+		this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+		this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel]];
 	}
 	if (pixelPosition < pixelPositionEnd) {
 		if (scrollXAdjusted < 0x100) {
@@ -6475,9 +6481,15 @@ GameBoyCore.prototype.BGGBLayerRender = function (pixelEnd) {
 				chrCode |= 0x100;
 			}
 			tile = (this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBTile(chrCode);
-			for (texel = 0; texel < 8; ++texel) {
-				this.frameBuffer[pixelPosition++] = this.BGPalette[tile[tileYLine | texel]];
-			}
+			texel = tileYLine;
+			this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+			this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+			this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+			this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+			this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+			this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+			this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+			this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel]];
 		}
 		if (pixelPosition < pixelPositionEnd) {
 			chrCode = this.BGCHRBank1[tileYDown];
@@ -6537,9 +6549,15 @@ GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
 		tile = (this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode);
 		pixelFlag = (attrCode << 17) & this.BGPriorityEnabled;
 		palette = (attrCode & 0x7) << 2;
-		for (texel = 0; texel < 8; ++texel) {
-			this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[tileYLine | texel]];
-		}
+		texel = tileYLine;
+		this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+		this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+		this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+		this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+		this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+		this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+		this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+		this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel]];
 	}
 	if (pixelPosition < pixelPositionEnd) {
 		if (scrollXAdjusted < 0x100) {
@@ -6567,9 +6585,15 @@ GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
 			tile = (this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode);
 			pixelFlag = (attrCode << 17) & this.BGPriorityEnabled;
 			palette = (attrCode & 0x7) << 2;
-			for (texel = 0; texel < 8; ++texel) {
-				this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[tileYLine | texel]];
-			}
+			texel = tileYLine;
+			this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+			this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+			this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+			this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+			this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+			this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+			this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+			this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel]];
 		}
 		if (pixelPosition < pixelPositionEnd) {
 			chrCode = this.BGCHRBank1[tileYDown];
@@ -6627,9 +6651,15 @@ GameBoyCore.prototype.WindowGBLayerRender = function (pixelEnd) {
 						chrCode |= 0x100;
 					}
 					tile = (this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBTile(chrCode);
-					for (texel = 0; texel < 8; ++texel) {
-						this.frameBuffer[pixelPosition++] = this.BGPalette[tile[tileYLine | texel]];
-					}
+					texel = tileYLine;
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel++]];
+					this.frameBuffer[pixelPosition++] = this.BGPalette[tile[texel]];
 				}
 				if (pixelPosition < pixelPositionEnd) {
 					chrCode = this.BGCHRBank1[++tileNumber];
@@ -6693,9 +6723,15 @@ GameBoyCore.prototype.WindowGBCLayerRender = function (pixelEnd) {
 					tile = (this.tileCacheValid[chrCode] == 1) ? this.tileCache[chrCode] : this.generateGBCTile(attrCode, chrCode);
 					pixelFlag = (attrCode << 17) & this.BGPriorityEnabled;
 					palette = (attrCode & 0x7) << 2;
-					for (texel = 0; texel < 8; ++texel) {
-						this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[tileYLine | texel]];
-					}
+					texel = tileYLine;
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel++]];
+					this.frameBuffer[pixelPosition++] = pixelFlag | this.gbcBGPalette[palette | tile[texel]];
 				}
 				if (pixelPosition < pixelPositionEnd) {
 					chrCode = this.BGCHRBank1[++tileNumber];
