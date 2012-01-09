@@ -5103,7 +5103,7 @@ GameBoyCore.prototype.initSound = function () {
 		try {
 			var parentObj = this;
 			this.sampleSize = settings[14] / 1000 * settings[6];
-			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], (this.sampleSize * 4) << this.soundFrameShifter, (this.sampleSize * 20) << this.soundFrameShifter, function (sampleCount) {
+			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], Math.max(this.sampleSize * 4, 2048) << this.soundFrameShifter, Math.max(this.sampleSize * 20, 8192) << this.soundFrameShifter, function (sampleCount) {
 				return parentObj.audioUnderRun(sampleCount);
 			}, -1);
 			cout("...Audio Channels: " + this.soundChannelsAllocated, 0);
@@ -5127,7 +5127,7 @@ GameBoyCore.prototype.initSound = function () {
 }
 GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioTicks = this.audioIndex = 0;
-	this.bufferContainAmount = (this.sampleSize * 5) << this.soundFrameShifter;
+	this.bufferContainAmount = Math.max(this.sampleSize * 5, 4096) << this.soundFrameShifter;
 	cout("...Samples per interpreter loop iteration (Per Channel): " + this.sampleSize, 0);
 	this.samplesOut = this.sampleSize / this.CPUCyclesPerIteration;
 	cout("...Samples per clock cycle (Per Channel): " + this.samplesOut, 0);
@@ -5143,7 +5143,7 @@ GameBoyCore.prototype.intializeWhiteNoise = function () {
 	this.LSFR15Table = this.getTypedArray(0x80000, 0, "float32");
 	var LSFR = 0x7FFF;	//Seed value has all its bits set.
 	var LSFRShifted = 0x3FFF;
-	for (var index = 0; index < 0x8000; index++) {
+	for (var index = 0; index < 0x8000; ++index) {
 		//Normalize the last LSFR value for usage:
 		randomFactor = 1 - (LSFR & 1);	//Docs say it's the inverse.
 		//Cache the different volume level results:
@@ -5169,7 +5169,7 @@ GameBoyCore.prototype.intializeWhiteNoise = function () {
 	//7-bit LSFR Cache Generation:
 	this.LSFR7Table = this.getTypedArray(0x800, 0, "float32");
 	LSFR = 0x7F;	//Seed value has all its bits set.
-	for (index = 0; index < 0x80; index++) {
+	for (index = 0; index < 0x80; ++index) {
 		//Normalize the last LSFR value for usage:
 		randomFactor = 1 - (LSFR & 1);	//Docs say it's the inverse.
 		//Cache the different volume level results:
