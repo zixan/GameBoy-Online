@@ -6245,7 +6245,7 @@ GameBoyCore.prototype.renderMidScanLine = function () {
 	if (this.actualScanLine < 144 && this.modeSTAT == 3 && (settings[4] == 0 || this.frameCount > 0)) {
 		//TODO: Get this accurate:
 		if (this.midScanlineOffset == -1) {
-			this.midScanlineOffset = this.memory[0xFF43] & 0x7;
+			this.midScanlineOffset = this.backgroundX & 0x7;
 		}
 		if (this.LCDTicks >= 82) {
 			var pixelEnd = this.LCDTicks - 74;
@@ -6427,10 +6427,10 @@ GameBoyCore.prototype.updateGBCOBJPalette = function (index, data) {
 	}
 }
 GameBoyCore.prototype.BGGBLayerRender = function (pixelEnd) {
-	var scrollYAdjusted = (this.memory[0xFF42] + this.actualScanLine) & 0xFF;				//The line of the BG we're at.
+	var scrollYAdjusted = (this.backgroundY + this.actualScanLine) & 0xFF;					//The line of the BG we're at.
 	var tileYLine = (scrollYAdjusted & 7) << 3;
 	var tileYDown = this.gfxBackgroundCHRBankPosition | ((scrollYAdjusted & 0xF8) << 2);	//The row of cached tiles we're fetching from.
-	var scrollXAdjusted = (this.memory[0xFF43] + this.currentX) & 0xFF;						//The scroll amount of the BG.
+	var scrollXAdjusted = (this.backgroundX + this.currentX) & 0xFF;						//The scroll amount of the BG.
 	var pixelPosition = this.pixelStart + this.currentX;									//Current pixel we're working on.
 	var pixelPositionEnd = this.pixelStart + ((this.gfxWindowDisplay && (this.actualScanLine - this.windowY) >= 0) ? Math.min(Math.max(this.windowX, 0) + this.currentX, pixelEnd) : pixelEnd);	//Make sure we do at most 160 pixels a scanline.
 	var tileNumber = tileYDown + (scrollXAdjusted >> 3);
@@ -6503,10 +6503,10 @@ GameBoyCore.prototype.BGGBLayerRender = function (pixelEnd) {
 	}
 }
 GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
-	var scrollYAdjusted = (this.memory[0xFF42] + this.actualScanLine) & 0xFF;				//The line of the BG we're at.
+	var scrollYAdjusted = (this.backgroundY + this.actualScanLine) & 0xFF;					//The line of the BG we're at.
 	var tileYLine = (scrollYAdjusted & 7) << 3;
 	var tileYDown = this.gfxBackgroundCHRBankPosition | ((scrollYAdjusted & 0xF8) << 2);	//The row of cached tiles we're fetching from.
-	var scrollXAdjusted = (this.memory[0xFF43] + this.currentX) & 0xFF;						//The scroll amount of the BG.
+	var scrollXAdjusted = (this.backgroundX + this.currentX) & 0xFF;						//The scroll amount of the BG.
 	var pixelPosition = this.pixelStart + this.currentX;									//Current pixel we're working on.
 	var pixelPositionEnd = this.pixelStart + ((this.gfxWindowDisplay && (this.actualScanLine - this.windowY) >= 0) ? Math.min(Math.max(this.windowX, 0) + this.currentX, pixelEnd) : pixelEnd);	//Make sure we do at most 160 pixels a scanline.
 	var tileNumber = tileYDown + (scrollXAdjusted >> 3);
@@ -7551,6 +7551,16 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 				case 0xFF41:
 					this.memoryHighReader[0x41] = this.memoryReader[0xFF41] = function (parentObj, address) {
 						return 0x80 | parentObj.memory[0xFF41] | parentObj.modeSTAT;
+					}
+					break;
+				case 0xFF42:
+					this.memoryHighReader[0x42] = this.memoryReader[0xFF42] = function (parentObj, address) {
+						return parentObj.backgroundY;
+					}
+					break;
+				case 0xFF42:
+					this.memoryHighReader[0x43] = this.memoryReader[0xFF43] = function (parentObj, address) {
+						return parentObj.backgroundX;
 					}
 					break;
 				case 0xFF44:
@@ -8893,16 +8903,16 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	//SCY
 	this.memoryHighWriter[0x42] = this.memoryWriter[0xFF42] = function (parentObj, address, data) {
-		if (parentObj.memory[0xFF42] != data) {
+		if (parentObj.backgroundY != data) {
 			parentObj.renderMidScanLine();
-			parentObj.memory[0xFF42] = data;
+			parentObj.backgroundY = data;
 		}
 	}
 	//SCX
 	this.memoryHighWriter[0x43] = this.memoryWriter[0xFF43] = function (parentObj, address, data) {
-		if (parentObj.memory[0xFF43] != data) {
+		if (parentObj.backgroundX != data) {
 			parentObj.renderMidScanLine();
-			parentObj.memory[0xFF43] = data;
+			parentObj.backgroundX = data;
 		}
 	}
 	//LY
