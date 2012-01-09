@@ -191,9 +191,11 @@ function GameBoyCore(canvas, ROMImage) {
 	this.numRAMBanks = 0;					//How many RAM banks were actually allocated?
 	////Graphics Variables
 	this.currVRAMBank = 0;					//Current VRAM bank for GBC.
+	this.backgroundX = 0;					//Register SCX (X-Scroll)
+	this.backgroundY = 0;					//Register SCY (Y-Scroll)
 	this.gfxWindowDisplay = false;			//Is the windows enabled?
 	this.gfxSpriteShow = false;				//Are sprites enabled?
-	this.gfxSpriteNormalHeight = true;			//Are we doing 8x8 or 8x16 sprites?
+	this.gfxSpriteNormalHeight = true;		//Are we doing 8x8 or 8x16 sprites?
 	this.bgEnabled = true;					//Is the BG enabled?
 	this.BGPriorityEnabled = 0x1000000;		//Can we flag the BG for priority over sprites?
 	this.gfxWindowCHRBankPosition = 0;		//The current bank of the character map the window uses.
