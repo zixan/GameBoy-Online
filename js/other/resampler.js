@@ -18,9 +18,11 @@ Resampler.prototype.initialize = function () {
 		}
 		else {
 			//Setup the interpolation resampler:
+			this.compileInterpolationFunction();
 			this.resampler = this.interpolate;			//Resampler is a custom quality interpolation algorithm.
 			this.ratioWeight = this.fromSampleRate / this.toSampleRate;
 			this.tailExists = false;
+			this.lastWeight = 0;
 			this.initializeBuffers(true);
 		}
 	}
@@ -28,88 +30,80 @@ Resampler.prototype.initialize = function () {
 		throw(new Error("Invalid settings specified for the resampler."));
 	}
 }
-Resampler.prototype.interpolate = function (buffer) {
-	//Get the number of channels and buffer length:
-	var channels = this.channels;
-	var bufferLength = buffer.length;
-	//Make sure the buffer fits the sample frame boundaries:
-	if ((bufferLength % channels) == 0) {
-		//Make sure we only run on non-empty buffers:
-		if (bufferLength > 0) {
-			//Initialize our local variables:
-			var ratioWeight = this.ratioWeight;
-			var weight = 0;
-			var output = 0;
-			var actualPosition = 0;
-			var amountToNext = 0;
-			var tailExists = this.tailExists;		//See if a tail exists for this iteration.
-			this.tailExists = false;				//Reset tail exists state.
-			var alreadyProcessedTail = false;
-			var outputBuffer = this.outputBuffer;
-			var outputOffset = 0;
-			var currentPosition = 0;
-			var channel = 0;
-			//Interpolate by channel:
-			do {
-				//Initialize our channel-specific offsets:
-				currentPosition = channel;
-				outputOffset = channel;
-				alreadyProcessedTail = !tailExists;	//Track whether we processed the tail for the working channel yet.
-				//Interpolate the current channel we're working on:
-				do {
-					if (alreadyProcessedTail) {
-						//Don't use the previous state values:
-						weight = ratioWeight;
-						output = 0;
-					}
-					else {
-						//Use the previous state values:
-						weight = this.lastWeight[channel];
-						output = this.lastOutput[channel];
-						alreadyProcessedTail = true;
-					}
-					//Where we do the actual interpolation math:
-					while (weight > 0 && currentPosition < bufferLength) {
-						actualPosition = currentPosition | 0;
-						amountToNext = 1 + actualPosition - currentPosition;
-						if (weight >= amountToNext) {
-							//Needs another loop pass for completion, so build up:
-							output += buffer[actualPosition] * amountToNext;
-							currentPosition = actualPosition + channels;
-							weight -= amountToNext;
-						}
-						else {
-							//Iteration was able to complete fully:
-							output += buffer[actualPosition] * weight;
-							currentPosition += weight;
-							weight = 0;
-							break;
-						}
-					}
-					if (weight == 0) {
-						//Single iteration completed fully:
-						outputBuffer[outputOffset] = output / ratioWeight;	//Divide by the spanning amount.
-						outputOffset += channels;							//Go to the next frame (NOT sample).
-					}
-					else {
-						//Save the tail interpolation state for the next buffer to pass through:
-						this.lastWeight[channel] = weight;
-						this.lastOutput[channel] = output;
-						this.tailExists = true;
-						break;
-					}
-				} while (currentPosition < bufferLength);
-			} while (++channel < channels);
-			//Return our interpolated data:
-			return this.bufferSlice(outputOffset - channels + 1);
-		}
-		else {
-			return (this.noReturn) ? 0 : [];
-		}
+Resampler.prototype.compileInterpolationFunction = function () {
+	var toCompile = "var bufferLength = buffer.length;\
+	if ((bufferLength % " + this.channels + ") == 0) {\
+		if (bufferLength > 0) {\
+			var ratioWeight = this.ratioWeight;\
+			var weight = 0;";
+	for (var channel = 0; channel < this.channels; ++channel) {
+		toCompile += "var output" + channel + " = 0;"
 	}
-	else {
-		throw(new Error("Buffer was of incorrect sample length."));
+	toCompile += "var actualPosition = 0;\
+			var amountToNext = 0;\
+			var alreadyProcessedTail = !this.tailExists;\
+			this.tailExists = false;\
+			var alreadyProcessedTail = false;\
+			var outputBuffer = this.outputBuffer;\
+			var outputOffset = 0;\
+			var currentPosition = 0;\
+			do {\
+				if (alreadyProcessedTail) {\
+					weight = ratioWeight;";
+	for (channel = 0; channel < this.channels; ++channel) {
+		toCompile += "output" + channel + " = 0;"
 	}
+	toCompile += "}\
+				else {\
+					weight = this.lastWeight;";
+	for (channel = 0; channel < this.channels; ++channel) {
+		toCompile += "output" + channel + " = this.lastOutput[" + channel + "];"
+	}
+	toCompile += "alreadyProcessedTail = true;\
+				}\
+				while (weight > 0 && currentPosition < bufferLength) {\
+					actualPosition = currentPosition | 0;\
+					amountToNext = 1 + actualPosition - currentPosition;\
+					if (weight >= amountToNext) {";
+	for (channel = 0; channel < this.channels; ++channel) {
+		toCompile += "output" + channel + " += buffer[actualPosition" + ((channel > 0) ? (" + " + channel) : "") + "] * amountToNext;"
+	}
+	toCompile += "currentPosition = actualPosition + " + this.channels + ";\
+						weight -= amountToNext;\
+					}\
+					else {";
+	for (channel = 0; channel < this.channels; ++channel) {
+		toCompile += "output" + channel + " += buffer[actualPosition" + ((channel > 0) ? (" + " + channel) : "") + "] * weight;"
+	}
+	toCompile += "currentPosition += weight;\
+						weight = 0;\
+						break;\
+					}\
+				}\
+				if (weight == 0) {";
+	for (channel = 0; channel < this.channels; ++channel) {
+		toCompile += "outputBuffer[outputOffset++] = output" + channel + " / ratioWeight;"
+	}
+	toCompile += "}\
+				else {\
+					this.lastWeight = weight;";
+	for (channel = 0; channel < this.channels; ++channel) {
+		toCompile += "this.lastOutput[" + channel + "] = output" + channel + ";"
+	}
+	toCompile += "this.tailExists = true;\
+					break;\
+				}\
+			} while (currentPosition < bufferLength);\
+			return this.bufferSlice(outputOffset);\
+		}\
+		else {\
+			return (this.noReturn) ? 0 : [];\
+		}\
+	}\
+	else {\
+		throw(new Error(\"Buffer was of incorrect sample length.\"));\
+	}";
+	this.interpolate = Function("buffer", toCompile);
 }
 Resampler.prototype.bypassResampler = function (buffer) {
 	if (this.noReturn) {
@@ -150,14 +144,12 @@ Resampler.prototype.initializeBuffers = function (generateTailCache) {
 	try {
 		this.outputBuffer = new Float32Array(this.outputBufferSize);
 		if (generateTailCache) {
-			this.lastWeight = new Float32Array(this.channels);
 			this.lastOutput = new Float32Array(this.channels);
 		}
 	}
 	catch (error) {
 		this.outputBuffer = [];
 		if (generateTailCache) {
-			this.lastWeight = [];
 			this.lastOutput = [];
 		}
 	}
