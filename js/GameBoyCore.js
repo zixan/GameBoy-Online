@@ -206,6 +206,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.drewBlank = 0;						//To prevent the repeating of drawing a blank screen.
 	this.drewFrame = false;					//Throttle how many draws we can do to once per iteration.
 	this.midScanlineOffset = 0;				//mid-scanline rendering offset.
+	this.pixelEnd = 0;						//track the x-coord limit for line rendering (mid-scanline usage).
 	//BG Tile Pointer Caches:
 	this.BGCHRBank1 = null;
 	this.BGCHRBank2 = null;
@@ -6224,8 +6225,9 @@ GameBoyCore.prototype.renderScanLine = function () {
 	if (settings[4] == 0 || this.frameCount > 0) {
 		this.pixelStart = this.actualScanLine * 160;
 		if (this.bgEnabled) {
-			this.BGLayerRender(160);
-			this.WindowLayerRender(160);
+			this.pixelEnd = 160;
+			this.BGLayerRender();
+			this.WindowLayerRender();
 		}
 		else {
 			var pixelLine = (this.actualScanLine + 1) * 160;
@@ -6250,22 +6252,22 @@ GameBoyCore.prototype.renderMidScanLine = function () {
 			this.midScanlineOffset = this.backgroundX & 0x7;
 		}
 		if (this.LCDTicks >= 82) {
-			var pixelEnd = this.LCDTicks - 74;
-			pixelEnd = Math.min(pixelEnd - this.midScanlineOffset - (pixelEnd % 0x8), 160);
+			this.pixelEnd = this.LCDTicks - 74;
+			this.pixelEnd = Math.min(this.pixelEnd - this.midScanlineOffset - (this.pixelEnd % 0x8), 160);
 			if (this.bgEnabled) {
 				this.pixelStart = this.actualScanLine * 160;
-				this.BGLayerRender(pixelEnd);
-				this.WindowLayerRender(pixelEnd);
+				this.BGLayerRender();
+				this.WindowLayerRender();
 				//TODO: Do midscanline JIT for sprites...
 			}
 			else {
-				var pixelLine = (this.actualScanLine * 160) + pixelEnd;
+				var pixelLine = (this.actualScanLine * 160) + this.pixelEnd;
 				var defaultColor = (this.cGBC || this.colorizedGBPalettes) ? 0xF8F8F8 : 0xEFFFDE;
 				for (var pixelPosition = (this.actualScanLine * 160) + this.currentX; pixelPosition < pixelLine; pixelPosition++) {
 					this.frameBuffer[pixelPosition] = defaultColor;
 				}
 			}
-			this.currentX = pixelEnd;
+			this.currentX = this.pixelEnd;
 		}
 	}
 }
@@ -6428,13 +6430,13 @@ GameBoyCore.prototype.updateGBCOBJPalette = function (index, data) {
 		}
 	}
 }
-GameBoyCore.prototype.BGGBLayerRender = function (pixelEnd) {
+GameBoyCore.prototype.BGGBLayerRender = function () {
 	var scrollYAdjusted = (this.backgroundY + this.actualScanLine) & 0xFF;					//The line of the BG we're at.
 	var tileYLine = (scrollYAdjusted & 7) << 3;
 	var tileYDown = this.gfxBackgroundCHRBankPosition | ((scrollYAdjusted & 0xF8) << 2);	//The row of cached tiles we're fetching from.
 	var scrollXAdjusted = (this.backgroundX + this.currentX) & 0xFF;						//The scroll amount of the BG.
 	var pixelPosition = this.pixelStart + this.currentX;									//Current pixel we're working on.
-	var pixelPositionEnd = this.pixelStart + ((this.gfxWindowDisplay && (this.actualScanLine - this.windowY) >= 0) ? Math.min(Math.max(this.windowX, 0) + this.currentX, pixelEnd) : pixelEnd);	//Make sure we do at most 160 pixels a scanline.
+	var pixelPositionEnd = this.pixelStart + ((this.gfxWindowDisplay && (this.actualScanLine - this.windowY) >= 0) ? Math.min(Math.max(this.windowX, 0) + this.currentX, this.pixelEnd) : this.pixelEnd);	//Make sure we do at most 160 pixels a scanline.
 	var tileNumber = tileYDown + (scrollXAdjusted >> 3);
 	var chrCode = this.BGCHRBank1[tileNumber];
 	if (chrCode < this.gfxBackgroundBankOffset) {
@@ -6516,13 +6518,13 @@ GameBoyCore.prototype.BGGBLayerRender = function (pixelEnd) {
 		}
 	}
 }
-GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
+GameBoyCore.prototype.BGGBCLayerRender = function () {
 	var scrollYAdjusted = (this.backgroundY + this.actualScanLine) & 0xFF;					//The line of the BG we're at.
 	var tileYLine = (scrollYAdjusted & 7) << 3;
 	var tileYDown = this.gfxBackgroundCHRBankPosition | ((scrollYAdjusted & 0xF8) << 2);	//The row of cached tiles we're fetching from.
 	var scrollXAdjusted = (this.backgroundX + this.currentX) & 0xFF;						//The scroll amount of the BG.
 	var pixelPosition = this.pixelStart + this.currentX;									//Current pixel we're working on.
-	var pixelPositionEnd = this.pixelStart + ((this.gfxWindowDisplay && (this.actualScanLine - this.windowY) >= 0) ? Math.min(Math.max(this.windowX, 0) + this.currentX, pixelEnd) : pixelEnd);	//Make sure we do at most 160 pixels a scanline.
+	var pixelPositionEnd = this.pixelStart + ((this.gfxWindowDisplay && (this.actualScanLine - this.windowY) >= 0) ? Math.min(Math.max(this.windowX, 0) + this.currentX, this.pixelEnd) : this.pixelEnd);	//Make sure we do at most 160 pixels a scanline.
 	var tileNumber = tileYDown + (scrollXAdjusted >> 3);
 	var chrCode = this.BGCHRBank1[tileNumber];
 	if (chrCode < this.gfxBackgroundBankOffset) {
@@ -6624,13 +6626,13 @@ GameBoyCore.prototype.BGGBCLayerRender = function (pixelEnd) {
 		}
 	}
 }
-GameBoyCore.prototype.WindowGBLayerRender = function (pixelEnd) {
+GameBoyCore.prototype.WindowGBLayerRender = function () {
 	if (this.gfxWindowDisplay) {									//Is the window enabled?
 		var scrollYAdjusted = this.actualScanLine - this.windowY;	//The line of the BG we're at.
 		if (scrollYAdjusted >= 0) {
 			var scrollXRangeAdjusted = (this.windowX > 0) ? (this.windowX + this.currentX) : this.currentX;
 			var pixelPosition = this.pixelStart + scrollXRangeAdjusted;
-			var pixelPositionEnd = this.pixelStart + pixelEnd;
+			var pixelPositionEnd = this.pixelStart + this.pixelEnd;
 			if (pixelPosition < pixelPositionEnd) {
 				var tileYLine = (scrollYAdjusted & 0x7) << 3;
 				var tileNumber = (this.gfxWindowCHRBankPosition | ((scrollYAdjusted & 0xF8) << 2)) + (this.currentX >> 3);
@@ -6688,13 +6690,13 @@ GameBoyCore.prototype.WindowGBLayerRender = function (pixelEnd) {
 		}
 	}
 }
-GameBoyCore.prototype.WindowGBCLayerRender = function (pixelEnd) {
+GameBoyCore.prototype.WindowGBCLayerRender = function () {
 	if (this.gfxWindowDisplay) {									//Is the window enabled?
 		var scrollYAdjusted = this.actualScanLine - this.windowY;	//The line of the BG we're at.
 		if (scrollYAdjusted >= 0) {
 			var scrollXRangeAdjusted = (this.windowX > 0) ? (this.windowX + this.currentX) : this.currentX;
 			var pixelPosition = this.pixelStart + scrollXRangeAdjusted;
-			var pixelPositionEnd = this.pixelStart + pixelEnd;
+			var pixelPositionEnd = this.pixelStart + this.pixelEnd;
 			if (pixelPosition < pixelPositionEnd) {
 				var tileYLine = (scrollYAdjusted & 0x7) << 3;
 				var tileNumber = (this.gfxWindowCHRBankPosition | ((scrollYAdjusted & 0xF8) << 2)) + (this.currentX >> 3);
