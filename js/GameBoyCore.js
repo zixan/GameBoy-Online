@@ -6338,14 +6338,19 @@ GameBoyCore.prototype.initializeReferencesFromSaveState = function () {
 			this.OBJPalette = this.gbOBJColorizedPalette;
 			this.updateGBBGPalette = this.updateGBColorizedBGPalette;
 			this.updateGBOBJPalette = this.updateGBColorizedOBJPalette;
+			
 		}
 		else {
 			this.BGPalette = this.gbBGPalette;
 			this.OBJPalette = this.gbOBJPalette;
 		}
+		this.tileCache = this.generateCacheArray(0x700);
+		this.tileCacheValid = this.getTypedArray(0x700, 0, "int8");
 	}
 	else {
 		this.BGCHRCurrentBank = (this.currVRAMBank > 0) ? this.BGCHRBank2 : this.BGCHRBank1;
+		this.tileCache = this.generateCacheArray(0xF80);
+		this.tileCacheValid = this.getTypedArray(0xF80, 0, "int8");
 	}
 	this.renderPathBuild();
 }
