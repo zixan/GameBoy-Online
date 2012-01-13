@@ -129,8 +129,6 @@ function GameBoyCore(canvas, ROMImage) {
 	//Vin Shit:
 	this.VinLeftChannelMasterVolume = 1;		//Computed post-mixing volume.
 	this.VinRightChannelMasterVolume = 1;		//Computed post-mixing volume.
-	this.capacitorCharge = 0;
-	this.capacitorFactor = 0;
 	//Channel paths enabled:
 	this.leftChannel0 = false;
 	this.leftChannel1 = false;
@@ -4245,7 +4243,8 @@ GameBoyCore.prototype.saveState = function () {
 		this.interruptsEnabled,
 		this.remainingClocks,
 		this.colorizedGBPalettes,
-		this.capacitorCharge
+		this.backgroundY,
+		this.backgroundX
 	];
 }
 GameBoyCore.prototype.returnFromState = function (returnedFrom) {
@@ -4424,7 +4423,8 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.checkIRQMatching();
 	this.remainingClocks = state[index++];
 	this.colorizedGBPalettes = state[index++];
-	this.capacitorCharge = state[index];
+	this.backgroundY = state[index++];
+	this.backgroundX = state[index];
 	this.fromSaveState = true;
 	this.TICKTable = this.toTypedArray(this.TICKTable, "uint8");
 	this.SecondaryTICKTable = this.toTypedArray(this.SecondaryTICKTable, "uint8");
@@ -5136,7 +5136,6 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	cout("...Samples per clock cycle (Per Channel): " + this.samplesOut, 0);
 	this.numSamplesTotal = this.sampleSize << this.soundFrameShifter;
 	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, -1, "float32");
-	this.capacitorFactor = Math.pow(0.999958, 4194304 / settings[14]);
 	this.intializeWhiteNoise();
 }
 GameBoyCore.prototype.intializeWhiteNoise = function () {
