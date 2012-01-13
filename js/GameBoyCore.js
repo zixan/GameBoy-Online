@@ -7598,7 +7598,7 @@ GameBoyCore.prototype.memoryReadJumpCompile = function () {
 						return parentObj.backgroundY;
 					}
 					break;
-				case 0xFF42:
+				case 0xFF43:
 					this.memoryHighReader[0x43] = this.memoryReader[0xFF43] = function (parentObj, address) {
 						return parentObj.backgroundX;
 					}
