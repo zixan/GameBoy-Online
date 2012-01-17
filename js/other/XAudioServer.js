@@ -12,7 +12,7 @@ function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underR
 	this.audioChannels = (channels == 2) ? 2 : 1;
 	webAudioMono = (this.audioChannels == 1);
 	XAudioJSSampleRate = (sampleRate > 0 && sampleRate <= 0xFFFFFF) ? sampleRate : 44100;
-	webAudioMinBufferSize = (minBufferSize >= (Math.max(webAudioSamplesPerCallback, samplesPerCallback) << 1) && minBufferSize < maxBufferSize) ? (minBufferSize & ((webAudioMono) ? 0xFFFFFFFF : 0xFFFFFFFE)) : (Math.max(webAudioSamplesPerCallback, samplesPerCallback) << 1);
+	webAudioMinBufferSize = (minBufferSize >= (samplesPerCallback << 1) && minBufferSize < maxBufferSize) ? (minBufferSize & ((webAudioMono) ? 0xFFFFFFFF : 0xFFFFFFFE)) : (samplesPerCallback << 1);
 	webAudioMaxBufferSize = (Math.floor(maxBufferSize) > webAudioMinBufferSize + this.audioChannels) ? (maxBufferSize & ((webAudioMono) ? 0xFFFFFFFF : 0xFFFFFFFE)) : (minBufferSize << 1);
 	this.underRunCallback = (typeof underRunCallback == "function") ? underRunCallback : function () {};
 	defaultNeutralValue = (defaultValue >= -1 && defaultValue <= 1 && defaultValue != 0) ? defaultValue : 0;
@@ -200,7 +200,7 @@ XAudioServer.prototype.initializeMozAudio = function () {
 }
 XAudioServer.prototype.initializeWebAudio = function () {
 	if (launchedContext) {
-		resetCallbackAPIAudioBuffer(webAudioActualSampleRate, webAudioSamplesPerCallback);
+		resetCallbackAPIAudioBuffer(webAudioActualSampleRate, samplesPerCallback);
 		this.audioType = 1;
 	}
 	else {
@@ -332,7 +332,6 @@ var audioContextHandle = null;
 var audioNode = null;
 var audioSource = null;
 var launchedContext = false;
-var webAudioSamplesPerCallback = 2048;
 var audioContextSampleBuffer = [];
 var resampled = [];
 var webAudioMinBufferSize = 15000;
@@ -353,7 +352,7 @@ function audioOutputEvent(event) {		//Web Audio API callback...
 	resampleRefill();
 	if (!webAudioMono) {
 		//STEREO:
-		while (index < webAudioSamplesPerCallback && resampleBufferStart != resampleBufferEnd) {
+		while (index < samplesPerCallback && resampleBufferStart != resampleBufferEnd) {
 			buffer1[index] = resampled[resampleBufferStart++];
 			buffer2[index++] = resampled[resampleBufferStart++];
 			if (resampleBufferStart == resampleBufferSize) {
@@ -363,7 +362,7 @@ function audioOutputEvent(event) {		//Web Audio API callback...
 	}
 	else {
 		//MONO:
-		while (index < webAudioSamplesPerCallback && resampleBufferStart != resampleBufferEnd) {
+		while (index < samplesPerCallback && resampleBufferStart != resampleBufferEnd) {
 			buffer2[index] = buffer1[index] = resampled[resampleBufferStart++];
 			++index;
 			if (resampleBufferStart == resampleBufferSize) {
@@ -372,7 +371,7 @@ function audioOutputEvent(event) {		//Web Audio API callback...
 		}
 	}
 	//Pad with silence if we're underrunning:
-	while (index < webAudioSamplesPerCallback) {
+	while (index < samplesPerCallback) {
 		buffer2[index] = buffer1[index] = defaultNeutralValue;
 		++index;
 	}
@@ -382,8 +381,8 @@ function resampleRefill() {
 		//Resample a chunk of audio:
 		var resampleLength = resampleControl.resampler(getBufferSamples());
 		var resampledResult = resampleControl.outputBuffer;
-		for (var index = 0; index < resampleLength; ++index) {
-			resampled[resampleBufferEnd++] = resampledResult[index];
+		for (var index2 = 0; index2 < resampleLength; ++index2) {
+			resampled[resampleBufferEnd++] = resampledResult[index2];
 			if (resampleBufferEnd == resampleBufferSize) {
 				resampleBufferEnd = 0;
 			}
@@ -423,7 +422,7 @@ function resetCallbackAPIAudioBuffer(APISampleRate, bufferAlloc) {
 	audioBufferSize = webAudioMaxBufferSize;
 	resampleBufferStart = 0;
 	resampleBufferEnd = 0;
-	resampleBufferSize = (webAudioMaxBufferSize * Math.max(XAudioJSSampleRate / APISampleRate, 1)) << 1;
+	resampleBufferSize = Math.max(webAudioMaxBufferSize * Math.ceil(XAudioJSSampleRate / APISampleRate), samplesPerCallback) << 1;
 	if (webAudioMono) {
 		//MONO Handling:
 		resampled = getFloat32Flat(resampleBufferSize);
@@ -457,7 +456,7 @@ function resetCallbackAPIAudioBuffer(APISampleRate, bufferAlloc) {
 			audioSource.loop = false;	//Keep this alive forever (Event handler will know when to ouput.)
 			XAudioJSSampleRate = webAudioActualSampleRate = audioContextHandle.sampleRate;
 			audioSource.buffer = audioContextHandle.createBuffer(1, 1, webAudioActualSampleRate);	//Create a zero'd input buffer for the input to be valid.
-			audioNode = audioContextHandle.createJavaScriptNode(webAudioSamplesPerCallback, 1, 2);	//Create 2 outputs and ignore the input buffer (Just copy buffer 1 over if mono)
+			audioNode = audioContextHandle.createJavaScriptNode(samplesPerCallback, 1, 2);			//Create 2 outputs and ignore the input buffer (Just copy buffer 1 over if mono)
 			audioNode.onaudioprocess = audioOutputEvent;								//Connect the audio processing event to a handling function so we can manipulate output
 			audioSource.connect(audioNode);												//Send and chain the input to the audio manipulation.
 			audioNode.connect(audioContextHandle.destination);							//Send and chain the output of the audio manipulation to the system audio output.
