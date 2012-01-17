@@ -60,14 +60,13 @@ Resampler.prototype.compileInterpolationFunction = function () {
 	}
 	toCompile += "alreadyProcessedTail = true;\
 				}\
-				while (weight > 0 && currentPosition < bufferLength) {\
-					actualPosition = currentPosition | 0;\
+				while (weight > 0 && actualPosition < bufferLength) {\
 					amountToNext = 1 + actualPosition - currentPosition;\
 					if (weight >= amountToNext) {";
 	for (channel = 0; channel < this.channels; ++channel) {
 		toCompile += "output" + channel + " += buffer[actualPosition" + ((channel > 0) ? (" + " + channel) : "") + "] * amountToNext;"
 	}
-	toCompile += "currentPosition = actualPosition + " + this.channels + ";\
+	toCompile += "actualPosition = currentPosition = actualPosition + " + this.channels + ";\
 						weight -= amountToNext;\
 					}\
 					else {";
@@ -92,7 +91,7 @@ Resampler.prototype.compileInterpolationFunction = function () {
 	toCompile += "this.tailExists = true;\
 					break;\
 				}\
-			} while (currentPosition < bufferLength);\
+			} while (actualPosition < bufferLength);\
 			return this.bufferSlice(outputOffset);\
 		}\
 		else {\
