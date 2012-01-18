@@ -4977,7 +4977,7 @@ GameBoyCore.prototype.disableBootROM = function () {
 }
 GameBoyCore.prototype.initializeTiming = function () {
 	//Emulator Timing:
-	this.baseCPUCyclesPerIteration = 4194.304 * settings[6];
+	this.baseCPUCyclesPerIteration = 0x80000 / 0x7D * settings[6];
 	this.setEmulatorSpeed(1);
 }
 GameBoyCore.prototype.setEmulatorSpeed = function(speed) {
@@ -4990,7 +4990,7 @@ GameBoyCore.prototype.setEmulatorSpeed = function(speed) {
 GameBoyCore.prototype.setAudioSpeed = function (speed) {
 	this.preChewedAudioComputationMultiplier = 0x20000 / settings[14];
 	this.preChewedWAVEAudioComputationMultiplier = 0x200000 / settings[14];
-	this.whiteNoiseFrequencyPreMultiplier = 4194304 / settings[14] / 8;
+	this.whiteNoiseFrequencyPreMultiplier = 0x80000 / settings[14];
 	this.volumeEnvelopePreMultiplier = settings[14] / 0x40 / speed;
 	this.channel1TimeSweepPreMultiplier = settings[14] / 0x80 / speed;
 	this.audioTotalLengthMultiplier = settings[14] / 0x100 / speed;
