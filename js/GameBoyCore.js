@@ -5314,7 +5314,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
-					this.audioHandle.writeAudioNoCallback(this.currentBuffer);
+					this.audioHandle.writeAudio(this.currentBuffer);
 				}
 			}
 		}
@@ -5325,7 +5325,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
-					this.audioHandle.writeAudioNoCallback(this.currentBuffer);
+					this.audioHandle.writeAudio(this.currentBuffer);
 				}
 			}
 		}
@@ -5339,7 +5339,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 				this.currentBuffer[this.audioIndex++] = -1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
-					this.audioHandle.writeAudioNoCallback(this.currentBuffer);
+					this.audioHandle.writeAudio(this.currentBuffer);
 				}
 			}
 		}
@@ -5349,7 +5349,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 				this.currentBuffer[this.audioIndex++] = -1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
-					this.audioHandle.writeAudioNoCallback(this.currentBuffer);
+					this.audioHandle.writeAudio(this.currentBuffer);
 				}
 			}
 		}
@@ -5723,9 +5723,6 @@ GameBoyCore.prototype.iterationEndRoutine = function () {
 		this.emulatorTicks -= this.CPUCyclesTotal;
 		this.CPUCyclesTotalCurrent += this.CPUCyclesTotalRoundoff;
 		this.recalculateIterationClockLimit();
-		if (settings[0]) {
-			this.audioHandle.executeCallback();
-		}
 	}
 }
 GameBoyCore.prototype.recalculateIterationClockLimit = function () {
