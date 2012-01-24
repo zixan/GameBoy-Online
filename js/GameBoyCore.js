@@ -5206,7 +5206,7 @@ GameBoyCore.prototype.audioUnderRun = function (samplesRequestedRaw) {
 			//Use any existing samples and then create some:
 			var tempBuffer = [];
 			if (this.audioIndex > 0) {
-				for (var index = 0; index < this.audioIndex; index++) {
+				for (var index = 0; index < this.audioIndex; ++index) {
 					tempBuffer.push(this.currentBuffer[index]);
 				}
 				samplesRequestedRaw -= this.audioIndex;
