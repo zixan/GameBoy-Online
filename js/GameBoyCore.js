@@ -7137,10 +7137,10 @@ GameBoyCore.prototype.generateGBTile = function (tile) {
 	return tileBlock;
 }
 //Generate only a single tile line for the GB tile cache mode:
-GameBoyCore.prototype.generateGBTileLine = function (address) {
+/*GameBoyCore.prototype.generateGBTileLine = function (address) {
 	var tileBlock = this.tileCache[(address & 0x1FFE) >> 1];
 	var lineCopy = (this.memory[0x1 | address] << 8) | this.memory[0x9FFE & address];
-	address = (address & 0xE) >> 1;
+	address = (address & 0xE) << 2;
 	tileBlock[address | 7] = ((lineCopy & 0x100) >> 7) | (lineCopy & 0x1);
 	tileBlock[address | 6] = ((lineCopy & 0x200) >> 8) | ((lineCopy & 0x2) >> 1);
 	tileBlock[address | 5] = ((lineCopy & 0x400) >> 9) | ((lineCopy & 0x4) >> 2);
@@ -7149,7 +7149,7 @@ GameBoyCore.prototype.generateGBTileLine = function (address) {
 	tileBlock[address | 2] = ((lineCopy & 0x2000) >> 12) | ((lineCopy & 0x20) >> 5);
 	tileBlock[address | 1] = ((lineCopy & 0x4000) >> 13) | ((lineCopy & 0x40) >> 6);
 	tileBlock[address] = ((lineCopy & 0x8000) >> 14) | ((lineCopy & 0x80) >> 7);
-}
+}*/
 //Generate a tile for the tile cache for all CGB graphics planes:
 GameBoyCore.prototype.generateGBCTile = function (map, tile) {
 	var tileBlock = this.tileCache[tile];	//Reference to the 8x8 tile.
