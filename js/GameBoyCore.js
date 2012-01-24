@@ -5315,7 +5315,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
-					this.audioHandle.writeAudio(this.currentBuffer);
+					this.audioHandle.writeAudioNoCallback(this.currentBuffer);
 				}
 			}
 		}
@@ -5326,7 +5326,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
-					this.audioHandle.writeAudio(this.currentBuffer);
+					this.audioHandle.writeAudioNoCallback(this.currentBuffer);
 				}
 			}
 		}
@@ -5340,7 +5340,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 				this.currentBuffer[this.audioIndex++] = -1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
-					this.audioHandle.writeAudio(this.currentBuffer);
+					this.audioHandle.writeAudioNoCallback(this.currentBuffer);
 				}
 			}
 		}
@@ -5350,7 +5350,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 				this.currentBuffer[this.audioIndex++] = -1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
-					this.audioHandle.writeAudio(this.currentBuffer);
+					this.audioHandle.writeAudioNoCallback(this.currentBuffer);
 				}
 			}
 		}
@@ -5724,6 +5724,7 @@ GameBoyCore.prototype.iterationEndRoutine = function () {
 		this.emulatorTicks -= this.CPUCyclesTotal;
 		this.CPUCyclesTotalCurrent += this.CPUCyclesTotalRoundoff;
 		this.recalculateIterationClockLimit();
+		this.audioHandle.executeCallback();
 	}
 }
 GameBoyCore.prototype.recalculateIterationClockLimit = function () {
@@ -7134,6 +7135,20 @@ GameBoyCore.prototype.generateGBTile = function (tile) {
 	this.tileCacheValid[tile] = 1;
 	//Return the obtained tile to the rendering path:
 	return tileBlock;
+}
+//Generate only a single tile line for the GB tile cache mode:
+GameBoyCore.prototype.generateGBTileLine = function (address) {
+	var tileBlock = this.tileCache[(address & 0x1FFE) >> 1];
+	var lineCopy = (this.memory[0x1 | address] << 8) | this.memory[0x9FFE & address];
+	address = (address & 0xE) >> 1;
+	tileBlock[address | 7] = ((lineCopy & 0x100) >> 7) | (lineCopy & 0x1);
+	tileBlock[address | 6] = ((lineCopy & 0x200) >> 8) | ((lineCopy & 0x2) >> 1);
+	tileBlock[address | 5] = ((lineCopy & 0x400) >> 9) | ((lineCopy & 0x4) >> 2);
+	tileBlock[address | 4] = ((lineCopy & 0x800) >> 10) | ((lineCopy & 0x8) >> 3);
+	tileBlock[address | 3] = ((lineCopy & 0x1000) >> 11) | ((lineCopy & 0x10) >> 4);
+	tileBlock[address | 2] = ((lineCopy & 0x2000) >> 12) | ((lineCopy & 0x20) >> 5);
+	tileBlock[address | 1] = ((lineCopy & 0x4000) >> 13) | ((lineCopy & 0x40) >> 6);
+	tileBlock[address] = ((lineCopy & 0x8000) >> 14) | ((lineCopy & 0x80) >> 7);
 }
 //Generate a tile for the tile cache for all CGB graphics planes:
 GameBoyCore.prototype.generateGBCTile = function (map, tile) {
