@@ -118,7 +118,6 @@ function GameBoyCore(canvas, ROMImage) {
 	this.sampleSize = 0;						//Length of the sound buffer for one channel.
 	this.dutyLookup = [0.125, 0.25, 0.5, 0.75];	//Map the duty values given to ones we can work with.
 	this.currentBuffer = [];					//The audio buffer we're working on.
-	this.audioInternalBuffer = [];				//A temporary buffer used in output management.
 	this.bufferContainAmount = 0;				//Buffer maintenance metric.
 	this.LSFR15Table = null;
 	this.LSFR7Table = null;
@@ -5222,7 +5221,7 @@ GameBoyCore.prototype.audioUnderRun = function (samplesRequestedRaw) {
 		}
 		else {
 			//Use the overflow buffer's existing samples:
-			var tempBuffer = this.audioInternalBuffer;
+			var tempBuffer = [];
 			var currentBuffer = this.currentBuffer;
 			for (var index = 0; index < samplesRequestedRaw; ++index) {
 				tempBuffer[index] = currentBuffer[index];
@@ -5724,7 +5723,9 @@ GameBoyCore.prototype.iterationEndRoutine = function () {
 		this.emulatorTicks -= this.CPUCyclesTotal;
 		this.CPUCyclesTotalCurrent += this.CPUCyclesTotalRoundoff;
 		this.recalculateIterationClockLimit();
-		this.audioHandle.executeCallback();
+		if (settings[0]) {
+			this.audioHandle.executeCallback();
+		}
 	}
 }
 GameBoyCore.prototype.recalculateIterationClockLimit = function () {
