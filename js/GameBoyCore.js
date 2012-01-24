@@ -5105,7 +5105,7 @@ GameBoyCore.prototype.initSound = function () {
 		try {
 			var parentObj = this;
 			this.sampleSize = settings[14] / 1000 * settings[6];
-			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], Math.max(this.sampleSize * 4, 2048) << this.soundFrameShifter, Math.max(this.sampleSize * 20, 8192) << this.soundFrameShifter, function (sampleCount) {
+			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], Math.max(this.sampleSize * settings[22], 2048) << this.soundFrameShifter, Math.max(this.sampleSize * 20, 8192) << this.soundFrameShifter, function (sampleCount) {
 				return parentObj.audioUnderRun(sampleCount);
 			}, -1);
 			cout("...Audio Channels: " + this.soundChannelsAllocated, 0);
@@ -5129,7 +5129,7 @@ GameBoyCore.prototype.initSound = function () {
 }
 GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioTicks = this.audioIndex = 0;
-	this.bufferContainAmount = Math.max(this.sampleSize * 5, 4096) << this.soundFrameShifter;
+	this.bufferContainAmount = Math.max(this.sampleSize * settings[21], 4096) << this.soundFrameShifter;
 	cout("...Samples per interpreter loop iteration (Per Channel): " + this.sampleSize, 0);
 	this.samplesOut = this.sampleSize / this.CPUCyclesPerIteration;
 	cout("...Samples per clock cycle (Per Channel): " + this.samplesOut, 0);

@@ -21,7 +21,9 @@ var settings = [						//Some settings.
 	true,								//Colorize GB mode?
 	false,								//Render nearest-neighbor scaling in javascript?
 	false,								//Whether to display the canvas at 144x160 on fullscreen or as stretched.
-	false								//Use the GameBoy boot ROM instead og the GameBoy Color boot ROM.
+	false,								//Use the GameBoy boot ROM instead og the GameBoy Color boot ROM.
+	8,									//Audio buffer span amount over x interpreter iterations.
+	5									//Audio underrun effective buffer level over x interpreter iterations.
 ];
 function start(canvas, ROM) {
 	clearLastEmulation();
