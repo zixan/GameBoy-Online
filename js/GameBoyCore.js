@@ -166,7 +166,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.actualScanLine = 0;			//Actual scan line...
 	this.lastUnrenderedLine = 0;		//Last rendered scan line...
 	this.queuedScanLines = 0;
-	this.renderedThisFrame = false;
+	this.frameNeedsRendering = true;
 	this.haltPostClocks = 0;			//Post-Halt clocking.
 	//ROM Cartridge Components:
 	this.cMBC1 = false;					//Does the cartridge use MBC1?
@@ -6123,9 +6123,9 @@ GameBoyCore.prototype.clockUpdate = function () {
 }
 GameBoyCore.prototype.drawToCanvas = function () {
 	//Ensure we have rendered a full framebuffer before output:
-	if (this.renderedThisFrame) {
+	if (this.frameNeedsRendering) {
 		this.graphicsJIT();
-		this.renderedThisFrame = (this.queuedScanLines < 144 || this.currentX != 0 || this.midScanlineOffset != -1);
+		this.frameNeedsRendering = false;
 	}
 	//Draw the frame buffer to the canvas:
 	if (!this.drewFrame && this.pixelCount > 0) {	//Throttle blitting to once per interpreter loop iteration.
@@ -7174,6 +7174,7 @@ GameBoyCore.prototype.generateGBOAMTileLine = function (address) {
 	tileBlock4[addressFlipped | 7] = tileBlock2[address | 7] = tileBlock3[addressFlipped] = tileBlock1[address] = ((lineCopy & 0x8000) >> 14) | ((lineCopy & 0x80) >> 7);
 }
 GameBoyCore.prototype.graphicsJIT = function () {
+	this.frameNeedsRendering = true;
 	if (this.LCDisOn) {
 		while (this.queuedScanLines > 0) {
 			this.renderScanLine();
@@ -7184,7 +7185,6 @@ GameBoyCore.prototype.graphicsJIT = function () {
 				this.lastUnrenderedLine = 0;
 			}
 			--this.queuedScanLines;
-			this.renderedThisFrame = true;
 		}
 	}
 }
