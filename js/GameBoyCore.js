@@ -7184,7 +7184,17 @@ GameBoyCore.prototype.graphicsJIT = function () {
 	}
 }
 GameBoyCore.prototype.incrementScanLineQueue = function () {
-	this.queuedScanLines = (this.queuedScanLines + 1) % 145;
+	if (this.queuedScanLines < 144) {
+		++this.queuedScanLines;
+	}
+	else {
+		if (this.lastUnrenderedLine < 143) {
+			++this.lastUnrenderedLine;
+		}
+		else {
+			this.lastUnrenderedLine = 0;
+		}
+	}
 }
 GameBoyCore.prototype.midScanLineJIT = function () {
 	this.graphicsJIT();
