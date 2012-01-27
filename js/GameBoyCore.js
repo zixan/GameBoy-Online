@@ -166,6 +166,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.actualScanLine = 0;			//Actual scan line...
 	this.lastUnrenderedLine = 0;		//Last rendered scan line...
 	this.queuedScanLines = 0;
+	this.noFrameChange = false;
 	this.haltPostClocks = 0;			//Post-Halt clocking.
 	//ROM Cartridge Components:
 	this.cMBC1 = false;					//Does the cartridge use MBC1?
@@ -6122,7 +6123,15 @@ GameBoyCore.prototype.clockUpdate = function () {
 }
 GameBoyCore.prototype.drawToCanvas = function () {
 	//Ensure we have rendered a full framebuffer before output:
-	this.graphicsJIT();
+	if (!this.noFrameChange) {
+		if (this.queuedScanLines == 144) {
+			this.graphicsJIT();
+			this.noFrameChange = true;
+		}
+		else {
+			this.graphicsJIT();
+		}
+	}
 	//Draw the frame buffer to the canvas:
 	if (!this.drewFrame && this.pixelCount > 0) {	//Throttle blitting to once per interpreter loop iteration.
 		if (settings[4] == 0 || this.frameCount > 0) {
@@ -7180,6 +7189,7 @@ GameBoyCore.prototype.graphicsJIT = function () {
 				this.lastUnrenderedLine = 0;
 			}
 			--this.queuedScanLines;
+			this.noFrameChange = false;
 		}
 	}
 }
