@@ -7184,10 +7184,8 @@ GameBoyCore.prototype.graphicsJIT = function () {
 	}
 }
 GameBoyCore.prototype.incrementScanLineQueue = function () {
-	if (this.LCDisOn) {
-		if (this.queuedScanLines < 144) {
-			++this.queuedScanLines;
-		}
+	if (this.queuedScanLines < 144) {
+		++this.queuedScanLines;
 	}
 }
 GameBoyCore.prototype.midScanLineJIT = function () {
@@ -8891,7 +8889,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				parentObj.drawToCanvas();
 			}
 			parentObj.modeSTAT = 2;
-			parentObj.lastUnrenderedLine = parentObj.LCDTicks = parentObj.STATTracker = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+			parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.LCDTicks = parentObj.STATTracker = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 		}
 	}
 	//LYC
@@ -8963,7 +8961,7 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 				//When the display mode changes...
 				parentObj.LCDisOn = temp_var;
 				parentObj.memory[0xFF41] &= 0x78;
-				parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+				parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 				if (parentObj.LCDisOn) {
 					parentObj.modeSTAT = 2;
 					parentObj.matchLYC();	//Get the compare of the first scan line.
@@ -9132,7 +9130,7 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 				//When the display mode changes...
 				parentObj.LCDisOn = temp_var;
 				parentObj.memory[0xFF41] &= 0x78;
-				parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+				parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 				if (parentObj.LCDisOn) {
 					parentObj.modeSTAT = 2;
 					parentObj.matchLYC();	//Get the compare of the first scan line.
