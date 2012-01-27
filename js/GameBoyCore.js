@@ -5763,7 +5763,6 @@ GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 				}
 				this.modeSTAT = 3;
 			}
-			this.graphicsJIT();
 			this.updateSpriteCount(this.actualScanLine);
 			this.STATTracker = 2;
 		}
@@ -5902,7 +5901,6 @@ GameBoyCore.prototype.initializeLCDController = function () {
 							if (parentObj.STATTracker == 0 && parentObj.mode2TriggerSTAT) {
 								parentObj.interruptsRequested |= 0x2;
 							}
-							parentObj.graphicsJIT();
 						}
 						if (parentObj.hdmaRunning) {
 							parentObj.executeHDMA();
@@ -5913,6 +5911,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					}
 					//Update the scanline registers and assert the LYC counter:
 					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
+					parentObj.checkForFullFrame();
 					//Perform a LYC counter assert:
 					if (parentObj.actualScanLine == parentObj.memory[0xFF45]) {
 						parentObj.memory[0xFF41] |= 0x04;
@@ -5953,7 +5952,6 @@ GameBoyCore.prototype.initializeLCDController = function () {
 							if (parentObj.STATTracker == 0 && parentObj.mode2TriggerSTAT) {
 								parentObj.interruptsRequested |= 0x2;
 							}
-							parentObj.graphicsJIT();
 						}
 						if (parentObj.hdmaRunning) {
 							parentObj.executeHDMA();
@@ -5964,6 +5962,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					}
 					//Update the scanline registers and assert the LYC counter:
 					parentObj.actualScanLine = parentObj.memory[0xFF44] = 144;
+					parentObj.checkForFullFrame();
 					//Perform a LYC counter assert:
 					if (parentObj.memory[0xFF45] == 144) {
 						parentObj.memory[0xFF41] |= 0x04;
@@ -7173,6 +7172,20 @@ GameBoyCore.prototype.graphicsJIT = function () {
 		this.lastUnrenderedLine++;
 		if (this.lastUnrenderedLine == 144) {
 			this.lastUnrenderedLine = 0;
+		}
+	}
+}
+GameBoyCore.prototype.checkForFullFrame = function () {
+	var endScanLine = (this.actualScanLine < 144) ? this.actualScanLine : 0;
+	if (this.lastUnrenderedLine == endScanLine) {
+		while (this.lastUnrenderedLine < 144) {
+			this.renderScanLine();
+			this.lastUnrenderedLine++;
+		}
+		this.lastUnrenderedLine = 0;
+		while (this.lastUnrenderedLine < endScanLine) {
+			this.renderScanLine();
+			this.lastUnrenderedLine++;
 		}
 	}
 }
@@ -8877,7 +8890,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				parentObj.drawToCanvas();
 			}
 			parentObj.modeSTAT = 2;
-			parentObj.LCDTicks = parentObj.STATTracker = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+			parentObj.lastUnrenderedLine = parentObj.LCDTicks = parentObj.STATTracker = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 		}
 	}
 	//LYC
@@ -8949,7 +8962,7 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 				//When the display mode changes...
 				parentObj.LCDisOn = temp_var;
 				parentObj.memory[0xFF41] &= 0x78;
-				parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+				parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 				if (parentObj.LCDisOn) {
 					parentObj.modeSTAT = 2;
 					parentObj.matchLYC();	//Get the compare of the first scan line.
@@ -9118,7 +9131,7 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 				//When the display mode changes...
 				parentObj.LCDisOn = temp_var;
 				parentObj.memory[0xFF41] &= 0x78;
-				parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+				parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 				if (parentObj.LCDisOn) {
 					parentObj.modeSTAT = 2;
 					parentObj.matchLYC();	//Get the compare of the first scan line.
