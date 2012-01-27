@@ -6346,10 +6346,10 @@ GameBoyCore.prototype.initializeReferencesFromSaveState = function () {
 			this.OBJPalette = this.gbOBJPalette;
 		}
 		this.tileCache = this.generateCacheArray(0x780);
-		for (; tileIndex < 0x8800; tileIndex += 2) {
+		for (; tileIndex < 0x9000; tileIndex += 2) {
 			this.generateGBOAMTileLine(tileIndex);
 		}
-		for (tileIndex = 0x8800; tileIndex < 0x9800; tileIndex += 2) {
+		for (tileIndex = 0x9000; tileIndex < 0x9800; tileIndex += 2) {
 			this.generateGBTileLine(tileIndex);
 		}
 	}
@@ -7102,7 +7102,7 @@ GameBoyCore.prototype.SpriteGBCLayerRender = function () {
 //Generate only a single tile line for the GB tile cache mode:
 GameBoyCore.prototype.generateGBTileLine = function (address) {
 	var lineCopy = (this.memory[0x1 | address] << 8) | this.memory[0x9FFE & address];
-	var tileBlock = this.tileCache[(address & 0x1FFE) >> 4];
+	var tileBlock = this.tileCache[(address & 0x1FF0) >> 4];
 	address = (address & 0xE) << 2;
 	tileBlock[address | 7] = ((lineCopy & 0x100) >> 7) | (lineCopy & 0x1);
 	tileBlock[address | 6] = ((lineCopy & 0x200) >> 8) | ((lineCopy & 0x2) >> 1);
@@ -8151,7 +8151,7 @@ GameBoyCore.prototype.VRAMGBCDATAWrite = function (parentObj, address, data) {
 			}
 		}
 		else {
-			address &= 0x1FFF;
+			address &= 0x17FF;
 			if (parentObj.VRAM[address] != data) {
 				//JIT the graphics render queue:
 				parentObj.graphicsJIT();
@@ -8163,16 +8163,22 @@ GameBoyCore.prototype.VRAMGBCDATAWrite = function (parentObj, address, data) {
 }
 GameBoyCore.prototype.VRAMGBCHRMAPWrite = function (parentObj, address, data) {
 	if (parentObj.modeSTAT < 3) {	//VRAM cannot be written to during mode 3
-		//JIT the graphics render queue:
-		parentObj.graphicsJIT();
-		parentObj.BGCHRBank1[address & 0x7FF] = data;
+		address &= 0x7FF;
+		if (parentObj.BGCHRBank1[address] != data) {
+			//JIT the graphics render queue:
+			parentObj.graphicsJIT();
+			parentObj.BGCHRBank1[address] = data;
+		}
 	}
 }
 GameBoyCore.prototype.VRAMGBCCHRMAPWrite = function (parentObj, address, data) {
 	if (parentObj.modeSTAT < 3) {	//VRAM cannot be written to during mode 3
-		//JIT the graphics render queue:
-		parentObj.graphicsJIT();
-		parentObj.BGCHRCurrentBank[address & 0x7FF] = data;
+		address &= 0x7FF;
+		if (parentObj.BGCHRCurrentBank[address] != data) {
+			//JIT the graphics render queue:
+			parentObj.graphicsJIT();
+			parentObj.BGCHRCurrentBank[address] = data;
+		}
 	}
 }
 GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
