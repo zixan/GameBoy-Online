@@ -8151,7 +8151,7 @@ GameBoyCore.prototype.VRAMGBCDATAWrite = function (parentObj, address, data) {
 			}
 		}
 		else {
-			address &= 0x17FF;
+			address &= 0x1FFF;
 			if (parentObj.VRAM[address] != data) {
 				//JIT the graphics render queue:
 				parentObj.graphicsJIT();
