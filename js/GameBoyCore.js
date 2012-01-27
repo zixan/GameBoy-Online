@@ -7188,6 +7188,10 @@ GameBoyCore.prototype.incrementScanLineQueue = function () {
 		++this.queuedScanLines;
 	}
 	else {
+		//Reset the mid-scanline state, as we're already in another frame:
+		this.currentX = 0;
+		this.midScanlineOffset = -1;
+		//Frame scan line loop control:
 		if (this.lastUnrenderedLine < 143) {
 			++this.lastUnrenderedLine;
 		}
