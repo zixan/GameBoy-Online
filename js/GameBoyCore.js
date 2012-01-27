@@ -6125,7 +6125,7 @@ GameBoyCore.prototype.drawToCanvas = function () {
 	//Ensure we have rendered a full framebuffer before output:
 	if (this.renderedThisFrame) {
 		this.graphicsJIT();
-		this.renderedThisFrame = false;
+		this.renderedThisFrame = (this.queuedScanLines < 144 || this.currentX != 0 || this.midScanlineOffset != -1);
 	}
 	//Draw the frame buffer to the canvas:
 	if (!this.drewFrame && this.pixelCount > 0) {	//Throttle blitting to once per interpreter loop iteration.
