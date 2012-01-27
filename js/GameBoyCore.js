@@ -7166,26 +7166,34 @@ GameBoyCore.prototype.generateGBOAMTileLine = function (address) {
 	tileBlock4[addressFlipped | 7] = tileBlock2[address | 7] = tileBlock3[addressFlipped] = tileBlock1[address] = ((lineCopy & 0x8000) >> 14) | ((lineCopy & 0x80) >> 7);
 }
 GameBoyCore.prototype.graphicsJIT = function () {
-	var endScanLine = (this.actualScanLine < 144) ? this.actualScanLine : 0;
-	while (this.lastUnrenderedLine != endScanLine) {
-		this.renderScanLine();
-		this.lastUnrenderedLine++;
-		if (this.lastUnrenderedLine == 144) {
-			this.lastUnrenderedLine = 0;
+	if (this.LCDisOn) {
+		var realScanLine = (this.STATTracker != 3) ? this.actualScanLine : (this.actualScanLine + 1);
+		var endScanLine = (realScanLine < 144) ? realScanLine : 0;
+		if (this.lastUnrenderedLine != endScanLine) {
+			while (this.lastUnrenderedLine != endScanLine) {
+				this.renderScanLine();
+				this.lastUnrenderedLine++;
+				if (this.lastUnrenderedLine == 144) {
+					this.lastUnrenderedLine = 0;
+				}
+			}
 		}
 	}
 }
 GameBoyCore.prototype.checkForFullFrame = function () {
-	var endScanLine = (this.actualScanLine < 144) ? this.actualScanLine : 0;
-	if (this.lastUnrenderedLine == endScanLine) {
-		while (this.lastUnrenderedLine < 144) {
-			this.renderScanLine();
-			this.lastUnrenderedLine++;
-		}
-		this.lastUnrenderedLine = 0;
-		while (this.lastUnrenderedLine < endScanLine) {
-			this.renderScanLine();
-			this.lastUnrenderedLine++;
+	if (this.LCDisOn) {
+		var realScanLine = (this.STATTracker != 3) ? this.actualScanLine : (this.actualScanLine + 1);
+		var endScanLine = (realScanLine < 144) ? realScanLine : 0;
+		if (this.lastUnrenderedLine == endScanLine) {
+			while (this.lastUnrenderedLine < 144) {
+				this.renderScanLine();
+				this.lastUnrenderedLine++;
+			}
+			this.lastUnrenderedLine = 0;
+			while (this.lastUnrenderedLine < endScanLine) {
+				this.renderScanLine();
+				this.lastUnrenderedLine++;
+			}
 		}
 	}
 }
