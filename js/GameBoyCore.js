@@ -5766,11 +5766,11 @@ GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 				}
 				this.modeSTAT = 3;
 			}
+			this.incrementScanLineQueue();
 			this.updateSpriteCount(this.actualScanLine);
 			this.STATTracker = 2;
 		}
 		if (this.LCDTicks >= this.spriteCount) {
-			this.incrementScanLineQueue();
 			if (this.hdmaRunning) {
 				this.executeHDMA();
 			}
@@ -5905,6 +5905,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 							if (parentObj.STATTracker == 0 && parentObj.mode2TriggerSTAT) {
 								parentObj.interruptsRequested |= 0x2;
 							}
+							parentObj.incrementScanLineQueue();
 						}
 						if (parentObj.hdmaRunning) {
 							parentObj.executeHDMA();
@@ -5912,7 +5913,6 @@ GameBoyCore.prototype.initializeLCDController = function () {
 						if (parentObj.mode0TriggerSTAT) {
 							parentObj.interruptsRequested |= 0x2;
 						}
-						parentObj.incrementScanLineQueue();
 					}
 					//Update the scanline registers and assert the LYC counter:
 					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
@@ -5956,6 +5956,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 							if (parentObj.STATTracker == 0 && parentObj.mode2TriggerSTAT) {
 								parentObj.interruptsRequested |= 0x2;
 							}
+							parentObj.incrementScanLineQueue();
 						}
 						if (parentObj.hdmaRunning) {
 							parentObj.executeHDMA();
@@ -5963,7 +5964,6 @@ GameBoyCore.prototype.initializeLCDController = function () {
 						if (parentObj.mode0TriggerSTAT) {
 							parentObj.interruptsRequested |= 0x2;
 						}
-						parentObj.incrementScanLineQueue();
 					}
 					//Update the scanline registers and assert the LYC counter:
 					parentObj.actualScanLine = parentObj.memory[0xFF44] = 144;
@@ -7184,9 +7184,7 @@ GameBoyCore.prototype.graphicsJIT = function () {
 	}
 }
 GameBoyCore.prototype.incrementScanLineQueue = function () {
-	if (this.queuedScanLines < 144) {
-		++this.queuedScanLines;
-	}
+	this.queuedScanLines = (this.queuedScanLines + 1) % 145;
 }
 GameBoyCore.prototype.midScanLineJIT = function () {
 	this.graphicsJIT();
