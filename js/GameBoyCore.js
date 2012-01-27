@@ -165,6 +165,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.iterations = 0;
 	this.actualScanLine = 0;			//Actual scan line...
 	this.lastUnrenderedLine = 0;		//Last rendered scan line...
+	this.queuedScanLines = 0;
 	this.haltPostClocks = 0;			//Post-Halt clocking.
 	//ROM Cartridge Components:
 	this.cMBC1 = false;					//Does the cartridge use MBC1?
@@ -4206,6 +4207,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.rightChannel3,
 		this.actualScanLine,
 		this.lastUnrenderedLine,
+		this.queuedScanLines,
 		this.RTCisLatched,
 		this.latchedSeconds,
 		this.latchedMinutes,
@@ -4386,6 +4388,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.rightChannel3 = state[index++];
 	this.actualScanLine = state[index++];
 	this.lastUnrenderedLine = state[index++];
+	this.queuedScanLines = state[index++];
 	this.RTCisLatched = state[index++];
 	this.latchedSeconds = state[index++];
 	this.latchedMinutes = state[index++];
@@ -5767,6 +5770,7 @@ GameBoyCore.prototype.scanLineMode0 = function () {	//Horizontal Blanking Period
 			this.STATTracker = 2;
 		}
 		if (this.LCDTicks >= this.spriteCount) {
+			this.incrementScanLineQueue();
 			if (this.hdmaRunning) {
 				this.executeHDMA();
 			}
@@ -5908,10 +5912,10 @@ GameBoyCore.prototype.initializeLCDController = function () {
 						if (parentObj.mode0TriggerSTAT) {
 							parentObj.interruptsRequested |= 0x2;
 						}
+						parentObj.incrementScanLineQueue();
 					}
 					//Update the scanline registers and assert the LYC counter:
 					parentObj.actualScanLine = ++parentObj.memory[0xFF44];
-					parentObj.checkForFullFrame();
 					//Perform a LYC counter assert:
 					if (parentObj.actualScanLine == parentObj.memory[0xFF45]) {
 						parentObj.memory[0xFF41] |= 0x04;
@@ -5959,10 +5963,10 @@ GameBoyCore.prototype.initializeLCDController = function () {
 						if (parentObj.mode0TriggerSTAT) {
 							parentObj.interruptsRequested |= 0x2;
 						}
+						parentObj.incrementScanLineQueue();
 					}
 					//Update the scanline registers and assert the LYC counter:
 					parentObj.actualScanLine = parentObj.memory[0xFF44] = 144;
-					parentObj.checkForFullFrame();
 					//Perform a LYC counter assert:
 					if (parentObj.memory[0xFF45] == 144) {
 						parentObj.memory[0xFF41] |= 0x04;
@@ -7167,33 +7171,22 @@ GameBoyCore.prototype.generateGBOAMTileLine = function (address) {
 }
 GameBoyCore.prototype.graphicsJIT = function () {
 	if (this.LCDisOn) {
-		var realScanLine = (this.STATTracker != 3) ? this.actualScanLine : (this.actualScanLine + 1);
-		var endScanLine = (realScanLine < 144) ? realScanLine : 0;
-		if (this.lastUnrenderedLine != endScanLine) {
-			while (this.lastUnrenderedLine != endScanLine) {
-				this.renderScanLine();
-				this.lastUnrenderedLine++;
-				if (this.lastUnrenderedLine == 144) {
-					this.lastUnrenderedLine = 0;
-				}
+		while (this.queuedScanLines > 0) {
+			this.renderScanLine();
+			if (this.lastUnrenderedLine < 143) {
+				++this.lastUnrenderedLine;
 			}
+			else {
+				this.lastUnrenderedLine = 0;
+			}
+			--this.queuedScanLines;
 		}
 	}
 }
-GameBoyCore.prototype.checkForFullFrame = function () {
+GameBoyCore.prototype.incrementScanLineQueue = function () {
 	if (this.LCDisOn) {
-		var realScanLine = (this.STATTracker != 3) ? this.actualScanLine : (this.actualScanLine + 1);
-		var endScanLine = (realScanLine < 144) ? realScanLine : 0;
-		if (this.lastUnrenderedLine == endScanLine) {
-			while (this.lastUnrenderedLine < 144) {
-				this.renderScanLine();
-				this.lastUnrenderedLine++;
-			}
-			this.lastUnrenderedLine = 0;
-			while (this.lastUnrenderedLine < endScanLine) {
-				this.renderScanLine();
-				this.lastUnrenderedLine++;
-			}
+		if (this.queuedScanLines < 144) {
+			++this.queuedScanLines;
 		}
 	}
 }
