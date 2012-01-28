@@ -197,7 +197,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.gfxSpriteShow = false;				//Are sprites enabled?
 	this.gfxSpriteNormalHeight = true;		//Are we doing 8x8 or 8x16 sprites?
 	this.bgEnabled = true;					//Is the BG enabled?
-	this.BGPriorityEnabled = 0x1000000;		//Can we flag the BG for priority over sprites?
+	this.BGPriorityEnabled = true;			//Can we flag the BG for priority over sprites?
 	this.gfxWindowCHRBankPosition = 0;		//The current bank of the character map the window uses.
 	this.gfxBackgroundCHRBankPosition = 0;	//The current bank of the character map the BG uses.
 	this.gfxBackgroundBankOffset = 0x80;	//Fast mapping of the tile numbering/
@@ -4624,7 +4624,7 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.gfxSpriteShow = false;
 	this.gfxSpriteNormalHeight = true;
 	this.bgEnabled = true;
-	this.BGPriorityEnabled = 0x1000000;
+	this.BGPriorityEnabled = true;
 	this.gfxWindowCHRBankPosition = 0;
 	this.gfxBackgroundCHRBankPosition = 0;
 	this.gfxBackgroundBankOffset = 0;
@@ -6334,7 +6334,7 @@ GameBoyCore.prototype.renderPathBuild = function () {
 	}
 }
 GameBoyCore.prototype.priorityFlaggingPathRebuild = function () {
-	if (this.BGPriorityEnabled == 0x1000000) {
+	if (this.BGPriorityEnabled) {
 		this.BGLayerRender = this.BGGBCLayerRender;
 		this.WindowLayerRender = this.WindowGBCLayerRender;
 	}
@@ -6935,7 +6935,7 @@ GameBoyCore.prototype.WindowGBCLayerRenderNoPriorityFlagging = function () {
 					palette = (attrCode & 0x7) << 2;
 					switch (pixelPositionEnd - pixelPosition) {
 						case 7:
-							this.frameBuffer[pixelPosition + 6] = his.gbcBGPalette[palette | tile[tileYLine | 6]];
+							this.frameBuffer[pixelPosition + 6] = this.gbcBGPalette[palette | tile[tileYLine | 6]];
 						case 6:
 							this.frameBuffer[pixelPosition + 5] = this.gbcBGPalette[palette | tile[tileYLine | 5]];
 						case 5:
@@ -9179,7 +9179,7 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 				parentObj.gfxBackgroundCHRBankPosition = ((data & 0x08) == 0x08) ? 0x400 : 0;
 				parentObj.gfxSpriteNormalHeight = ((data & 0x04) == 0);
 				parentObj.gfxSpriteShow = ((data & 0x02) == 0x02);
-				parentObj.BGPriorityEnabled = ((data & 0x01) == 0x01) ? 0x1000000 : 0;
+				parentObj.BGPriorityEnabled = ((data & 0x01) == 0x01);
 				parentObj.priorityFlaggingPathRebuild();	//Special case the priority flagging as an optimization.
 				parentObj.memory[0xFF40] = data;
 			}
