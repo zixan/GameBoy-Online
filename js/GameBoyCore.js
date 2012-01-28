@@ -7313,6 +7313,32 @@ GameBoyCore.prototype.generateGBCTileLineBank1 = function (address) {
 	tileBlock4[addressFlipped | 6] = tileBlock2[address | 6] = tileBlock3[addressFlipped | 1] = tileBlock1[address | 1] = ((lineCopy & 0x4000) >> 13) | ((lineCopy & 0x40) >> 6);
 	tileBlock4[addressFlipped | 7] = tileBlock2[address | 7] = tileBlock3[addressFlipped] = tileBlock1[address] = ((lineCopy & 0x8000) >> 14) | ((lineCopy & 0x80) >> 7);
 }
+//Generate all the flip combinations for a full GBC VRAM bank 1 tile:
+GameBoyCore.prototype.generateGBCTileBank1 = function (vramAddress) {
+	var address = vramAddress >> 4;
+	var tileBlock1 = this.tileCache[address];
+	var tileBlock2 = this.tileCache[0x200 | address];
+	var tileBlock3 = this.tileCache[0x400 | address];
+	var tileBlock4 = this.tileCache[0x600 | address];
+	var lineCopy = 0;
+	vramAddress |= 0x8000;
+	address = 0;
+	var addressFlipped = 56;
+	do {
+		lineCopy = (this.memory[0x1 | vramAddress] << 8) | this.memory[vramAddress];
+		tileBlock4[addressFlipped] = tileBlock2[address] = tileBlock3[addressFlipped | 7] = tileBlock1[address | 7] = ((lineCopy & 0x100) >> 7) | (lineCopy & 0x1);
+		tileBlock4[addressFlipped | 1] = tileBlock2[address | 1] = tileBlock3[addressFlipped | 6] = tileBlock1[address | 6] = ((lineCopy & 0x200) >> 8) | ((lineCopy & 0x2) >> 1);
+		tileBlock4[addressFlipped | 2] = tileBlock2[address | 2] = tileBlock3[addressFlipped | 5] = tileBlock1[address | 5] = ((lineCopy & 0x400) >> 9) | ((lineCopy & 0x4) >> 2);
+		tileBlock4[addressFlipped | 3] = tileBlock2[address | 3] = tileBlock3[addressFlipped | 4] = tileBlock1[address | 4] = ((lineCopy & 0x800) >> 10) | ((lineCopy & 0x8) >> 3);
+		tileBlock4[addressFlipped | 4] = tileBlock2[address | 4] = tileBlock3[addressFlipped | 3] = tileBlock1[address | 3] = ((lineCopy & 0x1000) >> 11) | ((lineCopy & 0x10) >> 4);
+		tileBlock4[addressFlipped | 5] = tileBlock2[address | 5] = tileBlock3[addressFlipped | 2] = tileBlock1[address | 2] = ((lineCopy & 0x2000) >> 12) | ((lineCopy & 0x20) >> 5);
+		tileBlock4[addressFlipped | 6] = tileBlock2[address | 6] = tileBlock3[addressFlipped | 1] = tileBlock1[address | 1] = ((lineCopy & 0x4000) >> 13) | ((lineCopy & 0x40) >> 6);
+		tileBlock4[addressFlipped | 7] = tileBlock2[address | 7] = tileBlock3[addressFlipped] = tileBlock1[address] = ((lineCopy & 0x8000) >> 14) | ((lineCopy & 0x80) >> 7);
+		address += 8;
+		addressFlipped -= 8;
+		vramAddress += 2;
+	} while (addressFlipped > -1);
+}
 //Generate only a single tile line for the GBC tile cache mode (Bank 2):
 GameBoyCore.prototype.generateGBCTileLineBank2 = function (address) {
 	var lineCopy = (this.VRAM[0x1 | address] << 8) | this.VRAM[0x1FFE & address];
@@ -7330,6 +7356,31 @@ GameBoyCore.prototype.generateGBCTileLineBank2 = function (address) {
 	tileBlock4[addressFlipped | 5] = tileBlock2[address | 5] = tileBlock3[addressFlipped | 2] = tileBlock1[address | 2] = ((lineCopy & 0x2000) >> 12) | ((lineCopy & 0x20) >> 5);
 	tileBlock4[addressFlipped | 6] = tileBlock2[address | 6] = tileBlock3[addressFlipped | 1] = tileBlock1[address | 1] = ((lineCopy & 0x4000) >> 13) | ((lineCopy & 0x40) >> 6);
 	tileBlock4[addressFlipped | 7] = tileBlock2[address | 7] = tileBlock3[addressFlipped] = tileBlock1[address] = ((lineCopy & 0x8000) >> 14) | ((lineCopy & 0x80) >> 7);
+}
+//Generate all the flip combinations for a full GBC VRAM bank 2 tile:
+GameBoyCore.prototype.generateGBCTileBank2 = function (vramAddress) {
+	var address = vramAddress >> 4;	
+	var tileBlock1 = this.tileCache[0x800 | address];
+	var tileBlock2 = this.tileCache[0xA00 | address];
+	var tileBlock3 = this.tileCache[0xC00 | address];
+	var tileBlock4 = this.tileCache[0xE00 | address];
+	var lineCopy = 0;
+	address = 0;
+	var addressFlipped = 56;
+	do {
+		lineCopy = (this.VRAM[0x1 | vramAddress] << 8) | this.VRAM[vramAddress];
+		tileBlock4[addressFlipped] = tileBlock2[address] = tileBlock3[addressFlipped | 7] = tileBlock1[address | 7] = ((lineCopy & 0x100) >> 7) | (lineCopy & 0x1);
+		tileBlock4[addressFlipped | 1] = tileBlock2[address | 1] = tileBlock3[addressFlipped | 6] = tileBlock1[address | 6] = ((lineCopy & 0x200) >> 8) | ((lineCopy & 0x2) >> 1);
+		tileBlock4[addressFlipped | 2] = tileBlock2[address | 2] = tileBlock3[addressFlipped | 5] = tileBlock1[address | 5] = ((lineCopy & 0x400) >> 9) | ((lineCopy & 0x4) >> 2);
+		tileBlock4[addressFlipped | 3] = tileBlock2[address | 3] = tileBlock3[addressFlipped | 4] = tileBlock1[address | 4] = ((lineCopy & 0x800) >> 10) | ((lineCopy & 0x8) >> 3);
+		tileBlock4[addressFlipped | 4] = tileBlock2[address | 4] = tileBlock3[addressFlipped | 3] = tileBlock1[address | 3] = ((lineCopy & 0x1000) >> 11) | ((lineCopy & 0x10) >> 4);
+		tileBlock4[addressFlipped | 5] = tileBlock2[address | 5] = tileBlock3[addressFlipped | 2] = tileBlock1[address | 2] = ((lineCopy & 0x2000) >> 12) | ((lineCopy & 0x20) >> 5);
+		tileBlock4[addressFlipped | 6] = tileBlock2[address | 6] = tileBlock3[addressFlipped | 1] = tileBlock1[address | 1] = ((lineCopy & 0x4000) >> 13) | ((lineCopy & 0x40) >> 6);
+		tileBlock4[addressFlipped | 7] = tileBlock2[address | 7] = tileBlock3[addressFlipped] = tileBlock1[address] = ((lineCopy & 0x8000) >> 14) | ((lineCopy & 0x80) >> 7);
+		address += 8;
+		addressFlipped -= 8;
+		vramAddress += 2;
+	} while (addressFlipped > -1);
 }
 //Generate only a single tile line for the GB tile cache mode (OAM accessible range):
 GameBoyCore.prototype.generateGBOAMTileLine = function (address) {
@@ -8384,8 +8435,6 @@ GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 	var source = (this.memory[0xFF51] << 8) | this.memory[0xFF52];
 	//Destination address in the VRAM memory range:
 	var destination = (this.memory[0xFF53] << 8) | this.memory[0xFF54];
-	//Initialization:
-	var addressLine = 0;
 	//Creating some references:
 	var memoryReader = this.memoryReader;
 	//JIT the graphics render queue:
@@ -8396,11 +8445,23 @@ GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 		//DMA transfer for VRAM bank 0:
 		do {
 			if (destination < 0x1800) {
-				for (addressLine = 0x8000; addressLine < 0x8010; addressLine += 2) {
-					memory[addressLine | destination] = memoryReader[source](this, source++);
-					memory[addressLine | destination | 1] = memoryReader[source](this, source++);
-					this.generateGBCTileLineBank1(addressLine | destination);
-				}
+				memory[0x8000 | destination] = memoryReader[source](this, source++);
+				memory[0x8001 | destination] = memoryReader[source](this, source++);
+				memory[0x8002 | destination] = memoryReader[source](this, source++);
+				memory[0x8003 | destination] = memoryReader[source](this, source++);
+				memory[0x8004 | destination] = memoryReader[source](this, source++);
+				memory[0x8005 | destination] = memoryReader[source](this, source++);
+				memory[0x8006 | destination] = memoryReader[source](this, source++);
+				memory[0x8007 | destination] = memoryReader[source](this, source++);
+				memory[0x8008 | destination] = memoryReader[source](this, source++);
+				memory[0x8009 | destination] = memoryReader[source](this, source++);
+				memory[0x800A | destination] = memoryReader[source](this, source++);
+				memory[0x800B | destination] = memoryReader[source](this, source++);
+				memory[0x800C | destination] = memoryReader[source](this, source++);
+				memory[0x800D | destination] = memoryReader[source](this, source++);
+				memory[0x800E | destination] = memoryReader[source](this, source++);
+				memory[0x800F | destination] = memoryReader[source](this, source++);
+				this.generateGBCTileBank1(destination);
 				destination += 0x10;
 			}
 			else {
@@ -8432,11 +8493,23 @@ GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 		//DMA transfer for VRAM bank 1:
 		do {
 			if (destination < 0x1800) {
-				for (addressLine = 0; addressLine < 0x10; addressLine += 2) {
-					VRAM[addressLine | destination] = memoryReader[source](this, source++);
-					VRAM[addressLine | destination | 1] = memoryReader[source](this, source++);
-					this.generateGBCTileLineBank2(addressLine | destination);
-				}
+				VRAM[destination] = memoryReader[source](this, source++);
+				VRAM[destination | 0x1] = memoryReader[source](this, source++);
+				VRAM[destination | 0x2] = memoryReader[source](this, source++);
+				VRAM[destination | 0x3] = memoryReader[source](this, source++);
+				VRAM[destination | 0x4] = memoryReader[source](this, source++);
+				VRAM[destination | 0x5] = memoryReader[source](this, source++);
+				VRAM[destination | 0x6] = memoryReader[source](this, source++);
+				VRAM[destination | 0x7] = memoryReader[source](this, source++);
+				VRAM[destination | 0x8] = memoryReader[source](this, source++);
+				VRAM[destination | 0x9] = memoryReader[source](this, source++);
+				VRAM[destination | 0xA] = memoryReader[source](this, source++);
+				VRAM[destination | 0xB] = memoryReader[source](this, source++);
+				VRAM[destination | 0xC] = memoryReader[source](this, source++);
+				VRAM[destination | 0xD] = memoryReader[source](this, source++);
+				VRAM[destination | 0xE] = memoryReader[source](this, source++);
+				VRAM[destination | 0xF] = memoryReader[source](this, source++);
+				this.generateGBCTileBank2(destination);
 				destination += 0x10;
 			}
 			else {
