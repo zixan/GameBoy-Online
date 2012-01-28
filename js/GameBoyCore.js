@@ -6293,14 +6293,14 @@ GameBoyCore.prototype.initializeModeSpecificArrays = function () {
 		this.gbBGPalette = this.getTypedArray(4, 0, "int32");
 		this.BGPalette = this.gbBGPalette;
 		this.OBJPalette = this.gbOBJPalette;
-		this.tileCache = this.generateCacheArray(0x780);
+		this.tileCache = this.generateCacheArray(0x700);
 	}
 	this.renderPathBuild();
 }
 GameBoyCore.prototype.GBCtoGBModeAdjust = function () {
 	cout("Stepping down from GBC mode.", 0);
 	this.VRAM = this.GBCMemory = this.BGCHRCurrentBank = this.BGCHRBank2 = null;
-	this.tileCache.length = 0x780;
+	this.tileCache.length = 0x700;
 	if (settings[17]) {
 		this.gbBGColorizedPalette = this.getTypedArray(4, 0, "int32");
 		this.gbOBJColorizedPalette = this.getTypedArray(8, 0, "int32");
@@ -6358,7 +6358,7 @@ GameBoyCore.prototype.initializeReferencesFromSaveState = function () {
 			this.BGPalette = this.gbBGPalette;
 			this.OBJPalette = this.gbOBJPalette;
 		}
-		this.tileCache = this.generateCacheArray(0x780);
+		this.tileCache = this.generateCacheArray(0x700);
 		for (; tileIndex < 0x9000; tileIndex += 2) {
 			this.generateGBOAMTileLine(tileIndex);
 		}
@@ -6369,11 +6369,9 @@ GameBoyCore.prototype.initializeReferencesFromSaveState = function () {
 	else {
 		this.BGCHRCurrentBank = (this.currVRAMBank > 0) ? this.BGCHRBank2 : this.BGCHRBank1;
 		this.tileCache = this.generateCacheArray(0xF80);
-		for (; tileIndex < 0x9800; tileIndex += 2) {
-			this.generateGBCTileLineBank1(tileIndex);
-		}
-		for (tileIndex = 0; tileIndex < 0x1800; tileIndex += 2) {
-			this.generateGBCTileLineBank2(tileIndex);
+		for (; tileIndex < 0x1800; tileIndex += 0x10) {
+			this.generateGBCTileBank1(tileIndex);
+			this.generateGBCTileBank2(tileIndex);
 		}
 	}
 	this.renderPathBuild();
