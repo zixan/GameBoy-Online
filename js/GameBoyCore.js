@@ -4619,7 +4619,7 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.serialShiftTimerAllocated = 0;
 	this.IRQEnableDelay = 0;
 	this.actualScanLine = 144;
-	this.lastUnrenderedLine = 143;
+	this.lastUnrenderedLine = 0;
 	this.gfxWindowDisplay = false;
 	this.gfxSpriteShow = false;
 	this.gfxSpriteNormalHeight = true;
@@ -6999,7 +6999,7 @@ GameBoyCore.prototype.SpriteGBLayerRender = function () {
 GameBoyCore.prototype.findLowestSpriteDrawable = function () {
 	var address = 0xFE00;
 	var spriteCount = 0;
-	var line = this.actualScanLine + 0x10;
+	var line = this.lastUnrenderedLine + 0x10;
 	var diff = 0;
 	while (address < 0xFEA0 && spriteCount < 10) {
 		diff = line - this.memory[address];
@@ -7013,7 +7013,7 @@ GameBoyCore.prototype.findLowestSpriteDrawable = function () {
 GameBoyCore.prototype.findLowestSpriteDoubleDrawable = function () {
 	var address = 0xFE00;
 	var spriteCount = 0;
-	var line = this.actualScanLine + 0x10;
+	var line = this.lastUnrenderedLine + 0x10;
 	var diff = 0;
 	while (address < 0xFEA0 && spriteCount < 10) {
 		diff = line - this.memory[address];
@@ -8978,33 +8978,33 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 		this.memoryHighWriter[0x40] = this.memoryWriter[0xFF40] = function (parentObj, address, data) {
 			if (parentObj.memory[0xFF40] != data) {
 				parentObj.midScanLineJIT();
-			}
-			var temp_var = (data > 0x7F);
-			if (temp_var != parentObj.LCDisOn) {
-				//When the display mode changes...
-				parentObj.LCDisOn = temp_var;
-				parentObj.memory[0xFF41] &= 0x78;
-				parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
-				if (parentObj.LCDisOn) {
-					parentObj.modeSTAT = 2;
-					parentObj.matchLYC();	//Get the compare of the first scan line.
-					parentObj.LCDCONTROL = parentObj.LINECONTROL;
+				var temp_var = (data > 0x7F);
+				if (temp_var != parentObj.LCDisOn) {
+					//When the display mode changes...
+					parentObj.LCDisOn = temp_var;
+					parentObj.memory[0xFF41] &= 0x78;
+					parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+					if (parentObj.LCDisOn) {
+						parentObj.modeSTAT = 2;
+						parentObj.matchLYC();	//Get the compare of the first scan line.
+						parentObj.LCDCONTROL = parentObj.LINECONTROL;
+					}
+					else {
+						parentObj.modeSTAT = 0;
+						parentObj.LCDCONTROL = parentObj.DISPLAYOFFCONTROL;
+						parentObj.DisplayShowOff();
+					}
+					parentObj.interruptsRequested &= 0xFD;
 				}
-				else {
-					parentObj.modeSTAT = 0;
-					parentObj.LCDCONTROL = parentObj.DISPLAYOFFCONTROL;
-					parentObj.DisplayShowOff();
-				}
-				parentObj.interruptsRequested &= 0xFD;
+				parentObj.gfxWindowCHRBankPosition = ((data & 0x40) == 0x40) ? 0x400 : 0;
+				parentObj.gfxWindowDisplay = ((data & 0x20) == 0x20);
+				parentObj.gfxBackgroundBankOffset = ((data & 0x10) == 0x10) ? 0 : 0x80;
+				parentObj.gfxBackgroundCHRBankPosition = ((data & 0x08) == 0x08) ? 0x400 : 0;
+				parentObj.gfxSpriteNormalHeight = ((data & 0x04) == 0);
+				parentObj.gfxSpriteShow = ((data & 0x02) == 0x02);
+				parentObj.BGPriorityEnabled = ((data & 0x01) == 0x01) ? 0x1000000 : 0;
+				parentObj.memory[0xFF40] = data;
 			}
-			parentObj.gfxWindowCHRBankPosition = ((data & 0x40) == 0x40) ? 0x400 : 0;
-			parentObj.gfxWindowDisplay = ((data & 0x20) == 0x20);
-			parentObj.gfxBackgroundBankOffset = ((data & 0x10) == 0x10) ? 0 : 0x80;
-			parentObj.gfxBackgroundCHRBankPosition = ((data & 0x08) == 0x08) ? 0x400 : 0;
-			parentObj.gfxSpriteNormalHeight = ((data & 0x04) == 0);
-			parentObj.gfxSpriteShow = ((data & 0x02) == 0x02);
-			parentObj.BGPriorityEnabled = ((data & 0x01) == 0x01) ? 0x1000000 : 0;
-			parentObj.memory[0xFF40] = data;
 		}
 		this.memoryHighWriter[0x41] = this.memoryWriter[0xFF41] = function (parentObj, address, data) {
 			parentObj.LYCMatchTriggerSTAT = ((data & 0x40) == 0x40);
@@ -9147,33 +9147,33 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 		this.memoryHighWriter[0x40] = this.memoryWriter[0xFF40] = function (parentObj, address, data) {
 			if (parentObj.memory[0xFF40] != data) {
 				parentObj.midScanLineJIT();
-			}
-			var temp_var = (data > 0x7F);
-			if (temp_var != parentObj.LCDisOn) {
-				//When the display mode changes...
-				parentObj.LCDisOn = temp_var;
-				parentObj.memory[0xFF41] &= 0x78;
-				parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
-				if (parentObj.LCDisOn) {
-					parentObj.modeSTAT = 2;
-					parentObj.matchLYC();	//Get the compare of the first scan line.
-					parentObj.LCDCONTROL = parentObj.LINECONTROL;
+				var temp_var = (data > 0x7F);
+				if (temp_var != parentObj.LCDisOn) {
+					//When the display mode changes...
+					parentObj.LCDisOn = temp_var;
+					parentObj.memory[0xFF41] &= 0x78;
+					parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+					if (parentObj.LCDisOn) {
+						parentObj.modeSTAT = 2;
+						parentObj.matchLYC();	//Get the compare of the first scan line.
+						parentObj.LCDCONTROL = parentObj.LINECONTROL;
+					}
+					else {
+						parentObj.modeSTAT = 0;
+						parentObj.LCDCONTROL = parentObj.DISPLAYOFFCONTROL;
+						parentObj.DisplayShowOff();
+					}
+					parentObj.interruptsRequested &= 0xFD;
 				}
-				else {
-					parentObj.modeSTAT = 0;
-					parentObj.LCDCONTROL = parentObj.DISPLAYOFFCONTROL;
-					parentObj.DisplayShowOff();
-				}
-				parentObj.interruptsRequested &= 0xFD;
+				parentObj.gfxWindowCHRBankPosition = ((data & 0x40) == 0x40) ? 0x400 : 0;
+				parentObj.gfxWindowDisplay = (data & 0x20) == 0x20;
+				parentObj.gfxBackgroundBankOffset = ((data & 0x10) == 0x10) ? 0 : 0x80;
+				parentObj.gfxBackgroundCHRBankPosition = ((data & 0x08) == 0x08) ? 0x400 : 0;
+				parentObj.gfxSpriteNormalHeight = ((data & 0x04) == 0);
+				parentObj.gfxSpriteShow = (data & 0x02) == 0x02;
+				parentObj.bgEnabled = ((data & 0x01) == 0x01);
+				parentObj.memory[0xFF40] = data;
 			}
-			parentObj.gfxWindowCHRBankPosition = ((data & 0x40) == 0x40) ? 0x400 : 0;
-			parentObj.gfxWindowDisplay = (data & 0x20) == 0x20;
-			parentObj.gfxBackgroundBankOffset = ((data & 0x10) == 0x10) ? 0 : 0x80;
-			parentObj.gfxBackgroundCHRBankPosition = ((data & 0x08) == 0x08) ? 0x400 : 0;
-			parentObj.gfxSpriteNormalHeight = ((data & 0x04) == 0);
-			parentObj.gfxSpriteShow = (data & 0x02) == 0x02;
-			parentObj.bgEnabled = ((data & 0x01) == 0x01);
-			parentObj.memory[0xFF40] = data;
 		}
 		this.memoryHighWriter[0x41] = this.memoryWriter[0xFF41] = function (parentObj, address, data) {
 			parentObj.LYCMatchTriggerSTAT = ((data & 0x40) == 0x40);
