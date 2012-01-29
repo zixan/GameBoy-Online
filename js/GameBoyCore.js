@@ -166,6 +166,8 @@ function GameBoyCore(canvas, ROMImage) {
 	this.actualScanLine = 0;			//Actual scan line...
 	this.lastUnrenderedLine = 0;		//Last rendered scan line...
 	this.queuedScanLines = 0;
+	this.frameNeedsRendering = true;
+	this.totalLinesPassed = 0;
 	this.haltPostClocks = 0;			//Post-Halt clocking.
 	//ROM Cartridge Components:
 	this.cMBC1 = false;					//Does the cartridge use MBC1?
@@ -5986,8 +5988,24 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					parentObj.checkIRQMatching();
 					//Attempt to blit out to our canvas:
 					if (parentObj.drewBlank == 0) {
-						//Draw the frame:
-						parentObj.drawToCanvas();
+						//Only output and ensure JIT alignment to v-blank when flagged:
+						if (parentObj.frameNeedsRendering) {
+							parentObj.totalLinesPassed = 0;
+							//Make sure our gfx are up-to-date:
+							parentObj.graphicsJIT();
+							//Draw the frame:
+							parentObj.drawToCanvas();
+						}
+						else {
+							if (parentObj.totalLinesPassed <= 144 || parentObj.currentX > 0 || parentObj.midScanlineOffset > -1) {
+								//Make sure our gfx are up-to-date:
+								parentObj.graphicsJIT();
+								//Draw the frame:
+								parentObj.drawToCanvas();
+							}
+						}
+						//Reset our frame "dirty" flag:
+						parentObj.frameNeedsRendering = false;
 					}
 					else {
 						//LCD off takes at least 2 frames:
@@ -6122,8 +6140,6 @@ GameBoyCore.prototype.clockUpdate = function () {
 	}
 }
 GameBoyCore.prototype.drawToCanvas = function () {
-	//Ensure we have rendered a full framebuffer before output:
-	this.graphicsJIT();
 	//Draw the frame buffer to the canvas:
 	if (!this.drewFrame && this.pixelCount > 0) {	//Throttle blitting to once per interpreter loop iteration.
 		if (settings[4] == 0 || this.frameCount > 0) {
@@ -7381,34 +7397,36 @@ GameBoyCore.prototype.generateGBOAMTileLine = function (address) {
 	tileBlock4[addressFlipped | 7] = tileBlock2[address | 7] = tileBlock3[addressFlipped] = tileBlock1[address] = ((lineCopy & 0x8000) >> 14) | ((lineCopy & 0x80) >> 7);
 }
 GameBoyCore.prototype.graphicsJIT = function () {
+	this.frameNeedsRendering = true;	//Frame is now "dirty" again.
 	if (this.LCDisOn) {
-		if (this.queuedScanLines < 144 || (this.queuedScanLines == 144 && (this.currentX > 0 || this.midScanlineOffset > -1))) {
-			//Normal rendering JIT, where we try to do groups of scanlines at once:
-			while (this.queuedScanLines > 0) {
-				this.renderScanLine(this.lastUnrenderedLine);
-				if (this.lastUnrenderedLine < 143) {
-					++this.lastUnrenderedLine;
-				}
-				else {
-					this.lastUnrenderedLine = 0;
-				}
-				--this.queuedScanLines;
+		//Normal rendering JIT, where we try to do groups of scanlines at once:
+		while (this.queuedScanLines > 0) {
+			this.renderScanLine(this.lastUnrenderedLine);
+			if (this.lastUnrenderedLine < 143) {
+				++this.lastUnrenderedLine;
 			}
-		}
-		else {
-			//Optimized render case, where we can draw all the scanlines at once:
-			this.currentX = 0;
-			this.midScanlineOffset = -1;
-			for (var scanlineToRender = 0; scanlineToRender < 144; ++scanlineToRender) {
-				this.renderScanLine(scanlineToRender);
+			else {
+				this.lastUnrenderedLine = 0;
 			}
-			this.lastUnrenderedLine = (this.lastUnrenderedLine + this.queuedScanLines) % 144;
-			this.queuedScanLines = 0;
+			--this.queuedScanLines;
 		}
 	}
 }
 GameBoyCore.prototype.incrementScanLineQueue = function () {
-	++this.queuedScanLines;
+	++this.totalLinesPassed;
+	if (this.queuedScanLines < 144) {
+		++this.queuedScanLines;
+	}
+	else {
+		this.currentX = 0;
+		this.midScanlineOffset = -1;
+		if (this.lastUnrenderedLine < 143) {
+			++this.lastUnrenderedLine;
+		}
+		else {
+			this.lastUnrenderedLine = 0;
+		}
+	}
 }
 GameBoyCore.prototype.midScanLineJIT = function () {
 	this.graphicsJIT();
@@ -9134,13 +9152,10 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		//Read Only:
 		if (parentObj.LCDisOn) {
 			//Gambatte says to do this:
-			if (parentObj.drewBlank == 0 && (parentObj.actualScanLine > 0 || parentObj.STATTracker == 2)) {
-				//Blit out the partial frame:
-				parentObj.drawToCanvas();
-			}
 			parentObj.modeSTAT = 2;
 			parentObj.midScanlineOffset = -1;
-			parentObj.currentX = parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.LCDTicks = parentObj.STATTracker = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+			parentObj.frameNeedsRendering = true;
+			parentObj.totalLinesPassed = parentObj.currentX = parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.LCDTicks = parentObj.STATTracker = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 		}
 	}
 	//LYC
@@ -9212,7 +9227,7 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 					parentObj.LCDisOn = temp_var;
 					parentObj.memory[0xFF41] &= 0x78;
 					parentObj.midScanlineOffset = -1;
-					parentObj.currentX = parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+					parentObj.totalLinesPassed = parentObj.currentX = parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 					if (parentObj.LCDisOn) {
 						parentObj.modeSTAT = 2;
 						parentObj.matchLYC();	//Get the compare of the first scan line.
@@ -9383,7 +9398,7 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 					parentObj.LCDisOn = temp_var;
 					parentObj.memory[0xFF41] &= 0x78;
 					parentObj.midScanlineOffset = -1;
-					parentObj.currentX = parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+					parentObj.totalLinesPassed = parentObj.currentX = parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 					if (parentObj.LCDisOn) {
 						parentObj.modeSTAT = 2;
 						parentObj.matchLYC();	//Get the compare of the first scan line.
