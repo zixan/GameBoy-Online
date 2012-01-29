@@ -6346,7 +6346,7 @@ GameBoyCore.prototype.priorityFlaggingPathRebuild = function () {
 }
 GameBoyCore.prototype.initializeReferencesFromSaveState = function () {
 	this.LCDCONTROL = (this.LCDisOn) ? this.LINECONTROL : this.DISPLAYOFFCONTROL;
-	var tileIndex = 0x8000;
+	var tileIndex = 0;
 	if (!this.cGBC) {
 		if (this.colorizedGBPalettes) {
 			this.BGPalette = this.gbBGColorizedPalette;
@@ -6360,7 +6360,7 @@ GameBoyCore.prototype.initializeReferencesFromSaveState = function () {
 			this.OBJPalette = this.gbOBJPalette;
 		}
 		this.tileCache = this.generateCacheArray(0x700);
-		for (; tileIndex < 0x9000; tileIndex += 2) {
+		for (tileIndex = 0x8000; tileIndex < 0x9000; tileIndex += 2) {
 			this.generateGBOAMTileLine(tileIndex);
 		}
 		for (tileIndex = 0x9000; tileIndex < 0x9800; tileIndex += 2) {
