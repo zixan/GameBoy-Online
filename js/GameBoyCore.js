@@ -205,8 +205,9 @@ function GameBoyCore(canvas, ROMImage) {
 	this.windowX = 0;						//Current X offset of the window.
 	this.drewBlank = 0;						//To prevent the repeating of drawing a blank screen.
 	this.drewFrame = false;					//Throttle how many draws we can do to once per iteration.
-	this.midScanlineOffset = 0;				//mid-scanline rendering offset.
+	this.midScanlineOffset = -1;			//mid-scanline rendering offset.
 	this.pixelEnd = 0;						//track the x-coord limit for line rendering (mid-scanline usage).
+	this.currentX = 0;						//The x-coord we left off at for mid-scanline rendering.
 	//BG Tile Pointer Caches:
 	this.BGCHRBank1 = null;
 	this.BGCHRBank2 = null;
@@ -9156,7 +9157,8 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				parentObj.drawToCanvas();
 			}
 			parentObj.modeSTAT = 2;
-			parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.LCDTicks = parentObj.STATTracker = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+			parentObj.midScanlineOffset = -1;
+			parentObj.currentX = parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.LCDTicks = parentObj.STATTracker = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 		}
 	}
 	//LYC
@@ -9227,7 +9229,8 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 					//When the display mode changes...
 					parentObj.LCDisOn = temp_var;
 					parentObj.memory[0xFF41] &= 0x78;
-					parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+					parentObj.midScanlineOffset = -1;
+					parentObj.currentX = parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 					if (parentObj.LCDisOn) {
 						parentObj.modeSTAT = 2;
 						parentObj.matchLYC();	//Get the compare of the first scan line.
@@ -9397,7 +9400,8 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 					//When the display mode changes...
 					parentObj.LCDisOn = temp_var;
 					parentObj.memory[0xFF41] &= 0x78;
-					parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
+					parentObj.midScanlineOffset = -1;
+					parentObj.currentX = parentObj.queuedScanLines = parentObj.lastUnrenderedLine = parentObj.STATTracker = parentObj.LCDTicks = parentObj.actualScanLine = parentObj.memory[0xFF44] = 0;
 					if (parentObj.LCDisOn) {
 						parentObj.modeSTAT = 2;
 						parentObj.matchLYC();	//Get the compare of the first scan line.
