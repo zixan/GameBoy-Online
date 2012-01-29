@@ -6123,10 +6123,10 @@ GameBoyCore.prototype.clockUpdate = function () {
 }
 GameBoyCore.prototype.drawToCanvas = function () {
 	//Ensure we have rendered a full framebuffer before output:
-	if (this.frameNeedsRendering) {
+	/*if (this.frameNeedsRendering) {
 		this.graphicsJIT();
 		this.frameNeedsRendering = false;
-	}
+	}*/
 	//Draw the frame buffer to the canvas:
 	if (!this.drewFrame && this.pixelCount > 0) {	//Throttle blitting to once per interpreter loop iteration.
 		if (settings[4] == 0 || this.frameCount > 0) {
@@ -6253,6 +6253,7 @@ GameBoyCore.prototype.renderScanLine = function () {
 }
 GameBoyCore.prototype.renderMidScanLine = function () {
 	if (this.actualScanLine < 144 && this.modeSTAT == 3 && (settings[4] == 0 || this.frameCount > 0)) {
+		this.lastUnrenderedLine = this.actualScanLine;
 		//TODO: Get this accurate:
 		if (this.midScanlineOffset == -1) {
 			this.midScanlineOffset = this.backgroundX & 0x7;
@@ -7384,7 +7385,8 @@ GameBoyCore.prototype.generateGBOAMTileLine = function (address) {
 	tileBlock4[addressFlipped | 7] = tileBlock2[address | 7] = tileBlock3[addressFlipped] = tileBlock1[address] = ((lineCopy & 0x8000) >> 14) | ((lineCopy & 0x80) >> 7);
 }
 GameBoyCore.prototype.graphicsJIT = function () {
-	this.frameNeedsRendering = true;
+	//Disabled until we an inaccuracy found:
+	/*this.frameNeedsRendering = true;
 	if (this.LCDisOn) {
 		while (this.queuedScanLines > 0) {
 			this.renderScanLine();
@@ -7396,10 +7398,13 @@ GameBoyCore.prototype.graphicsJIT = function () {
 			}
 			--this.queuedScanLines;
 		}
-	}
+	}*/
 }
 GameBoyCore.prototype.incrementScanLineQueue = function () {
-	if (this.queuedScanLines < 144) {
+	//Force render per scanline until we fix the gfx jit:
+	this.lastUnrenderedLine = this.actualScanLine;
+	this.renderScanLine();
+	/*if (this.queuedScanLines < 144) {
 		++this.queuedScanLines;
 	}
 	else {
@@ -7413,10 +7418,10 @@ GameBoyCore.prototype.incrementScanLineQueue = function () {
 		else {
 			this.lastUnrenderedLine = 0;
 		}
-	}
+	}*/
 }
 GameBoyCore.prototype.midScanLineJIT = function () {
-	this.graphicsJIT();
+	//this.graphicsJIT();
 	this.renderMidScanLine();
 }
 //Check for the highest priority IRQ to fire:
@@ -8293,7 +8298,7 @@ GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) 
 	if (parentObj.modeSTAT < 2) {		//OAM RAM cannot be written to in mode 2 & 3
 		var oldData = parentObj.memory[address];
 		if (oldData != data) {
-			parentObj.graphicsJIT();
+			//parentObj.graphicsJIT();
 			parentObj.memory[address--] = data;
 			if (oldData > 0 && oldData < 168) {
 				//Remove the old position:
@@ -8336,7 +8341,7 @@ GameBoyCore.prototype.memoryWriteGBOAMRAMUnsafe = function (parentObj, address, 
 GameBoyCore.prototype.memoryWriteGBCOAMRAM = function (parentObj, address, data) {
 	if (parentObj.modeSTAT < 2) {		//OAM RAM cannot be written to in mode 2 & 3
 		if (parentObj.memory[address] != data) {
-			parentObj.graphicsJIT();
+			//parentObj.graphicsJIT();
 			parentObj.memory[address] = data;
 		}
 	}
@@ -8351,7 +8356,7 @@ GameBoyCore.prototype.VRAMGBDATAWrite = function (parentObj, address, data) {
 	if (parentObj.modeSTAT < 3) {	//VRAM cannot be written to during mode 3
 		if (parentObj.memory[address] != data) {
 			//JIT the graphics render queue:
-			parentObj.graphicsJIT();
+			//parentObj.graphicsJIT();
 			parentObj.memory[address] = data;
 			parentObj.generateGBOAMTileLine(address);
 		}
@@ -8361,7 +8366,7 @@ GameBoyCore.prototype.VRAMGBDATAUpperWrite = function (parentObj, address, data)
 	if (parentObj.modeSTAT < 3) {	//VRAM cannot be written to during mode 3
 		if (parentObj.memory[address] != data) {
 			//JIT the graphics render queue:
-			parentObj.graphicsJIT();
+			//parentObj.graphicsJIT();
 			parentObj.memory[address] = data;
 			parentObj.generateGBTileLine(address);
 		}
@@ -8372,7 +8377,7 @@ GameBoyCore.prototype.VRAMGBCDATAWrite = function (parentObj, address, data) {
 		if (parentObj.currVRAMBank == 0) {
 			if (parentObj.memory[address] != data) {
 				//JIT the graphics render queue:
-				parentObj.graphicsJIT();
+				//parentObj.graphicsJIT();
 				parentObj.memory[address] = data;
 				parentObj.generateGBCTileLineBank1(address);
 			}
@@ -8381,7 +8386,7 @@ GameBoyCore.prototype.VRAMGBCDATAWrite = function (parentObj, address, data) {
 			address &= 0x1FFF;
 			if (parentObj.VRAM[address] != data) {
 				//JIT the graphics render queue:
-				parentObj.graphicsJIT();
+				//parentObj.graphicsJIT();
 				parentObj.VRAM[address] = data;
 				parentObj.generateGBCTileLineBank2(address);
 			}
@@ -8393,7 +8398,7 @@ GameBoyCore.prototype.VRAMGBCHRMAPWrite = function (parentObj, address, data) {
 		address &= 0x7FF;
 		if (parentObj.BGCHRBank1[address] != data) {
 			//JIT the graphics render queue:
-			parentObj.graphicsJIT();
+			//parentObj.graphicsJIT();
 			parentObj.BGCHRBank1[address] = data;
 		}
 	}
@@ -8403,7 +8408,7 @@ GameBoyCore.prototype.VRAMGBCCHRMAPWrite = function (parentObj, address, data) {
 		address &= 0x7FF;
 		if (parentObj.BGCHRCurrentBank[address] != data) {
 			//JIT the graphics render queue:
-			parentObj.graphicsJIT();
+			//parentObj.graphicsJIT();
 			parentObj.BGCHRCurrentBank[address] = data;
 		}
 	}
@@ -8420,7 +8425,7 @@ GameBoyCore.prototype.DMAWrite = function (tilesToTransfer) {
 	//Creating some references:
 	var memoryReader = this.memoryReader;
 	//JIT the graphics render queue:
-	this.graphicsJIT();
+	//this.graphicsJIT();
 	var memory = this.memory;
 	//Determining which bank we're working on so we can optimize:
 	if (this.currVRAMBank == 0) {
@@ -9250,7 +9255,7 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 			parentObj.memory[0xFF46] = data;
 			if (data < 0xE0) {
 				//JIT the graphics render queue:
-				parentObj.graphicsJIT();
+				//parentObj.graphicsJIT();
 				data <<= 8;
 				address = 0xFE00;
 				var stat = parentObj.modeSTAT;
@@ -9422,7 +9427,7 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 		this.memoryHighWriter[0x46] = this.memoryWriter[0xFF46] = function (parentObj, address, data) {
 			parentObj.memory[0xFF46] = data;
 			if (data > 0x7F && data < 0xE0) {	//DMG cannot DMA from the ROM banks.
-				parentObj.graphicsJIT();
+				//parentObj.graphicsJIT();
 				data <<= 8;
 				address = 0xFE00;
 				var stat = parentObj.modeSTAT;
