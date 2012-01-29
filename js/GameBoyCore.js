@@ -166,7 +166,6 @@ function GameBoyCore(canvas, ROMImage) {
 	this.actualScanLine = 0;			//Actual scan line...
 	this.lastUnrenderedLine = 0;		//Last rendered scan line...
 	this.queuedScanLines = 0;
-	this.frameNeedsRendering = true;
 	this.haltPostClocks = 0;			//Post-Halt clocking.
 	//ROM Cartridge Components:
 	this.cMBC1 = false;					//Does the cartridge use MBC1?
@@ -6124,10 +6123,7 @@ GameBoyCore.prototype.clockUpdate = function () {
 }
 GameBoyCore.prototype.drawToCanvas = function () {
 	//Ensure we have rendered a full framebuffer before output:
-	if (this.frameNeedsRendering) {
-		this.graphicsJIT();
-		this.frameNeedsRendering = false;
-	}
+	this.graphicsJIT();
 	//Draw the frame buffer to the canvas:
 	if (!this.drewFrame && this.pixelCount > 0) {	//Throttle blitting to once per interpreter loop iteration.
 		if (settings[4] == 0 || this.frameCount > 0) {
@@ -7385,10 +7381,8 @@ GameBoyCore.prototype.generateGBOAMTileLine = function (address) {
 	tileBlock4[addressFlipped | 7] = tileBlock2[address | 7] = tileBlock3[addressFlipped] = tileBlock1[address] = ((lineCopy & 0x8000) >> 14) | ((lineCopy & 0x80) >> 7);
 }
 GameBoyCore.prototype.graphicsJIT = function () {
-	//Disabled until we an inaccuracy found:
-	this.frameNeedsRendering = true;
 	if (this.LCDisOn) {
-		if (this.queuedScanLines < 144 || this.currentX > 0 || this.midScanlineOffset > -1) {
+		if (this.queuedScanLines < 144 || (this.queuedScanLines == 144 && (this.currentX > 0 || this.midScanlineOffset > -1))) {
 			//Normal rendering JIT, where we try to do groups of scanlines at once:
 			while (this.queuedScanLines > 0) {
 				this.renderScanLine(this.lastUnrenderedLine);
@@ -7403,6 +7397,8 @@ GameBoyCore.prototype.graphicsJIT = function () {
 		}
 		else {
 			//Optimized render case, where we can draw all the scanlines at once:
+			this.currentX = 0;
+			this.midScanlineOffset = -1;
 			for (var scanlineToRender = 0; scanlineToRender < 144; ++scanlineToRender) {
 				this.renderScanLine(scanlineToRender);
 			}
@@ -7412,21 +7408,7 @@ GameBoyCore.prototype.graphicsJIT = function () {
 	}
 }
 GameBoyCore.prototype.incrementScanLineQueue = function () {
-	if (this.queuedScanLines < 144) {
-		++this.queuedScanLines;
-	}
-	else {
-		//Reset the mid-scanline state, as we're already in another frame:
-		this.currentX = 0;
-		this.midScanlineOffset = -1;
-		//Frame scan line loop control:
-		if (this.lastUnrenderedLine < 143) {
-			++this.lastUnrenderedLine;
-		}
-		else {
-			this.lastUnrenderedLine = 0;
-		}
-	}
+	++this.queuedScanLines;
 }
 GameBoyCore.prototype.midScanLineJIT = function () {
 	this.graphicsJIT();
