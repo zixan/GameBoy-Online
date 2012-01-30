@@ -7403,6 +7403,7 @@ GameBoyCore.prototype.graphicsJIT = function () {
 }
 GameBoyCore.prototype.graphicsJITVBlank = function () {
 	//JIT the graphics to v-blank framing:
+	this.totalLinesPassed += this.queuedScanLines;
 	while (this.queuedScanLines > 0) {
 		this.renderScanLine(this.lastUnrenderedLine);
 		if (this.lastUnrenderedLine < 143) {
@@ -7412,8 +7413,6 @@ GameBoyCore.prototype.graphicsJITVBlank = function () {
 			this.lastUnrenderedLine = 0;
 		}
 		--this.queuedScanLines;
-		//v-blank out clean counter:
-		++this.totalLinesPassed;
 	}
 }
 GameBoyCore.prototype.incrementScanLineQueue = function () {
