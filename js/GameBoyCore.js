@@ -5689,6 +5689,7 @@ GameBoyCore.prototype.run = function () {
 GameBoyCore.prototype.executeIteration = function () {
 	//Iterate the interpreter loop:
 	var opcodeToExecute = 0;
+	var timedTicks = 0;
 	while (this.stopEmulator == 0) {
 		//Interrupt Arming:
 		switch (this.IRQEnableDelay) {
@@ -5716,8 +5717,45 @@ GameBoyCore.prototype.executeIteration = function () {
 		this.CPUTicks = this.TICKTable[opcodeToExecute];
 		//Execute the current instruction:
 		this.OPCODE[opcodeToExecute](this);
-		//Update the state:
-		this.updateCoreFull();
+		//Update the state (Inlined updateCoreFull manually here):
+		//Update the clocking for the LCD emulation:
+		this.LCDTicks += this.CPUTicks >> this.doubleSpeedShifter;	//LCD Timing
+		this.LCDCONTROL[this.actualScanLine](this);					//Scan Line and STAT Mode Control
+		//Single-speed relative timing for A/V emulation:
+		timedTicks = this.CPUTicks >> this.doubleSpeedShifter;		//CPU clocking can be updated from the LCD handling.
+		this.audioTicks += timedTicks;								//Audio Timing
+		this.emulatorTicks += timedTicks;							//Emulator Timing
+		//CPU Timers:
+		this.DIVTicks += this.CPUTicks;								//DIV Timing
+		if (this.TIMAEnabled) {										//TIMA Timing
+			this.timerTicks += this.CPUTicks;
+			while (this.timerTicks >= this.TACClocker) {
+				this.timerTicks -= this.TACClocker;
+				if (++this.memory[0xFF05] == 0x100) {
+					this.memory[0xFF05] = this.memory[0xFF06];
+					this.interruptsRequested |= 0x4;
+					this.checkIRQMatching();
+				}
+			}
+		}
+		if (this.serialTimer > 0) {										//Serial Timing
+			//IRQ Counter:
+			this.serialTimer -= this.CPUTicks;
+			if (this.serialTimer <= 0) {
+				this.interruptsRequested |= 0x8;
+				this.checkIRQMatching();
+			}
+			//Bit Shit Counter:
+			this.serialShiftTimer -= this.CPUTicks;
+			if (this.serialShiftTimer <= 0) {
+				this.serialShiftTimer = this.serialShiftTimerAllocated;
+				this.memory[0xFF01] = ((this.memory[0xFF01] << 1) & 0xFE) | 0x01;	//We could shift in actual link data here if we were to implement such!!!
+			}
+		}
+		//End of iteration routine:
+		if (this.emulatorTicks >= this.CPUCyclesTotal) {
+			this.iterationEndRoutine();
+		}
 	}
 }
 GameBoyCore.prototype.iterationEndRoutine = function () {
