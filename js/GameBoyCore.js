@@ -8361,20 +8361,6 @@ GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) 
 		}
 	}
 }
-GameBoyCore.prototype.memoryWriteGBOAMRAMUnsafe = function (parentObj, address, data) {
-	parentObj.memory[address--] = data;
-	if (data > 0 && data < 168) {
-		//Make sure the stacking is correct if multiple sprites are at the same x-coord:
-		var length = parentObj.OAMAddresses[data].length;
-		while (length > 0) {
-			if (parentObj.OAMAddresses[data][--length] > address) {
-				parentObj.OAMAddresses[data].splice(length, 0, address);
-				return;
-			}
-		}
-		parentObj.OAMAddresses[data].push(address);
-	}
-}
 GameBoyCore.prototype.memoryWriteGBCOAMRAM = function (parentObj, address, data) {
 	if (parentObj.modeSTAT < 2) {		//OAM RAM cannot be written to in mode 2 & 3
 		if (parentObj.memory[address] != data) {
@@ -9288,15 +9274,27 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 		this.memoryHighWriter[0x46] = this.memoryWriter[0xFF46] = function (parentObj, address, data) {
 			parentObj.memory[0xFF46] = data;
 			if (data < 0xE0) {
-				//JIT the graphics render queue:
-				parentObj.graphicsJIT();
 				data <<= 8;
 				address = 0xFE00;
 				var stat = parentObj.modeSTAT;
 				parentObj.modeSTAT = 0;
+				var newData = 0;
 				do {
-					parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
-				} while (address < 0xFEA0);
+					newData = parentObj.memoryReader[data](parentObj, data++);
+					if (newData != parentObj.memory[address]) {
+						//JIT the graphics render queue:
+						parentObj.modeSTAT = stat;
+						parentObj.graphicsJIT();
+						parentObj.modeSTAT = 0;
+						parentObj.memory[address++] = newData;
+						break;
+					}
+				} while (++address < 0xFEA0);
+				if (address < 0xFEA0) {
+					do {
+						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+					} while (address < 0xFEA0);
+				}
 				parentObj.modeSTAT = stat;
 			}
 		}
@@ -9462,18 +9460,37 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 		this.memoryHighWriter[0x46] = this.memoryWriter[0xFF46] = function (parentObj, address, data) {
 			parentObj.memory[0xFF46] = data;
 			if (data > 0x7F && data < 0xE0) {	//DMG cannot DMA from the ROM banks.
-				parentObj.graphicsJIT();
 				data <<= 8;
 				address = 0xFE00;
 				var stat = parentObj.modeSTAT;
 				parentObj.modeSTAT = 0;
-				parentObj.resetOAMXCache();
+				var newData = 0;
 				do {
-					parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
-					parentObj.memoryWriteGBOAMRAMUnsafe(parentObj, address++, parentObj.memoryReader[data](parentObj, data++));
-					parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
-					parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
-				} while (address < 0xFEA0);
+					newData = parentObj.memoryReader[data](parentObj, data++);
+					if (newData != parentObj.memory[address]) {
+						//JIT the graphics render queue:
+						parentObj.modeSTAT = stat;
+						parentObj.graphicsJIT();
+						parentObj.modeSTAT = 0;
+						if ((address & 0x3) != 0x1) {
+							parentObj.memory[address++] = newData;
+						}
+						else {
+							parentObj.memoryWriteGBOAMRAM(parentObj, address++, newData);
+						}
+						break;
+					}
+				} while (++address < 0xFEA0);
+				if (address < 0xFEA0) {
+					do {
+						if ((address & 0x3) != 0x1) {
+							parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+						}
+						else {
+							parentObj.memoryWriteGBOAMRAM(parentObj, address++, parentObj.memoryReader[data](parentObj, data++));
+						}
+					} while (address < 0xFEA0);
+				}
 				parentObj.modeSTAT = stat;
 			}
 		}
