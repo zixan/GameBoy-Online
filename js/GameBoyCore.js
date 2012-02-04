@@ -9551,22 +9551,19 @@ GameBoyCore.prototype.toTypedArray = function (baseArray, memtype) {
 			return [];
 		}
 		var length = baseArray.length;
+		if (window.opera && memtype != "float32") {
+			//Opera typed array bug workaround:
+			throw(Error("Opera has critical int32 and uint8 typed array bugs, working around it."));
+		}
 		switch (memtype) {
 			case "uint8":
 				var typedArrayTemp = new Uint8Array(length);
-				break;
-			case "uint16":
-				var typedArrayTemp = new Uint16Array(length);
 				break;
 			case "int32":
 				var typedArrayTemp = new Int32Array(length);
 				break;
 			case "float32":
 				var typedArrayTemp = new Float32Array(length);
-				break;
-			default:
-				cout("Could not convert an array to a typed array: Invalid type parameter.", 1);
-				return baseArray;
 		}
 		for (var index = 0; index < length; index++) {
 			typedArrayTemp[index] = baseArray[index];
@@ -9590,7 +9587,7 @@ GameBoyCore.prototype.fromTypedArray = function (baseArray) {
 		return arrayTemp;
 	}
 	catch (error) {
-		cout("Conversion from a typed array failed: " + error.message, 2);
+		cout("Conversion from a typed array failed: " + error.message, 1);
 		return baseArray;
 	}
 }
@@ -9599,21 +9596,13 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 		if (settings[5]) {
 			throw(new Error(""));
 		}
+		if (window.opera && numberType != "float32") {
+			//Opera typed array bug workaround:
+			throw(Error("Opera has critical int32 and uint8 typed array bugs, working around it."));
+		}
 		switch (numberType) {
 			case "uint8":
 				var arrayHandle = new Uint8Array(length);
-				break;
-			case "int8":
-				var arrayHandle = new Int8Array(length);
-				break;
-			case "uint16":
-				var arrayHandle = new Uint16Array(length);
-				break;
-			case "int16":
-				var arrayHandle = new Int16Array(length);
-				break;
-			case "uint32":
-				var arrayHandle = new Uint32Array(length);
 				break;
 			case "int32":
 				var arrayHandle = new Int32Array(length);
@@ -9629,6 +9618,7 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 		}
 	}
 	catch (error) {
+		cout("Could not convert an array to a typed array: " + error.message, 1);
 		var arrayHandle = [];
 		var index = 0;
 		while (index < length) {
