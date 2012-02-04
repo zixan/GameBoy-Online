@@ -5315,7 +5315,7 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 GameBoyCore.prototype.generateAudio = function (numSamples) {
 	if (this.soundMasterEnabled) {
 		if (!settings[1]) {						//Split Mono & Stereo into two, to avoid this if statement every iteration of the loop.
-			while (--numSamples >= 0) {
+			while (--numSamples > -1) {
 				//STEREO
 				this.audioChannelsComputeStereo();
 				this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1;
@@ -5327,7 +5327,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			}
 		}
 		else {
-			while (--numSamples >= 0) {
+			while (--numSamples > -1) {
 				//MONO
 				this.audioChannelsComputeStereo();
 				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
@@ -5341,7 +5341,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 	else {
 		//SILENT OUTPUT:
 		if (!settings[1]) {
-			while (--numSamples >= 0) {
+			while (--numSamples > -1) {
 				//STEREO
 				this.currentBuffer[this.audioIndex++] = -1;
 				this.currentBuffer[this.audioIndex++] = -1;
@@ -5352,7 +5352,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			}
 		}
 		else {
-			while (--numSamples >= 0) {
+			while (--numSamples > -1) {
 				//MONO
 				this.currentBuffer[this.audioIndex++] = -1;
 				if (this.audioIndex == this.numSamplesTotal) {
@@ -5558,7 +5558,7 @@ GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 GameBoyCore.prototype.generateAudioSafe = function (tempBuffer, numSamples) {
 	if (this.soundMasterEnabled) {
 		if (!settings[1]) {						//Split Mono & Stereo into two, to avoid this if statement every iteration of the loop.
-			while (--numSamples >= 0) {
+			while (--numSamples > -1) {
 				//STEREO
 				this.audioChannelsComputeStereoSafe();
 				tempBuffer.push(this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1);
@@ -5566,7 +5566,7 @@ GameBoyCore.prototype.generateAudioSafe = function (tempBuffer, numSamples) {
 			}
 		}
 		else {
-			while (--numSamples >= 0) {
+			while (--numSamples > -1) {
 				//MONO
 				this.audioChannelsComputeStereoSafe();
 				tempBuffer.push(this.currentSampleRight * this.VinRightChannelMasterVolume - 1);
@@ -5576,14 +5576,14 @@ GameBoyCore.prototype.generateAudioSafe = function (tempBuffer, numSamples) {
 	else {
 		//SILENT OUTPUT:
 		if (!settings[1]) {
-			while (--numSamples >= 0) {
+			while (--numSamples > -1) {
 				//STEREO
 				tempBuffer.push(-1);
 				tempBuffer.push(-1);
 			}
 		}
 		else {
-			while (--numSamples >= 0) {
+			while (--numSamples > -1) {
 				//MONO
 				tempBuffer.push(-1);
 			}
