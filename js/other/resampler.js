@@ -14,7 +14,6 @@ Resampler.prototype.initialize = function () {
 			//Setup a resampler bypass:
 			this.resampler = this.bypassResampler;		//Resampler just returns what was passed through.
 			this.ratioWeight = 1;
-			this.initializeBuffers(false);
 		}
 		else {
 			//Setup the interpolation resampler:
@@ -23,7 +22,7 @@ Resampler.prototype.initialize = function () {
 			this.ratioWeight = this.fromSampleRate / this.toSampleRate;
 			this.tailExists = false;
 			this.lastWeight = 0;
-			this.initializeBuffers(true);
+			this.initializeBuffers();
 		}
 	}
 	else {
@@ -141,14 +140,10 @@ Resampler.prototype.initializeBuffers = function (generateTailCache) {
 	//Initialize the internal buffer:
 	try {
 		this.outputBuffer = new Float32Array(this.outputBufferSize);
-		if (generateTailCache) {
-			this.lastOutput = new Float32Array(this.channels);
-		}
+		this.lastOutput = new Float32Array(this.channels);
 	}
 	catch (error) {
 		this.outputBuffer = [];
-		if (generateTailCache) {
-			this.lastOutput = [];
-		}
+		this.lastOutput = [];
 	}
 }
