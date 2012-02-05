@@ -8331,6 +8331,31 @@ GameBoyCore.prototype.memoryWriteMBC3RAM = function (parentObj, address, data) {
 GameBoyCore.prototype.memoryWriteGBCRAM = function (parentObj, address, data) {
 	parentObj.GBCMemory[address + parentObj.gbcRamBankPosition] = data;
 }
+GameBoyCore.prototype.memoryWriteGBOAMRAMUnsafe = function (address, data) {
+	var oldData = this.memory[address];
+	this.memory[address--] = data;
+	if (oldData > 0 && oldData < 168) {
+		//Remove the old position:
+		var length = this.OAMAddresses[oldData].length;
+		while (length > 0) {
+			if (this.OAMAddresses[oldData][--length] == address) {
+				this.OAMAddresses[oldData].splice(length, 1);
+				break;
+			}
+		}
+	}
+	if (data > 0 && data < 168) {
+		//Make sure the stacking is correct if multiple sprites are at the same x-coord:
+		var length = this.OAMAddresses[data].length;
+		while (length > 0) {
+			if (this.OAMAddresses[data][--length] > address) {
+				this.OAMAddresses[data].splice(length, 0, address);
+				return;
+			}
+		}
+		this.OAMAddresses[data].push(address);
+	}
+}
 GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) {
 	if (parentObj.modeSTAT < 2) {		//OAM RAM cannot be written to in mode 2 & 3
 		var oldData = parentObj.memory[address];
@@ -9476,7 +9501,7 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 							parentObj.memory[address++] = newData;
 						}
 						else {
-							parentObj.memoryWriteGBOAMRAM(parentObj, address++, newData);
+							parentObj.memoryWriteGBOAMRAMUnsafe(address++, newData);
 						}
 						break;
 					}
@@ -9487,7 +9512,7 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 							parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
 						}
 						else {
-							parentObj.memoryWriteGBOAMRAM(parentObj, address++, parentObj.memoryReader[data](parentObj, data++));
+							parentObj.memoryWriteGBOAMRAMUnsafe(address++, parentObj.memoryReader[data](parentObj, data++));
 						}
 					} while (address < 0xFEA0);
 				}
