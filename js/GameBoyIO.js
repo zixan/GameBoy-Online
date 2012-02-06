@@ -287,10 +287,10 @@ function MozVBlankSyncHandler() {
 function requestVBlank(canvasHandle) {
 	settings[11] = true;
 	if (!settings[15]) {
-		try {
+		/*try {
 			window.mozRequestAnimationFrame(VBlankSyncHandler);
 		}
-		catch (e) {
+		catch (e) {*/
 			try {
 				window.webkitRequestAnimationFrame(VBlankSyncHandler, canvasHandle);
 			}
@@ -307,6 +307,6 @@ function requestVBlank(canvasHandle) {
 					}
 				}
 			}
-		}
+		//}
 	}
 }
