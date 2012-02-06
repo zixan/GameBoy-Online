@@ -11,6 +11,7 @@ js/other/XAudioServer.js
 js/other/transportHandler.js
 js/other/swfobject.js
 js/other/json2.js
+js/other/dsp.js
 js/GameBoyCore.js
 js/GameBoyIO.js
 images/gradient_01.svg.php
