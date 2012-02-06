@@ -5144,16 +5144,16 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	cout("...Samples per clock cycle (Per Channel): " + this.samplesOut, 0);
 	this.numSamplesTotal = this.sampleSize << this.soundFrameShifter;
 	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, -1, "float32");
-	this.leftTemp = [];
 	this.intializeWhiteNoise();
+	/*this.leftTemp = [];
 	this.lowPassFilter1 = new IIRFilter(DSP.LOWPASS, 22050, 1, settings[14]);
 	if (!settings[1]) {
 		this.lowPassFilter2 = new IIRFilter(DSP.LOWPASS, 22050, 1, settings[14]);
 		this.rightTemp = [];
-	}
+	}*/
 }
 GameBoyCore.prototype.filterAudio = function (buffer) {
-	if (settings[1]) {
+	/*if (settings[1]) {
 		this.lowPassFilter1.process(buffer);
 	}
 	else {
@@ -5169,7 +5169,7 @@ GameBoyCore.prototype.filterAudio = function (buffer) {
 			buffer[index++] = this.leftTemp[tempIndex];
 			buffer[index++] = this.rightTemp[tempIndex];
 		}
-	}
+	}*/
 	return buffer;
 }
 GameBoyCore.prototype.intializeWhiteNoise = function () {
