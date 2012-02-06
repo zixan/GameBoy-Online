@@ -167,6 +167,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.lastUnrenderedLine = 0;		//Last rendered scan line...
 	this.queuedScanLines = 0;
 	this.totalLinesPassed = 0;
+	this.skipFrameBufferPreparation = false;
 	this.haltPostClocks = 0;			//Post-Halt clocking.
 	//ROM Cartridge Components:
 	this.cMBC1 = false;					//Does the cartridge use MBC1?
@@ -6028,6 +6029,11 @@ GameBoyCore.prototype.initializeLCDController = function () {
 							//Draw the frame:
 							parentObj.drawToCanvas();
 						}
+						else {
+							//Keep the requests for v-blank constant, to prevent stuttering in RAF in Chrome!!!
+							parentObj.skipFrameBufferPreparation = true;
+							requestVBlank(this.canvas);
+						}
 					}
 					else {
 						//LCD off takes at least 2 frames:
@@ -6193,6 +6199,7 @@ GameBoyCore.prototype.prepareFrame = function () {
 			}
 		}
 	}
+	this.skipFrameBufferPreparation = false;
 	if (!settings[11]) {
 		//If we have not detected v-blank timing support, then we'll just blit now:
 		this.dispatchDraw();
@@ -6202,7 +6209,12 @@ GameBoyCore.prototype.prepareFrame = function () {
 }
 GameBoyCore.prototype.dispatchDraw = function () {
 	if (this.drewBlank == 0) {
-		this.swizzleFrameBuffer();
+		if (!this.skipFrameBufferPreparation) {
+			this.swizzleFrameBuffer();
+		}
+		else {
+			this.drawContext.putImageData(this.canvasBuffer, 0, 0);
+		}
 	}
 	else {
 		this.drawBlankScreen();
