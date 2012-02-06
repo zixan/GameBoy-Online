@@ -19,7 +19,7 @@ DEBUG_WINDOWING = false;
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/swfobject.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/resampler.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/XAudioServer.js'),
-			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/dsp.js'),
+			//$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/dsp.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyCore.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyIO.js')
 		);
