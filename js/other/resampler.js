@@ -63,9 +63,9 @@ Resampler.prototype.compileInterpolationFunction = function () {
 					amountToNext = 1 + actualPosition - currentPosition;\
 					if (weight >= amountToNext) {";
 	for (channel = 0; channel < this.channels; ++channel) {
-		toCompile += "output" + channel + " += buffer[actualPosition" + ((channel > 0) ? (" + " + channel) : "") + "] * amountToNext;"
+		toCompile += "output" + channel + " += buffer[actualPosition++] * amountToNext;"
 	}
-	toCompile += "actualPosition = currentPosition = actualPosition + " + this.channels + ";\
+	toCompile += "currentPosition = actualPosition;\
 						weight -= amountToNext;\
 					}\
 					else {";
