@@ -5079,8 +5079,7 @@ GameBoyCore.prototype.initLCD = function () {
 		}
 		this.drawContext.putImageData(this.canvasBuffer, 0, 0);		//Throws any browser that won't support this later on.
 		this.canvas.style.visibility = "visible";
-		this.skipFrameBufferPreparation = false;
-		this.dispatchDraw();
+		this.prepareFrame();
 	}
 	catch (error) {
 		throw(new Error("HTML5 Canvas support required."));
