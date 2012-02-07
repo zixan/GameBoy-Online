@@ -14,7 +14,7 @@ var settings = [						//Some settings.
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
 	false,								//Vertical blank event availability.
 	10,									//Frameskip base factor
-	false,								//Enable the software scaling algorithm to be compiled through JIT.
+	null,								//Empty option slot.
 	0x40000,							//Sample Rate
 	false,								//MozBeforePaint support detected.
 	true,								//Use the GBC BIOS?

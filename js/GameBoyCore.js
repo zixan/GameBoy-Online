@@ -5057,7 +5057,8 @@ GameBoyCore.prototype.recomputeDimension = function () {
 }
 GameBoyCore.prototype.initLCD = function () {
 	this.recomputeDimension();
-	this.completeFrame = this.getTypedArray(this.pixelCount, 0, "int32");	//Used for double-buffering and the target for software-side rescaling.
+	this.swizzledFrame = this.getTypedArray(23040 << 2, 0, "int32");
+	this.completeFrame = this.getTypedArray(23040 << 2, 0, "int32");
 	this.compileResizeFrameBufferFunction();
 	try {
 		this.drawContext = this.canvas.getContext("2d");
@@ -5078,7 +5079,8 @@ GameBoyCore.prototype.initLCD = function () {
 		}
 		this.drawContext.putImageData(this.canvasBuffer, 0, 0);		//Throws any browser that won't support this later on.
 		this.canvas.style.visibility = "visible";
-		this.prepareFrame();
+		this.skipFrameBufferPreparation = false;
+		this.dispatchDraw();
 	}
 	catch (error) {
 		throw(new Error("HTML5 Canvas support required."));
@@ -5115,7 +5117,7 @@ GameBoyCore.prototype.initSound = function () {
 			var parentObj = this;
 			this.sampleSize = settings[14] / 1000 * settings[6];
 			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], Math.max(this.sampleSize * settings[22], 2048) << this.soundFrameShifter, Math.max(this.sampleSize * 20, 8192) << this.soundFrameShifter, function (sampleCount) {
-				return parentObj.filterAudio(parentObj.audioUnderRun(sampleCount));
+				return parentObj.audioUnderRun(sampleCount);
 			}, -1);
 			cout("...Audio Channels: " + this.soundChannelsAllocated, 0);
 			cout("...Sample Rate: " + settings[14], 0);
@@ -5145,32 +5147,6 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.numSamplesTotal = this.sampleSize << this.soundFrameShifter;
 	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, -1, "float32");
 	this.intializeWhiteNoise();
-	/*this.leftTemp = [];
-	this.lowPassFilter1 = new IIRFilter(DSP.LOWPASS, 22050, 1, settings[14]);
-	if (!settings[1]) {
-		this.lowPassFilter2 = new IIRFilter(DSP.LOWPASS, 22050, 1, settings[14]);
-		this.rightTemp = [];
-	}*/
-}
-GameBoyCore.prototype.filterAudio = function (buffer) {
-	/*if (settings[1]) {
-		this.lowPassFilter1.process(buffer);
-	}
-	else {
-		var length = buffer.length >> 1;
-		var index = 0;
-		for (var tempIndex = 0; tempIndex < length; ++tempIndex) {
-			this.leftTemp[tempIndex] = buffer[index++];
-			this.rightTemp[tempIndex] = buffer[index++];
-		}
-		this.lowPassFilter1.process(this.leftTemp);
-		this.lowPassFilter2.process(this.rightTemp);
-		for (tempIndex = index = 0; tempIndex < length; ++tempIndex) {
-			buffer[index++] = this.leftTemp[tempIndex];
-			buffer[index++] = this.rightTemp[tempIndex];
-		}
-	}*/
-	return buffer;
 }
 GameBoyCore.prototype.intializeWhiteNoise = function () {
 	//Noise Sample Tables:
@@ -5349,7 +5325,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
-					this.audioHandle.writeAudio(this.filterAudio(this.currentBuffer));
+					this.audioHandle.writeAudio(this.currentBuffer);
 				}
 			}
 		}
@@ -5360,7 +5336,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
-					this.audioHandle.writeAudio(this.filterAudio(this.currentBuffer));
+					this.audioHandle.writeAudio(this.currentBuffer);
 				}
 			}
 		}
@@ -5374,7 +5350,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 				this.currentBuffer[this.audioIndex++] = -1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
-					this.audioHandle.writeAudio(this.filterAudio(this.currentBuffer));
+					this.audioHandle.writeAudio(this.currentBuffer);
 				}
 			}
 		}
@@ -5384,7 +5360,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 				this.currentBuffer[this.audioIndex++] = -1;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
-					this.audioHandle.writeAudio(this.filterAudio(this.currentBuffer));
+					this.audioHandle.writeAudio(this.currentBuffer);
 				}
 			}
 		}
@@ -6213,11 +6189,12 @@ GameBoyCore.prototype.drawToCanvas = function () {
 }
 GameBoyCore.prototype.prepareFrame = function () {
 	if (this.drewBlank == 0) {
+		this.swizzleFrameBuffer();
 		if (settings[18] && this.width != 160 && this.height != 144) {
 			this.resizeFrameBuffer();
 		}
 		else {
-			var frameBuffer = this.frameBuffer;
+			var frameBuffer = this.swizzledFrame;
 			var frame = this.completeFrame;
 			var length = frameBuffer.length;
 			for (var index = 0; index < length; ++index) {
@@ -6236,73 +6213,41 @@ GameBoyCore.prototype.prepareFrame = function () {
 GameBoyCore.prototype.dispatchDraw = function () {
 	if (this.drewBlank == 0) {
 		if (!this.skipFrameBufferPreparation) {
-			this.swizzleFrameBuffer();
+			var frameBuffer = this.completeFrame;
+			var length = frameBuffer.length;
+			var canvasData = this.canvasBuffer.data;
+			for (var index = 0; index < length; ++index) {
+				canvasData[index] = frameBuffer[index++];
+				canvasData[index] = frameBuffer[index++];
+				canvasData[index] = frameBuffer[index++];
+			}
 		}
-		else {
-			this.drawContext.putImageData(this.canvasBuffer, 0, 0);
-		}
+		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 	}
 	else {
 		this.drawBlankScreen();
 	}
 }
 GameBoyCore.prototype.swizzleFrameBuffer = function () {
-	var frameBuffer = this.completeFrame;
+	var frameBuffer = this.frameBuffer;
 	var bufferIndex = this.pixelCount;
-	var canvasData = this.canvasBuffer.data;
+	var swizzledFrame = this.swizzledFrame;
 	var canvasIndex = this.rgbCount;
 	while (canvasIndex > 3) {
-		canvasData[canvasIndex -= 4] = (frameBuffer[--bufferIndex] >> 16) & 0xFF;		//Red
-		canvasData[canvasIndex + 1] = (frameBuffer[bufferIndex] >> 8) & 0xFF;			//Green
-		canvasData[canvasIndex + 2] = frameBuffer[bufferIndex] & 0xFF;					//Blue
+		swizzledFrame[canvasIndex -= 4] = (frameBuffer[--bufferIndex] >> 16) & 0xFF;		//Red
+		swizzledFrame[canvasIndex + 1] = (frameBuffer[bufferIndex] >> 8) & 0xFF;			//Green
+		swizzledFrame[canvasIndex + 2] = frameBuffer[bufferIndex] & 0xFF;					//Blue
 	}
-	//Draw out the CanvasPixelArray data:
-	this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 }
 GameBoyCore.prototype.drawBlankScreen = function () {
 	this.drawContext.fillStyle = (this.cGBC || this.colorizedGBPalettes) ? "rgb(248, 248, 248)" : "rgb(239, 255, 222)";
 	this.drawContext.fillRect(0, 0, this.width, this.height);
 }
+GameBoyCore.prototype.resizeFrameBuffer = function () {
+	this.completeFrame = this.resizer.resize(this.swizzledFrame);
+}
 GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
-	//Attempt to resize the canvas in software instead of in CSS:
-	if (settings[13]) {
-		//JIT version:
-		var column = -1;
-		var columnOffset = 0;
-		var heightRatio = this.heightRatio;
-		var widthRatio = this.widthRatio;
-		var height = this.height;
-		var width = this.width;
-		var compileStringArray = [];
-		var compileStringIndex = 1;
-		compileStringArray[0] = "var a=this.frameBuffer,b=this.completeFrame";
-		for (var row = 0, rowOffset = 0, pixelOffset = -1; row < height; rowOffset = ((++row * heightRatio) | 0) * 160) {
-			for (column = -1, columnOffset = 0; ++column < width; columnOffset += widthRatio) {
-				compileStringArray[++compileStringIndex] = "b[" + (++pixelOffset) + "]=a[" + (rowOffset + (columnOffset | 0)) + "]";
-			}
-		}
-		compileStringArray[compileStringIndex + 1] = "return b";
-		this.resizeFrameBuffer = new Function(compileStringArray.join(";"));
-	}
-	else {
-		//Runtime resolving version:
-		this.resizeFrameBuffer = function () {
-			var column = -1;
-			var columnOffset = 0;
-			var targetFB = this.completeFrame;
-			var originalFB = this.frameBuffer;
-			var heightRatio = this.heightRatio;
-			var widthRatio = this.widthRatio;
-			var height = this.height;
-			var width = this.width;
-			for (var row = 0, rowOffset = 0, pixelOffset = -1; row < height; rowOffset = ((++row * heightRatio) | 0) * 160) {
-				for (column = -1, columnOffset = 0; ++column < width; columnOffset += widthRatio) {
-					targetFB[++pixelOffset] = originalFB[rowOffset + (columnOffset | 0)];
-				}
-			}
-			return targetFB;
-		}
-	}
+	this.resizer = new Resize(160, 144, this.width, this.height);
 }
 GameBoyCore.prototype.renderScanLine = function (scanlineToRender) {
 	if (settings[4] == 0 || this.frameCount > 0) {

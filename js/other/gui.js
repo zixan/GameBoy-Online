@@ -262,12 +262,6 @@ function registerGUIEvents() {
 			initNewCanvas();
 		}
 	});
-	addEvent("click", document.getElementById("resizing_jit"), function () {
-		settings[13] = document.getElementById("resizing_jit").checked;
-		if (GameBoyEmulatorInitialized()) {
-			initNewCanvas();
-		}
-	});
 	addEvent("click", document.getElementById("typed_arrays_disallow"), function () {
 		settings[5] = document.getElementById("typed_arrays_disallow").checked;
 	});

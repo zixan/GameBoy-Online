@@ -19,7 +19,7 @@ DEBUG_WINDOWING = false;
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/swfobject.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/resampler.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/XAudioServer.js'),
-			//$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/dsp.js'),
+			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/resize.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyCore.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyIO.js')
 		);
@@ -264,16 +264,6 @@ catch (error) {
 		$this->startElement('input');
 		$this->writeAttribute('type', 'checkbox');
 		$this->writeAttribute('id', 'software_resizing');
-		$this->endElement();
-		$this->endElement();
-		$this->startElement('div');
-		$this->writeAttribute('class', 'setting');
-		$this->startElement('span');
-		$this->text('JIT the rescaling algorithm:');
-		$this->endElement();
-		$this->startElement('input');
-		$this->writeAttribute('type', 'checkbox');
-		$this->writeAttribute('id', 'resizing_jit');
 		$this->endElement();
 		$this->endElement();
 		$this->startElement('div');
