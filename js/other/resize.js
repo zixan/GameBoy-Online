@@ -160,7 +160,7 @@ Resize.prototype.generateByteBuffer = function (bufferLength) {
 	//Generate a uint8 typed array buffer:
 	if (window && window.opera) {
 		//Opera implemented integer typed arrays wrong, so use regular arrays here!
-		return [];
+		return this.generateFloatBuffer(bufferLength);
 	}
 	try {
 		return new Uint8Array(bufferLength);
