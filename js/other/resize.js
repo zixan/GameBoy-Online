@@ -46,20 +46,20 @@ Resize.prototype.initialize = function () {
 Resize.prototype.resizeWidth = function (buffer) {
 	var ratioWeight = this.ratioWeightWidthPass;
 	var weight = 0;
-	var actualPosition = 0;
 	var amountToNext = 0;
-	var outputBuffer = this.widthBuffer;
-	var outputOffset = 0;
+	var actualPosition = 0;
 	var currentPosition = 0;
-	var output = this.outputWidthWorkBench;
 	var line = 0;
 	var pixelOffset = 0;
+	var outputOffset = 0;
+	var output = this.outputWidthWorkBench;
+	var outputBuffer = this.widthBuffer;
 	do {
 		weight = ratioWeight;
 		for (line = 0; line < this.originalHeightMultipliedByChannels; ++line) {
 			output[line] = 0;
 		}
-		while (weight > 0 && actualPosition < this.originalWidthMultipliedByChannels) {
+		do {
 			amountToNext = 1 + actualPosition - currentPosition;
 			if (weight >= amountToNext) {
 				for (pixelOffset = line = 0; line < this.originalHeightMultipliedByChannels; pixelOffset += this.originalWidthMultipliedByChannels) {
@@ -81,7 +81,7 @@ Resize.prototype.resizeWidth = function (buffer) {
 				currentPosition += weight;
 				break;
 			}
-		}
+		} while (weight > 0 && actualPosition < this.originalWidthMultipliedByChannels);
 		for (pixelOffset = line = 0; line < this.originalHeightMultipliedByChannels; pixelOffset += this.targetWidthMultipliedByChannels) {
 			outputBuffer[outputOffset + pixelOffset] = output[line++] / ratioWeight;
 			outputBuffer[outputOffset + pixelOffset + 1] = output[line++] / ratioWeight;
@@ -95,37 +95,49 @@ Resize.prototype.resizeWidth = function (buffer) {
 Resize.prototype.resizeHeight = function (buffer) {
 	var ratioWeight = this.ratioWeightHeightPass;
 	var weight = 0;
-	var actualPosition = 0;
 	var amountToNext = 0;
-	var outputOffset = 0;
+	var actualPosition = 0;
 	var currentPosition = 0;
 	var pixelOffset = 0;
+	var outputOffset = 0;
 	var output = this.outputHeightWorkBench;
 	var outputBuffer = this.heightBuffer;
 	do {
 		weight = ratioWeight;
-		for (pixelOffset = 0; pixelOffset < this.targetWidthMultipliedByChannels; ++pixelOffset) {
-			output[pixelOffset] = 0;
+		for (pixelOffset = 0; pixelOffset < this.targetWidthMultipliedByChannels;) {
+			output[pixelOffset++] = 0;
+			output[pixelOffset++] = 0;
+			output[pixelOffset++] = 0;
+			output[pixelOffset++] = 0;
 		}
-		while (weight > 0 && actualPosition < this.widthPassResultSize) {
+		do {
 			amountToNext = 1 + actualPosition - currentPosition;
 			if (weight >= amountToNext) {
-				for (pixelOffset = 0; pixelOffset < this.targetWidthMultipliedByChannels; ++pixelOffset) {
-					output[pixelOffset] += buffer[actualPosition++] * amountToNext;
+				for (pixelOffset = 0; pixelOffset < this.targetWidthMultipliedByChannels;) {
+					output[pixelOffset++] += buffer[actualPosition++] * amountToNext;
+					output[pixelOffset++] += buffer[actualPosition++] * amountToNext;
+					output[pixelOffset++] += buffer[actualPosition++] * amountToNext;
+					output[pixelOffset++] += buffer[actualPosition++] * amountToNext;
 				}
 				currentPosition = actualPosition;
 				weight -= amountToNext;
 			}
 			else {
-				for (pixelOffset = 0; pixelOffset < this.targetWidthMultipliedByChannels; ++pixelOffset) {
-					output[pixelOffset] += buffer[actualPosition + pixelOffset] * weight;
+				for (pixelOffset = 0, amountToNext = actualPosition; pixelOffset < this.targetWidthMultipliedByChannels;) {
+					output[pixelOffset++] += buffer[amountToNext++] * weight;
+					output[pixelOffset++] += buffer[amountToNext++] * weight;
+					output[pixelOffset++] += buffer[amountToNext++] * weight;
+					output[pixelOffset++] += buffer[amountToNext++] * weight;
 				}
 				currentPosition += weight;
 				break;
 			}
-		}
-		for (pixelOffset = 0; pixelOffset < this.targetWidthMultipliedByChannels; ++pixelOffset) {
-			outputBuffer[outputOffset++] = output[pixelOffset] / ratioWeight;
+		} while (weight > 0 && actualPosition < this.widthPassResultSize);
+		for (pixelOffset = 0; pixelOffset < this.targetWidthMultipliedByChannels;) {
+			outputBuffer[outputOffset++] = output[pixelOffset++] / ratioWeight;
+			outputBuffer[outputOffset++] = output[pixelOffset++] / ratioWeight;
+			outputBuffer[outputOffset++] = output[pixelOffset++] / ratioWeight;
+			outputBuffer[outputOffset++] = output[pixelOffset++] / ratioWeight;
 		}
 	} while (outputOffset < this.finalResultSize);
 	return outputBuffer;
