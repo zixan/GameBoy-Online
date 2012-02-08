@@ -240,6 +240,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.SpriteLayerRender = null;		//Reference to the OAM rendering function.
 	this.frameBuffer = [];				//The internal frame-buffer.
 	this.completeFrame = [];			//The v-blank sync'd frame buffer.
+	this.resizedFrame = [];
 	this.canvasBuffer = null;			//imageData handle
 	this.pixelStart = 0;				//Temp variable for holding the current working framebuffer offset.
 	this.frameCount = settings[12];		//Frame skip tracker
@@ -6189,13 +6190,13 @@ GameBoyCore.prototype.drawToCanvas = function () {
 GameBoyCore.prototype.prepareFrame = function () {
 	if (this.drewBlank == 0) {
 		this.swizzleFrameBuffer();
-		if (settings[18] && this.width != 160 && this.height != 144) {
+		if (settings[18]) {
 			this.resizeFrameBuffer();
 		}
 		else {
 			var frameBuffer = this.swizzledFrame;
 			var frame = this.completeFrame;
-			var length = frameBuffer.length;
+			var length = frame.length;
 			for (var index = 0; index < length; ++index) {
 				frame[index] = frameBuffer[index];
 			}
@@ -6211,17 +6212,19 @@ GameBoyCore.prototype.prepareFrame = function () {
 }
 GameBoyCore.prototype.dispatchDraw = function () {
 	if (this.drewBlank == 0) {
-		if (!this.skipFrameBufferPreparation) {
-			var frameBuffer = this.completeFrame;
-			var length = frameBuffer.length;
-			var canvasData = this.canvasBuffer.data;
-			for (var index = 0; index < length; ++index) {
-				canvasData[index] = frameBuffer[index++];
-				canvasData[index] = frameBuffer[index++];
-				canvasData[index] = frameBuffer[index++];
+		if (this.rgbCount > 0) {
+			if (!this.skipFrameBufferPreparation) {
+				var frameBuffer = (settings[18]) ? this.resizedFrame : this.completeFrame;
+				var length = this.rgbCount;
+				var canvasData = this.canvasBuffer.data;
+				for (var index = 0; index < length; ++index) {
+					canvasData[index] = frameBuffer[index++];
+					canvasData[index] = frameBuffer[index++];
+					canvasData[index] = frameBuffer[index++];
+				}
 			}
+			this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 		}
-		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 	}
 	else {
 		this.drawBlankScreen();
@@ -6229,9 +6232,9 @@ GameBoyCore.prototype.dispatchDraw = function () {
 }
 GameBoyCore.prototype.swizzleFrameBuffer = function () {
 	var frameBuffer = this.frameBuffer;
-	var bufferIndex = this.pixelCount;
 	var swizzledFrame = this.swizzledFrame;
-	var canvasIndex = this.rgbCount;
+	var bufferIndex = 23040;
+	var canvasIndex = 23040 << 2;
 	while (canvasIndex > 3) {
 		swizzledFrame[canvasIndex -= 4] = (frameBuffer[--bufferIndex] >> 16) & 0xFF;		//Red
 		swizzledFrame[canvasIndex + 1] = (frameBuffer[bufferIndex] >> 8) & 0xFF;			//Green
@@ -6243,10 +6246,14 @@ GameBoyCore.prototype.drawBlankScreen = function () {
 	this.drawContext.fillRect(0, 0, this.width, this.height);
 }
 GameBoyCore.prototype.resizeFrameBuffer = function () {
-	this.completeFrame = this.resizer.resize(this.swizzledFrame);
+	if (this.rgbCount > 0) {
+		this.resizedFrame = this.resizer.resize(this.swizzledFrame);
+	}
 }
 GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
-	this.resizer = new Resize(160, 144, this.width, this.height);
+	if (this.rgbCount > 0) {
+		this.resizer = new Resize(160, 144, this.width, this.height);
+	}
 }
 GameBoyCore.prototype.renderScanLine = function (scanlineToRender) {
 	if (settings[4] == 0 || this.frameCount > 0) {
