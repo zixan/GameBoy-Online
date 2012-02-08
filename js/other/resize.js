@@ -15,20 +15,20 @@ Resize.prototype.initialize = function () {
 		}
 		else if (this.widthOriginal == this.targetWidth) {
 			//Bypass the width resizer pass:
-			this.initializeSecondPassBuffer();
+			this.initializeSecondPassBuffers();
 			this.compileHeightResize();
 			this.resize = this.resizeHeight;
 		}
 		else if (this.heightOriginal == this.targetHeight) {
 			//Bypass the height resizer pass:
-			this.initializeFirstPassBuffer();
+			this.initializeFirstPassBuffers();
 			this.compileWidthResize();
 			this.resize = this.resizeWidth;
 		}
 		else {
 			//Resize the image with two passes:
-			this.initializeFirstPassBuffer();
-			this.initializeSecondPassBuffer();
+			this.initializeFirstPassBuffers();
+			this.initializeSecondPassBuffers();
 			this.compileWidthResize();
 			this.compileHeightResize();
 			this.resize = this.resizer;
