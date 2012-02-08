@@ -139,31 +139,18 @@ Resize.prototype.bypassResampler = function (buffer) {
 }
 Resize.prototype.initializeFirstPassBuffers = function () {
 	//Initialize the internal width pass buffers:
-	this.widthBuffer = this.generateByteBuffer(this.widthPassResultSize);
+	this.widthBuffer = this.generateFloatBuffer(this.widthPassResultSize);
 	this.outputWidthWorkBench = this.generateFloatBuffer(this.originalHeightMultipliedByChannels);
 }
 Resize.prototype.initializeSecondPassBuffers = function () {
 	//Initialize the internal height pass buffers:
-	this.heightBuffer = this.generateByteBuffer(this.finalResultSize);
+	this.heightBuffer = this.generateFloatBuffer(this.finalResultSize);
 	this.outputHeightWorkBench = this.generateFloatBuffer(this.targetWidthMultipliedByChannels);
 }
 Resize.prototype.generateFloatBuffer = function (bufferLength) {
 	//Generate a float16 typed array buffer:
 	try {
 		return new Float16Array(bufferLength);
-	}
-	catch (error) {
-		return [];
-	}
-}
-Resize.prototype.generateByteBuffer = function (bufferLength) {
-	//Generate a uint8 typed array buffer:
-	if (window && window.opera) {
-		//Opera implemented integer typed arrays wrong, so use regular arrays here!
-		return this.generateFloatBuffer(bufferLength);
-	}
-	try {
-		return new Uint8Array(bufferLength);
 	}
 	catch (error) {
 		return [];
