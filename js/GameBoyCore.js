@@ -239,18 +239,14 @@ function GameBoyCore(canvas, ROMImage) {
 	this.WindowLayerRender = null;		//Reference to the window rendering function.
 	this.SpriteLayerRender = null;		//Reference to the OAM rendering function.
 	this.frameBuffer = [];				//The internal frame-buffer.
-	this.completeFrame = [];			//The v-blank sync'd frame buffer.
-	this.resizedFrame = [];
+	this.swizzledFrame = null;			//The secondary gfx buffer that holds the converted RGBA values.
 	this.canvasBuffer = null;			//imageData handle
 	this.pixelStart = 0;				//Temp variable for holding the current working framebuffer offset.
 	this.frameCount = settings[12];		//Frame skip tracker
 	//Variables used for scaling in JS:
 	this.width = 160;
 	this.height = 144;
-	this.pixelCount = this.width * this.height;
-	this.rgbCount = this.pixelCount * 4;
-	this.widthRatio = 160 / this.width;
-	this.heightRatio = 144 / this.height;
+	this.rgbCount = this.width * this.height * 4;
 }
 GameBoyCore.prototype.GBBOOTROM = [		//GB BOOT ROM
 	//Converted Neviksti's ROM dump to this array:
@@ -5051,15 +5047,11 @@ GameBoyCore.prototype.MBCRAMUtilized = function () {
 }
 GameBoyCore.prototype.recomputeDimension = function () {
 	//Cache some dimension info:
-	this.pixelCount = this.width * this.height;
-	this.rgbCount = this.pixelCount * 4;
-	this.widthRatio = 160 / this.width;
-	this.heightRatio = 144 / this.height;
+	this.rgbCount = this.width * this.height * 4;
 }
 GameBoyCore.prototype.initLCD = function () {
 	this.recomputeDimension();
-	this.swizzledFrame = this.getTypedArray(23040 << 2, 0, "int32");
-	this.completeFrame = this.getTypedArray(23040 << 2, 0, "int32");
+	this.swizzledFrame = this.getTypedArray(92160, 0xFF, "uint8");
 	this.compileResizeFrameBufferFunction();
 	try {
 		this.drawContext = this.canvas.getContext("2d");
@@ -5083,7 +5075,7 @@ GameBoyCore.prototype.initLCD = function () {
 		this.prepareFrame();
 	}
 	catch (error) {
-		throw(new Error("HTML5 Canvas support required."));
+		throw(new Error("HTML5 Canvas support required: " + error.message + "file: " + error.fileName + ", line: " + error.lineNumber));
 	}
 }
 GameBoyCore.prototype.JoyPadEvent = function (key, down) {
@@ -6171,7 +6163,7 @@ GameBoyCore.prototype.clockUpdate = function () {
 }
 GameBoyCore.prototype.drawToCanvas = function () {
 	//Draw the frame buffer to the canvas:
-	if (!this.drewFrame && this.pixelCount > 0) {	//Throttle blitting to once per interpreter loop iteration.
+	if (!this.drewFrame && this.rgbCount > 0) {	//Throttle blitting to once per interpreter loop iteration.
 		if (settings[4] == 0 || this.frameCount > 0) {
 			//Copy and convert the framebuffer data to the CanvasPixelArray format.
 			this.prepareFrame();
@@ -6190,17 +6182,6 @@ GameBoyCore.prototype.drawToCanvas = function () {
 GameBoyCore.prototype.prepareFrame = function () {
 	if (this.drewBlank == 0) {
 		this.swizzleFrameBuffer();
-		if (settings[18]) {
-			this.resizeFrameBuffer();
-		}
-		else {
-			var frameBuffer = this.swizzledFrame;
-			var frame = this.completeFrame;
-			var length = frame.length;
-			for (var index = 0; index < length; ++index) {
-				frame[index] = frameBuffer[index];
-			}
-		}
 	}
 	this.skipFrameBufferPreparation = false;
 	if (!settings[11]) {
@@ -6214,7 +6195,7 @@ GameBoyCore.prototype.dispatchDraw = function () {
 	if (this.drewBlank == 0) {
 		if (this.rgbCount > 0) {
 			if (!this.skipFrameBufferPreparation) {
-				var frameBuffer = (settings[18]) ? this.resizedFrame : this.completeFrame;
+				var frameBuffer = (this.rgbCount != 92160) ? this.resizeFrameBuffer() : this.swizzledFrame;
 				var length = this.rgbCount;
 				var canvasData = this.canvasBuffer.data;
 				for (var index = 0; index < length; ++index) {
@@ -6234,7 +6215,7 @@ GameBoyCore.prototype.swizzleFrameBuffer = function () {
 	var frameBuffer = this.frameBuffer;
 	var swizzledFrame = this.swizzledFrame;
 	var bufferIndex = 23040;
-	var canvasIndex = 23040 << 2;
+	var canvasIndex = 92160;
 	while (canvasIndex > 3) {
 		swizzledFrame[canvasIndex -= 4] = (frameBuffer[--bufferIndex] >> 16) & 0xFF;		//Red
 		swizzledFrame[canvasIndex + 1] = (frameBuffer[bufferIndex] >> 8) & 0xFF;			//Green
@@ -6246,9 +6227,7 @@ GameBoyCore.prototype.drawBlankScreen = function () {
 	this.drawContext.fillRect(0, 0, this.width, this.height);
 }
 GameBoyCore.prototype.resizeFrameBuffer = function () {
-	if (this.rgbCount > 0) {
-		this.resizedFrame = this.resizer.resize(this.swizzledFrame);
-	}
+	return this.resizer.resize(this.swizzledFrame);
 }
 GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 	if (this.rgbCount > 0) {
