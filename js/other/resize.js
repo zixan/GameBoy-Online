@@ -148,9 +148,9 @@ Resize.prototype.initializeSecondPassBuffers = function () {
 	this.outputHeightWorkBench = this.generateFloatBuffer(this.targetWidthMultipliedByChannels);
 }
 Resize.prototype.generateFloatBuffer = function (bufferLength) {
-	//Generate a float16 typed array buffer:
+	//Generate a float32 typed array buffer:
 	try {
-		return new Float16Array(bufferLength);
+		return new Float32Array(bufferLength);
 	}
 	catch (error) {
 		return [];
