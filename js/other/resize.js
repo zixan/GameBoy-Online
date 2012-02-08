@@ -55,10 +55,13 @@ Resize.prototype.resizeWidth = function (buffer) {
 	var output = this.outputWidthWorkBench;
 	var outputBuffer = this.widthBuffer;
 	do {
-		weight = ratioWeight;
-		for (line = 0; line < this.originalHeightMultipliedByChannels; ++line) {
-			output[line] = 0;
+		for (line = 0; line < this.originalHeightMultipliedByChannels;) {
+			output[line++] = 0;
+			output[line++] = 0;
+			output[line++] = 0;
+			output[line++] = 0;
 		}
+		weight = ratioWeight;
 		do {
 			amountToNext = 1 + actualPosition - currentPosition;
 			if (weight >= amountToNext) {
@@ -103,13 +106,13 @@ Resize.prototype.resizeHeight = function (buffer) {
 	var output = this.outputHeightWorkBench;
 	var outputBuffer = this.heightBuffer;
 	do {
-		weight = ratioWeight;
 		for (pixelOffset = 0; pixelOffset < this.targetWidthMultipliedByChannels;) {
 			output[pixelOffset++] = 0;
 			output[pixelOffset++] = 0;
 			output[pixelOffset++] = 0;
 			output[pixelOffset++] = 0;
 		}
+		weight = ratioWeight;
 		do {
 			amountToNext = 1 + actualPosition - currentPosition;
 			if (weight >= amountToNext) {
