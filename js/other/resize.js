@@ -170,7 +170,7 @@ Resize.prototype.bypassResampler = function (buffer) {
 }
 Resize.prototype.initializeFirstPassBuffers = function () {
 	//Initialize the internal width pass buffers:
-	this.heightBuffer = this.generateBuffer(this.targetWidth * this.heightOriginal * 4);
+	this.widthBuffer = this.generateBuffer(this.targetWidth * this.heightOriginal * 4);
 	this.outputWidthWorkBench = this.generateBuffer(this.heightOriginal << 2);
 }
 Resize.prototype.initializeSecondPassBuffers = function () {
