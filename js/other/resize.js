@@ -52,6 +52,8 @@ Resize.prototype.resizeWidth = function (buffer) {
 	var line = 0;
 	var pixelOffset = 0;
 	var outputOffset = 0;
+	var nextLineOffsetOriginalWidth = this.originalWidthMultipliedByChannels - 3;
+	var nextLineOffsetTargetWidth = this.targetWidthMultipliedByChannels - 3;
 	var output = this.outputWidthWorkBench;
 	var outputBuffer = this.widthBuffer;
 	do {
@@ -65,31 +67,31 @@ Resize.prototype.resizeWidth = function (buffer) {
 		do {
 			amountToNext = 1 + actualPosition - currentPosition;
 			if (weight >= amountToNext) {
-				for (pixelOffset = line = 0; line < this.originalHeightMultipliedByChannels; pixelOffset += this.originalWidthMultipliedByChannels) {
-					output[line++] += buffer[actualPosition + pixelOffset] * amountToNext;
-					output[line++] += buffer[actualPosition + pixelOffset + 1] * amountToNext;
-					output[line++] += buffer[actualPosition + pixelOffset + 2] * amountToNext;
-					output[line++] += buffer[actualPosition + pixelOffset + 3] * amountToNext;
+				for (line = 0, pixelOffset = actualPosition; line < this.originalHeightMultipliedByChannels; pixelOffset += nextLineOffsetOriginalWidth) {
+					output[line++] += buffer[pixelOffset++] * amountToNext;
+					output[line++] += buffer[pixelOffset++] * amountToNext;
+					output[line++] += buffer[pixelOffset++] * amountToNext;
+					output[line++] += buffer[pixelOffset] * amountToNext;
 				}
 				currentPosition = actualPosition = actualPosition + 4;
 				weight -= amountToNext;
 			}
 			else {
-				for (pixelOffset = line = 0; line < this.originalHeightMultipliedByChannels; pixelOffset += this.originalWidthMultipliedByChannels) {
-					output[line++] += buffer[actualPosition + pixelOffset] * weight;
-					output[line++] += buffer[actualPosition + pixelOffset + 1] * weight;
-					output[line++] += buffer[actualPosition + pixelOffset + 2] * weight;
-					output[line++] += buffer[actualPosition + pixelOffset + 3] * weight;
+				for (line = 0, pixelOffset = actualPosition; line < this.originalHeightMultipliedByChannels; pixelOffset += nextLineOffsetOriginalWidth) {
+					output[line++] += buffer[pixelOffset++] * weight;
+					output[line++] += buffer[pixelOffset++] * weight;
+					output[line++] += buffer[pixelOffset++] * weight;
+					output[line++] += buffer[pixelOffset] * weight;
 				}
 				currentPosition += weight;
 				break;
 			}
 		} while (weight > 0 && actualPosition < this.originalWidthMultipliedByChannels);
-		for (pixelOffset = line = 0; line < this.originalHeightMultipliedByChannels; pixelOffset += this.targetWidthMultipliedByChannels) {
-			outputBuffer[outputOffset + pixelOffset] = output[line++] / ratioWeight;
-			outputBuffer[outputOffset + pixelOffset + 1] = output[line++] / ratioWeight;
-			outputBuffer[outputOffset + pixelOffset + 2] = output[line++] / ratioWeight;
-			outputBuffer[outputOffset + pixelOffset + 3] = output[line++] / ratioWeight;
+		for (line = 0, pixelOffset = outputOffset; line < this.originalHeightMultipliedByChannels; pixelOffset += nextLineOffsetTargetWidth) {
+			outputBuffer[pixelOffset++] = output[line++] / ratioWeight;
+			outputBuffer[pixelOffset++] = output[line++] / ratioWeight;
+			outputBuffer[pixelOffset++] = output[line++] / ratioWeight;
+			outputBuffer[pixelOffset] = output[line++] / ratioWeight;
 		}
 		outputOffset += 4;
 	} while (outputOffset < this.targetWidthMultipliedByChannels);
