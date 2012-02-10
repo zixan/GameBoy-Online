@@ -150,7 +150,7 @@ Resize.prototype.resizeHeight = function (buffer) {
 Resize.prototype.resizer = function (buffer) {
 	return this.resizeHeight(this.resizeWidth(buffer));
 }
-Resize.prototype.bypassResampler = function (buffer) {
+Resize.prototype.bypassResizer = function (buffer) {
 	//Just return the buffer passsed:
 	return buffer;
 }
