@@ -5051,7 +5051,7 @@ GameBoyCore.prototype.recomputeDimension = function () {
 }
 GameBoyCore.prototype.initLCD = function () {
 	this.recomputeDimension();
-	this.swizzledFrame = this.getTypedArray(92160, 0xFF, "uint8");
+	this.swizzledFrame = this.getTypedArray(69120, 0xFF, "uint8");
 	this.compileResizeFrameBufferFunction();
 	try {
 		this.drawContext = this.canvas.getContext("2d");
@@ -6196,13 +6196,14 @@ GameBoyCore.prototype.dispatchDraw = function () {
 	if (this.drewBlank == 0) {
 		if (this.rgbCount > 0) {
 			if (!this.skipFrameBufferPreparation) {
-				var frameBuffer = (this.rgbCount != 92160) ? this.resizeFrameBuffer() : this.swizzledFrame;
+				var frameBuffer = (this.rgbCount != 69120) ? this.resizeFrameBuffer() : this.swizzledFrame;
 				var length = this.rgbCount;
 				var canvasData = this.canvasBuffer.data;
-				for (var index = 0; index < length; ++index) {
-					canvasData[index] = frameBuffer[index++];
-					canvasData[index] = frameBuffer[index++];
-					canvasData[index] = frameBuffer[index++];
+				var bufferIndex = 0;
+				for (var canvasIndex = 0; canvasIndex < length; ++canvasIndex) {
+					canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
+					canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
+					canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
 				}
 			}
 			this.drawContext.putImageData(this.canvasBuffer, 0, 0);
@@ -6215,12 +6216,12 @@ GameBoyCore.prototype.dispatchDraw = function () {
 GameBoyCore.prototype.swizzleFrameBuffer = function () {
 	var frameBuffer = this.frameBuffer;
 	var swizzledFrame = this.swizzledFrame;
-	var bufferIndex = 23040;
-	var canvasIndex = 92160;
-	while (canvasIndex > 3) {
-		swizzledFrame[canvasIndex -= 4] = (frameBuffer[--bufferIndex] >> 16) & 0xFF;		//Red
-		swizzledFrame[canvasIndex + 1] = (frameBuffer[bufferIndex] >> 8) & 0xFF;			//Green
-		swizzledFrame[canvasIndex + 2] = frameBuffer[bufferIndex] & 0xFF;					//Blue
+	var bufferIndex = 0;
+	var canvasIndex = 0;
+	while (canvasIndex < 69120) {
+		swizzledFrame[canvasIndex++] = (frameBuffer[bufferIndex] >> 16) & 0xFF;		//Red
+		swizzledFrame[canvasIndex++] = (frameBuffer[bufferIndex] >> 8) & 0xFF;		//Green
+		swizzledFrame[canvasIndex++] = frameBuffer[bufferIndex++] & 0xFF;			//Blue
 	}
 }
 GameBoyCore.prototype.drawBlankScreen = function () {
@@ -6232,7 +6233,7 @@ GameBoyCore.prototype.resizeFrameBuffer = function () {
 }
 GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 	if (this.rgbCount > 0) {
-		this.resizer = new Resize(160, 144, this.width, this.height);
+		this.resizer = new Resize(160, 144, this.width, this.height, false);
 	}
 }
 GameBoyCore.prototype.renderScanLine = function (scanlineToRender) {
