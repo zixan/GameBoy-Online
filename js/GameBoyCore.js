@@ -5052,7 +5052,14 @@ GameBoyCore.prototype.recomputeDimension = function () {
 GameBoyCore.prototype.initLCD = function () {
 	this.recomputeDimension();
 	this.swizzledFrame = this.getTypedArray(69120, 0xFF, "uint8");
-	this.compileResizeFrameBufferFunction();
+	if (this.rgbCount != 92160) {
+		//Only create the resizer handle if we need it:
+		this.compileResizeFrameBufferFunction();
+	}
+	else {
+		//Resizer not needed:
+		this.resizer = null;
+	}
 	try {
 		this.drawContext = this.canvas.getContext("2d");
 		//Get a CanvasPixelArray buffer:
@@ -6164,7 +6171,7 @@ GameBoyCore.prototype.clockUpdate = function () {
 }
 GameBoyCore.prototype.drawToCanvas = function () {
 	//Draw the frame buffer to the canvas:
-	if (!this.drewFrame && this.rgbCount > 0) {	//Throttle blitting to once per interpreter loop iteration.
+	if (!this.drewFrame) {	//Throttle blitting to once per interpreter loop iteration.
 		if (settings[4] == 0 || this.frameCount > 0) {
 			//Copy and convert the framebuffer data to the CanvasPixelArray format.
 			this.prepareFrame();
@@ -6194,18 +6201,20 @@ GameBoyCore.prototype.prepareFrame = function () {
 }
 GameBoyCore.prototype.dispatchDraw = function () {
 	if (this.drewBlank == 0) {
-		if (this.rgbCount > 0) {
+		var canvasRGBALength = this.rgbCount;
+		if (canvasRGBALength > 0) {
 			if (!this.skipFrameBufferPreparation) {
-				var frameBuffer = (this.rgbCount != 69120) ? this.resizeFrameBuffer() : this.swizzledFrame;
-				var length = this.rgbCount;
+				//We actually need to update the graphics target:
+				var frameBuffer = (canvasRGBALength == 92160) ? this.swizzledFrame : this.resizeFrameBuffer();
 				var canvasData = this.canvasBuffer.data;
 				var bufferIndex = 0;
-				for (var canvasIndex = 0; canvasIndex < length; ++canvasIndex) {
+				for (var canvasIndex = 0; canvasIndex < canvasRGBALength; ++canvasIndex) {
 					canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
 					canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
 					canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
 				}
 			}
+			//Always do a graphics framebuffer out, even if dummy, for stable frame rates in Google Chrome:
 			this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 		}
 	}
@@ -6214,6 +6223,7 @@ GameBoyCore.prototype.dispatchDraw = function () {
 	}
 }
 GameBoyCore.prototype.swizzleFrameBuffer = function () {
+	//Convert our dirty 24-bit (24-bit, with internal render flags above it) framebuffer to an 8-bit buffer with separate indices for the RGB channels:
 	var frameBuffer = this.frameBuffer;
 	var swizzledFrame = this.swizzledFrame;
 	var bufferIndex = 0;
@@ -6229,6 +6239,7 @@ GameBoyCore.prototype.drawBlankScreen = function () {
 	this.drawContext.fillRect(0, 0, this.width, this.height);
 }
 GameBoyCore.prototype.resizeFrameBuffer = function () {
+	//Return a reference to the generated resized framebuffer:
 	return this.resizer.resize(this.swizzledFrame);
 }
 GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
