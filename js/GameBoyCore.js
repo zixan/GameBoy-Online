@@ -6025,7 +6025,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					//Attempt to blit out to our canvas:
 					if (parentObj.drewBlank == 0) {
 						//Ensure JIT framing alignment:
-						if (parentObj.totalLinesPassed < 144 || (parentObj.totalLinesPassed == 144 && parentObj.midScanlineOffset > -1)) {
+						if (!parentObj.drewFrame && (parentObj.totalLinesPassed < 144 || (parentObj.totalLinesPassed == 144 && parentObj.midScanlineOffset > -1))) {
 							//Make sure our gfx are up-to-date:
 							parentObj.graphicsJITVBlank();
 							//Draw the frame:
@@ -6033,7 +6033,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 						}
 						else {
 							//Keep the requests for v-blank constant, to prevent stuttering in RAF in Chrome!!!
-							parentObj.skipFrameBufferPreparation = true;
+							parentObj.skipFrameBufferPreparation = !parentObj.drewFrame;
 							requestVBlank(this.canvas);
 						}
 					}
