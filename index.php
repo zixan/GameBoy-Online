@@ -35,6 +35,8 @@ DEBUG_WINDOWING = false;
 		$this->displaySettings();
 		$this->displayInstructions();
 		$this->fileInput();
+		$this->displayStorageListing();
+		$this->displayStoragePopup();
 		//Generate the Pop-Ups:
 		$this->generatePopUps();
 		//Fullscreen canvas:
@@ -297,6 +299,51 @@ catch (error) {
 		$this->endElement();
 		$this->endElement();
 	}
+	protected function displayStorageListing() {
+		$this->startElement('div');
+		$this->writeAttribute('class', 'window');
+		$this->writeAttribute('id', 'local_storage_listing');
+		$this->startElement('div');
+		$this->writeAttribute('id', 'storageListingMasterContainer');
+		$this->startElement('div');
+		$this->writeAttribute('id', 'storageListingMasterContainerSub');
+		$this->endElement();
+		$this->endElement();
+		$this->startElement('div');
+		$this->writeAttribute('class', 'button_rack');
+		$this->startElement('button');
+		$this->writeAttribute('id', 'local_storage_list_refresh_button');
+		$this->writeAttribute('class', 'left');
+		$this->text('Refresh List');
+		$this->endElement();
+		$this->startElement('button');
+		$this->writeAttribute('id', 'local_storage_list_close_button');
+		$this->writeAttribute('class', 'right');
+		$this->text('Close Storage List');
+		$this->endElement();
+		$this->endElement();
+		$this->endElement();
+	}
+	protected function displayStoragePopup() {
+		$this->startElement('div');
+		$this->writeAttribute('class', 'window');
+		$this->writeAttribute('id', 'local_storage_popup');
+		$this->startElement('div');
+		$this->writeAttribute('id', 'storagePopupMasterParent');
+		$this->startElement('div');
+		$this->writeAttribute('id', 'storagePopupMasterContainer');
+		$this->endElement();
+		$this->endElement();
+		$this->startElement('div');
+		$this->writeAttribute('class', 'button_rack');
+		$this->startElement('button');
+		$this->writeAttribute('id', 'local_storage_popup_close_button');
+		$this->writeAttribute('class', 'center');
+		$this->text('Close Storage Popup');
+		$this->endElement();
+		$this->endElement();
+		$this->endElement();
+	}
 	protected function generatePopUps() {
 		$this->startElement('ul');
 		$this->writeAttribute('class', 'menu');
@@ -362,6 +409,10 @@ catch (error) {
 		$this->startElement('li');
 		$this->writeAttribute('id', 'view_instructions');
 		$this->text('Instructions');
+		$this->endElement();
+		$this->startElement('li');
+		$this->writeAttribute('id', 'local_storage_list_menu');
+		$this->text('Save Manager');
 		$this->endElement();
 		$this->startElement('li');
 		$this->writeAttribute('id', 'view_fullscreen');

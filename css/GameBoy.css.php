@@ -330,12 +330,20 @@ div#terminal {
 	min-height: 100px;
 	min-width: 310px;
 }
-div#terminal, div#about, div#settings {
+div#terminal, div#about, div#settings, div#local_storage_listing {
 	height: 350px;
 	width: 400px;
 }
 div#settings {
 	height: 370px;
+}
+div#local_storage_popup {
+	height: 250px;
+	width: 300px;
+}
+div#local_storage_listing {
+	min-width: 400px;
+	min-height: 350px;
 }
 div#terminal<?php echo($Adjacent_OP); ?> div#terminal_output {
 	background-color: rgb(0, 0, 0);

@@ -28,6 +28,8 @@ function windowingInitialize() {
 	windowStacks[3] = windowCreate("settings", false);
 	windowStacks[4] = windowCreate("input_select", false);
 	windowStacks[5] = windowCreate("instructions", false);
+	windowStacks[6] = windowCreate("local_storage_popup", false);
+	windowStacks[7] = windowCreate("local_storage_listing", false);
 	mainCanvas = document.getElementById("mainCanvas");
 	fullscreenCanvas = document.getElementById("fullscreen");
 	try {
@@ -56,13 +58,17 @@ function windowingInitialize() {
 function registerGUIEvents() {
 	cout("In registerGUIEvents() : Registering GUI Events.", -1);
 	addEvent("click", document.getElementById("terminal_clear_button"), clear_terminal);
+	addEvent("click", document.getElementById("local_storage_list_refresh_button"), refreshStorageListing);
 	addEvent("click", document.getElementById("terminal_close_button"), function () { windowStacks[1].hide() });
 	addEvent("click", document.getElementById("about_close_button"), function () { windowStacks[2].hide() });
 	addEvent("click", document.getElementById("settings_close_button"), function () { windowStacks[3].hide() });
 	addEvent("click", document.getElementById("input_select_close_button"), function () { windowStacks[4].hide() });
 	addEvent("click", document.getElementById("instructions_close_button"), function () { windowStacks[5].hide() });
+	addEvent("click", document.getElementById("local_storage_list_close_button"), function () { windowStacks[7].hide() });
+	addEvent("click", document.getElementById("local_storage_popup_close_button"), function () { windowStacks[6].hide() });
 	addEvent("click", document.getElementById("GameBoy_about_menu"), function () { windowStacks[2].show() });
 	addEvent("click", document.getElementById("GameBoy_settings_menu"), function () { windowStacks[3].show() });
+	addEvent("click", document.getElementById("local_storage_list_menu"), function () { refreshStorageListing(); windowStacks[7].show(); });
 	addEvent("keydown", document, function (event) {
 		if (event.keyCode == 27) {
 			//Fullscreen on/off
@@ -404,6 +410,108 @@ function setValue(key, value) {
 		//An older Gecko 1.8.1/1.9.0 method of storage (Deprecated due to the obvious security hole):
 		window.globalStorage[location.hostname].setItem(key, JSON.stringify(value));
 	}
+}//Wrapper for localStorage removesetItem, so that data can be set in various types.
+function deleteValue(key) {
+	try {
+		window.localStorage.removeItem(key);
+	}
+	catch (error) {
+		//An older Gecko 1.8.1/1.9.0 method of storage (Deprecated due to the obvious security hole):
+		window.globalStorage[location.hostname].removeItem(key);
+	}
+}
+
+function outputLocalStorageLink(keyName, dataFound) {
+	return generateLink("data:application/octet-stream;base64," + dataFound, keyName);
+}
+function refreshStorageListing() {
+	var storageListMasterDivSub = document.getElementById("storageListingMasterContainerSub");
+	var storageListMasterDiv = document.getElementById("storageListingMasterContainer");
+	storageListMasterDiv.removeChild(storageListMasterDivSub);
+	storageListMasterDivSub = document.createElement("div");
+	storageListMasterDivSub.id = "storageListingMasterContainerSub";
+	var keys = getLocalStorageKeys();
+	while (keys.length > 0) {
+		storageListMasterDivSub.appendChild(outputLocalStorageRequestLink(keys.shift()));
+	}
+	storageListMasterDiv.appendChild(storageListMasterDivSub);
+}
+function outputLocalStorageRequestLink(keyName) {
+	var linkNode = generateLink("javascript:popupStorageDialog(\"" + keyName + "\")", keyName);
+	var storageContainerDiv = document.createElement("div");
+	storageContainerDiv.className = "storageListingContainer";
+	storageContainerDiv.appendChild(linkNode)
+	return storageContainerDiv;
+}
+function popupStorageDialog(keyName) {
+	var subContainer = document.getElementById("storagePopupMasterContainer");
+	var parentContainer = document.getElementById("storagePopupMasterParent");
+	parentContainer.removeChild(subContainer);
+	subContainer = document.createElement("div");
+	subContainer.id = "storagePopupMasterContainer";
+	parentContainer.appendChild(subContainer);
+	var downloadDiv = document.createElement("div");
+	downloadDiv.id = "storagePopupDownload";
+	downloadDiv.appendChild(outputLocalStorageLink("Download save data.", base64(convertToBinary(findValue(keyName)))));
+	var deleteLink = generateLink("javascript:deleteStorageSlot(\"" + keyName + "\")", "Delete save slot.");
+	deleteLink.id = "storagePopupDelete";
+	subContainer.appendChild(downloadDiv);
+	subContainer.appendChild(deleteLink);
+	windowStacks[6].show();
+}
+function convertToBinary(jsArray) {
+	var length = jsArray.length;
+	var binString = "";
+	for (var indexBin = 0; indexBin < length; indexBin++) {
+		binString += String.fromCharCode(jsArray[indexBin]);
+	}
+	return binString;
+}
+function deleteStorageSlot(keyName) {
+	deleteValue(keyName);
+	windowStacks[6].hide();
+	refreshStorageListing();
+}
+function generateLink(address, textData) {
+	var link = document.createElement("a");
+	link.setAttribute("href", address);
+	link.appendChild(document.createTextNode(textData));
+	return link;
+}
+function checkStorageLength() {
+	try {
+		return window.localStorage.length;
+	}
+	catch (error) {
+		//An older Gecko 1.8.1/1.9.0 method of storage (Deprecated due to the obvious security hole):
+		return window.globalStorage[location.hostname].length;
+	}
+}
+function getLocalStorageKeys() {
+	var storageLength = checkStorageLength();
+	var keysFound = [];
+	var index = 0;
+	var nextKey = null;
+	while (index < storageLength) {
+		nextKey = findKey(index++);
+		if (nextKey !== null && nextKey.length > 0) {
+			keysFound.push(nextKey);
+		}
+		else {
+			break;
+		}
+	}
+	return keysFound;
+}
+function findKey(keyNum) {
+	try {
+		return window.localStorage.key(keyNum);
+	}
+	catch (error) {
+		//An older Gecko 1.8.1/1.9.0 method of storage (Deprecated due to the obvious security hole):
+		return window.globalStorage[location.hostname].key(keyNum);
+	}
+	return null;
 }
 //Some wrappers and extensions for non-DOM3 browsers:
 function isDescendantOf(ParentElement, toCheck) {
