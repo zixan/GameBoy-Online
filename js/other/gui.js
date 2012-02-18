@@ -495,7 +495,9 @@ function getLocalStorageKeys() {
 	while (index < storageLength) {
 		nextKey = findKey(index++);
 		if (nextKey !== null && nextKey.length > 0) {
-			keysFound.push(nextKey);
+			if (nextKey.substring(0, 5) == "SRAM_") {
+				keysFound.push(nextKey);
+			}
 		}
 		else {
 			break;
