@@ -242,7 +242,6 @@ function GameBoyCore(canvas, ROMImage) {
 	this.swizzledFrame = null;			//The secondary gfx buffer that holds the converted RGBA values.
 	this.canvasBuffer = null;			//imageData handle
 	this.pixelStart = 0;				//Temp variable for holding the current working framebuffer offset.
-	this.frameCount = settings[12];		//Frame skip tracker
 	//Variables used for scaling in JS:
 	this.width = 160;
 	this.height = 144;
@@ -4461,7 +4460,6 @@ GameBoyCore.prototype.returnFromRTCState = function () {
 	}
 }
 GameBoyCore.prototype.start = function () {
-	settings[4] = 0;	//Reset the frame skip setting.
 	this.initMemory();	//Write the startup memory.
 	this.ROMLoad();		//Load the ROM into memory and get cartridge information from it.
 	this.initLCD();		//Initialize the graphics.
@@ -4675,7 +4673,7 @@ GameBoyCore.prototype.ROMLoad = function () {
 	this.ROM = this.getTypedArray(maxLength, 0, "uint8");
 	var romIndex = 0;
 	if (this.usedBootROM) {
-		if (!settings[20]) {
+		if (!settings[13]) {
 			//Patch in the GBC boot ROM into the memory map:
 			for (; romIndex < 0x100; ++romIndex) {
 				this.memory[romIndex] = this.GBCBOOTROM[romIndex];											//Load in the GameBoy Color BOOT ROM.
@@ -5047,6 +5045,8 @@ GameBoyCore.prototype.MBCRAMUtilized = function () {
 }
 GameBoyCore.prototype.recomputeDimension = function () {
 	//Cache some dimension info:
+	this.width = this.canvas.width;
+	this.height = this.canvas.height;
 	this.rgbCount = this.width * this.height * 4;
 }
 GameBoyCore.prototype.initLCD = function () {
@@ -5116,7 +5116,7 @@ GameBoyCore.prototype.initSound = function () {
 		try {
 			var parentObj = this;
 			this.sampleSize = settings[14] / 1000 * settings[6];
-			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], Math.max(this.sampleSize * settings[22], 2048) << this.soundFrameShifter, Math.max(this.sampleSize * 20, 8192) << this.soundFrameShifter, function (sampleCount) {
+			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], Math.max(this.sampleSize * settings[8], 2048) << this.soundFrameShifter, Math.max(this.sampleSize * 20, 8192) << this.soundFrameShifter, function (sampleCount) {
 				return parentObj.audioUnderRun(sampleCount);
 			}, -1);
 			cout("...Audio Channels: " + this.soundChannelsAllocated, 0);
@@ -5140,7 +5140,7 @@ GameBoyCore.prototype.initSound = function () {
 }
 GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioTicks = this.audioIndex = 0;
-	this.bufferContainAmount = Math.max(this.sampleSize * settings[21], 4096) << this.soundFrameShifter;
+	this.bufferContainAmount = Math.max(this.sampleSize * settings[7], 4096) << this.soundFrameShifter;
 	cout("...Samples per interpreter loop iteration (Per Channel): " + this.sampleSize, 0);
 	this.samplesOut = this.sampleSize / this.CPUCyclesPerIteration;
 	cout("...Samples per clock cycle (Per Channel): " + this.samplesOut, 0);
@@ -6123,8 +6123,7 @@ GameBoyCore.prototype.executeHDMA = function () {
 	}
 }
 GameBoyCore.prototype.clockUpdate = function () {
-	//We're tying in the same timer for RTC and frame skipping, since we can and this reduces load.
-	if (settings[7] || this.cTIMER) {
+	if (this.cTIMER) {
 		var dateObj = new Date();
 		var newTime = dateObj.getTime();
 		var timeElapsed = newTime - this.lastIteration;	//Get the numnber of milliseconds since this last executed.
@@ -6149,42 +6148,13 @@ GameBoyCore.prototype.clockUpdate = function () {
 				}
 			}
 		}
-		if (settings[7]) {
-			//Auto Frame Skip:
-			++this.iterations;
-			if (timeElapsed > settings[6] && ((newTime - this.firstIteration) / this.iterations) > (settings[6] + 1 + (settings[6] / this.iterations))) {
-				//Did not finish in time...
-				if (settings[4] < settings[8]) {
-					++settings[4];
-				}
-			}
-			else if (settings[4] > 0) {
-				//We finished on time, decrease frame skipping (throttle to somewhere just below full speed)...
-				--settings[4];
-			}
-			if (this.iterations > 200) {
-				this.iterations = 0;
-				this.firstIteration = newTime;
-			}
-		}
 	}
 }
 GameBoyCore.prototype.drawToCanvas = function () {
 	//Draw the frame buffer to the canvas:
 	if (!this.drewFrame) {	//Throttle blitting to once per interpreter loop iteration.
-		if (settings[4] == 0 || this.frameCount > 0) {
-			//Copy and convert the framebuffer data to the CanvasPixelArray format.
-			this.prepareFrame();
-			if (settings[4] > 0) {
-				//Increment the frameskip counter:
-				this.frameCount -= settings[4];
-			}
-			this.drewFrame = true;
-		}
-		else {
-			//Reset the frameskip counter:
-			this.frameCount += settings[12];
-		}
+		this.prepareFrame();
+		this.drewFrame = true;
 	}
 }
 GameBoyCore.prototype.prepareFrame = function () {
@@ -6248,27 +6218,25 @@ GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 	}
 }
 GameBoyCore.prototype.renderScanLine = function (scanlineToRender) {
-	if (settings[4] == 0 || this.frameCount > 0) {
-		this.pixelStart = scanlineToRender * 160;
-		if (this.bgEnabled) {
-			this.pixelEnd = 160;
-			this.BGLayerRender(scanlineToRender);
-			this.WindowLayerRender(scanlineToRender);
-		}
-		else {
-			var pixelLine = (scanlineToRender + 1) * 160;
-			var defaultColor = (this.cGBC || this.colorizedGBPalettes) ? 0xF8F8F8 : 0xEFFFDE;
-			for (var pixelPosition = (scanlineToRender * 160) + this.currentX; pixelPosition < pixelLine; pixelPosition++) {
-				this.frameBuffer[pixelPosition] = defaultColor;
-			}
-		}
-		this.SpriteLayerRender(scanlineToRender);
+	this.pixelStart = scanlineToRender * 160;
+	if (this.bgEnabled) {
+		this.pixelEnd = 160;
+		this.BGLayerRender(scanlineToRender);
+		this.WindowLayerRender(scanlineToRender);
 	}
+	else {
+		var pixelLine = (scanlineToRender + 1) * 160;
+		var defaultColor = (this.cGBC || this.colorizedGBPalettes) ? 0xF8F8F8 : 0xEFFFDE;
+		for (var pixelPosition = (scanlineToRender * 160) + this.currentX; pixelPosition < pixelLine; pixelPosition++) {
+			this.frameBuffer[pixelPosition] = defaultColor;
+		}
+	}
+	this.SpriteLayerRender(scanlineToRender);
 	this.currentX = 0;
 	this.midScanlineOffset = -1;
 }
 GameBoyCore.prototype.renderMidScanLine = function () {
-	if (this.actualScanLine < 144 && this.modeSTAT == 3 && (settings[4] == 0 || this.frameCount > 0)) {
+	if (this.actualScanLine < 144 && this.modeSTAT == 3) {
 		//TODO: Get this accurate:
 		if (this.midScanlineOffset == -1) {
 			this.midScanlineOffset = this.backgroundX & 0x7;
@@ -6317,7 +6285,7 @@ GameBoyCore.prototype.GBCtoGBModeAdjust = function () {
 	cout("Stepping down from GBC mode.", 0);
 	this.VRAM = this.GBCMemory = this.BGCHRCurrentBank = this.BGCHRBank2 = null;
 	this.tileCache.length = 0x700;
-	if (settings[17]) {
+	if (settings[4]) {
 		this.gbBGColorizedPalette = this.getTypedArray(4, 0, "int32");
 		this.gbOBJColorizedPalette = this.getTypedArray(8, 0, "int32");
 		this.cachedBGPaletteConversion = this.getTypedArray(4, 0, "int32");

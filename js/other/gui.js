@@ -2,6 +2,7 @@ var windowingInitialized = false;
 var inFullscreen = false;
 var mainCanvas = null;
 var fullscreenCanvas = null;
+var showAsMinimal = false;
 function windowingPreInitUnsafe() {
 	if (!windowingInitialized) {
 		windowingInitialized = true;
@@ -45,15 +46,14 @@ function windowingInitialize() {
 	document.getElementById("enable_sound").checked = settings[0];
 	document.getElementById("enable_mono_sound").checked = settings[1];
 	document.getElementById("disable_colors").checked = settings[2];
-	document.getElementById("auto_frameskip").checked = settings[7];
 	document.getElementById("rom_only_override").checked = settings[9];
 	document.getElementById("mbc_enable_override").checked = settings[10];
 	document.getElementById("enable_gbc_bios").checked = settings[16];
-	document.getElementById("enable_colorization").checked = settings[17];
-	document.getElementById("do_minimal").checked = settings[19];
-	document.getElementById("software_resizing").checked = settings[18];
+	document.getElementById("enable_colorization").checked = settings[4];
+	document.getElementById("do_minimal").checked = showAsMinimal;
+	document.getElementById("software_resizing").checked = settings[12];
 	document.getElementById("typed_arrays_disallow").checked = settings[5];
-	document.getElementById("gb_boot_rom_utilized").checked = settings[20];
+	document.getElementById("gb_boot_rom_utilized").checked = settings[13];
 }
 function registerGUIEvents() {
 	cout("In registerGUIEvents() : Registering GUI Events.", -1);
@@ -88,8 +88,8 @@ function registerGUIEvents() {
 		if (datauri != null && datauri.length > 0) {
 			try {
 				cout(Math.floor(datauri.length * 3 / 4) + " bytes of data submitted by form (text length of " + datauri.length + ").", 0);
-				start(mainCanvas, base64_decode(datauri));
 				initPlayer();
+				start(mainCanvas, base64_decode(datauri));
 			}
 			catch (error) {
 				alert(error.message + " file: " + error.fileName + " line: " + error.lineNumber);
@@ -112,8 +112,8 @@ function registerGUIEvents() {
 						try {
 							var romStream = base64_decode(arguments[1]);
 							cout(romStream.length + " bytes of base64 decoded data retrieved by XHR (text length of " + arguments[1].length + ").", 0);
-							start(mainCanvas, romStream);
 							initPlayer();
+							start(mainCanvas, romStream);
 						}
 						catch (error) {
 							alert(error.message + " file: " + error.fileName + " line: " + error.lineNumber);
@@ -156,8 +156,8 @@ function registerGUIEvents() {
 							if (this.readyState == 2) {
 								cout("file loaded.", 0);
 								try {
-									start(mainCanvas, this.result);
 									initPlayer();
+									start(mainCanvas, this.result);
 								}
 								catch (error) {
 									alert(error.message + " file: " + error.fileName + " line: " + error.lineNumber);
@@ -174,8 +174,8 @@ function registerGUIEvents() {
 						//Gecko 1.9.0, 1.9.1 (Non-Standard Method)
 						var romImageString = this.files[this.files.length - 1].getAsBinary();
 						try {
-							start(mainCanvas, romImageString);
 							initPlayer();
+							start(mainCanvas, romImageString);
 						}
 						catch (error) {
 							alert(error.message + " file: " + error.fileName + " line: " + error.lineNumber);
@@ -199,12 +199,12 @@ function registerGUIEvents() {
 		if (GameBoyEmulatorInitialized()) {
 			try {
 				if (!gameboy.fromSaveState) {
-					start(mainCanvas, gameboy.getROMImage());
 					initPlayer();
+					start(mainCanvas, gameboy.getROMImage());
 				}
 				else {
-					openState(gameboy.savedStateFileName, mainCanvas);
 					initPlayer();
+					openState(gameboy.savedStateFileName, mainCanvas);
 				}
 			}
 			catch (error) {
@@ -242,10 +242,6 @@ function registerGUIEvents() {
 	addEvent("click", document.getElementById("disable_colors"), function () {
 		settings[2] = document.getElementById("disable_colors").checked;
 	});
-	addEvent("click", document.getElementById("auto_frameskip"), function () {
-		settings[7] = document.getElementById("auto_frameskip").checked;
-		settings[4] = 0;	//Reset the frame skipping amount.
-	});
 	addEvent("click", document.getElementById("rom_only_override"), function () {
 		settings[9] = document.getElementById("rom_only_override").checked;
 	});
@@ -256,70 +252,34 @@ function registerGUIEvents() {
 		settings[16] = document.getElementById("enable_gbc_bios").checked;
 	});
 	addEvent("click", document.getElementById("enable_colorization"), function () {
-		settings[17] = document.getElementById("enable_colorization").checked;
+		settings[4] = document.getElementById("enable_colorization").checked;
 	});
 	addEvent("click", document.getElementById("do_minimal"), function () {
-		settings[19] = document.getElementById("do_minimal").checked;
-		fullscreenCanvas.className = (settings[19]) ? "minimum" : "maximum";
+		showAsMinimal = document.getElementById("do_minimal").checked;
+		fullscreenCanvas.className = (showAsMinimal) ? "minimum" : "maximum";
 	});
 	addEvent("click", document.getElementById("software_resizing"), function () {
-		settings[18] = document.getElementById("software_resizing").checked;
-		if (GameBoyEmulatorInitialized()) {
-			initNewCanvas();
-		}
+		settings[12] = document.getElementById("software_resizing").checked;
+		initNewCanvas();
 	});
 	addEvent("click", document.getElementById("typed_arrays_disallow"), function () {
 		settings[5] = document.getElementById("typed_arrays_disallow").checked;
 	});
 	addEvent("click", document.getElementById("gb_boot_rom_utilized"), function () {
-		settings[20] = document.getElementById("gb_boot_rom_utilized").checked;
+		settings[13] = document.getElementById("gb_boot_rom_utilized").checked;
 	});
 	addEvent("click", document.getElementById("view_fullscreen"), fullscreenPlayer);
 	new popupMenu(document.getElementById("GameBoy_view_menu"), document.getElementById("GameBoy_view_popup"));
 	addEvent("click", document.getElementById("view_terminal"), function () { windowStacks[1].show() });
 	addEvent("click", document.getElementById("view_instructions"), function () { windowStacks[5].show() });
-	addEvent("mouseup", document.getElementById("gfx"), onResizeOutput);
-	addEvent("resize", window, onResizeOutput);
+	addEvent("mouseup", document.getElementById("gfx"), initNewCanvasSize);
+	addEvent("resize", window, initNewCanvasSize);
 	addEvent("unload", window, function () {
 		autoSave();
 	});
 	addEvent("MozBeforePaint", window, MozVBlankSyncHandler);
 }
-function onResizeOutput() {
-	if (GameBoyEmulatorInitialized()) {
-		initNewCanvasSize();
-	}
-}
-function initNewCanvasSize() {
-	if (!settings[18]) {
-		if (gameboy.width != 160 || gameboy.height != 144 || gameboy.canvas.width != 160 || gameboy.canvas.height != 144) {
-			gameboy.canvas.width = gameboy.width = 160;
-			gameboy.canvas.height = gameboy.height = 144;
-		}
-	}
-	else {
-		if (gameboy.width != gameboy.canvas.clientWidth || gameboy.height != gameboy.canvas.clientHeight || gameboy.canvas.width != gameboy.canvas.clientWidth || gameboy.canvas.height != gameboy.canvas.clientHeight) {
-			gameboy.canvas.width = gameboy.width = gameboy.canvas.clientWidth;
-			gameboy.canvas.height = gameboy.height = gameboy.canvas.clientHeight;
-		}
-		gameboy.initLCD();
-	}
-}
-function initNewCanvas() {
-	if (!settings[18]) {
-		gameboy.canvas.width = gameboy.width = 160;
-		gameboy.canvas.height = gameboy.height = 144;
-	}
-	else {
-		gameboy.canvas.width = gameboy.width = gameboy.canvas.clientWidth;
-		gameboy.canvas.height = gameboy.height = gameboy.canvas.clientHeight;
-	}
-	gameboy.initLCD();
-}
 function initPlayer() {
-	if (GameBoyEmulatorInitialized()) {
-		initNewCanvasSize();
-	}
 	document.getElementById("title").style.display = "none";
 	document.getElementById("port_title").style.display = "none";
 	document.getElementById("fullscreenContainer").style.display = "none";
@@ -328,7 +288,7 @@ function fullscreenPlayer() {
 	if (GameBoyEmulatorInitialized()) {
 		if (!inFullscreen) {
 			gameboy.canvas = fullscreenCanvas;
-			fullscreenCanvas.className = (settings[19]) ? "minimum" : "maximum";
+			fullscreenCanvas.className = (showAsMinimal) ? "minimum" : "maximum";
 			document.getElementById("fullscreenContainer").style.display = "block";
 			windowStacks[0].hide();
 		}
@@ -372,8 +332,8 @@ function addSaveStateItem(filename) {
 				cout("Attempting to find a save state record with the name: \"" + this.firstChild.data + "\"", 0);
 				for (var romState in states) {
 					if (states[romState] == this.firstChild.data) {
-						openState(states[romState], mainCanvas);
 						initPlayer();
+						openState(states[romState], mainCanvas);
 					}
 				}
 			}
@@ -410,7 +370,8 @@ function setValue(key, value) {
 		//An older Gecko 1.8.1/1.9.0 method of storage (Deprecated due to the obvious security hole):
 		window.globalStorage[location.hostname].setItem(key, JSON.stringify(value));
 	}
-}//Wrapper for localStorage removesetItem, so that data can be set in various types.
+}
+//Wrapper for localStorage removeItem, so that data can be set in various types.
 function deleteValue(key) {
 	try {
 		window.localStorage.removeItem(key);
@@ -420,7 +381,6 @@ function deleteValue(key) {
 		window.globalStorage[location.hostname].removeItem(key);
 	}
 }
-
 function outputLocalStorageLink(keyName, dataFound) {
 	return generateLink("data:application/octet-stream;base64," + dataFound, keyName);
 }
@@ -452,7 +412,12 @@ function popupStorageDialog(keyName) {
 	parentContainer.appendChild(subContainer);
 	var downloadDiv = document.createElement("div");
 	downloadDiv.id = "storagePopupDownload";
-	downloadDiv.appendChild(outputLocalStorageLink("Download save data.", base64(convertToBinary(findValue(keyName)))));
+	if (keyName.substring(0, 9) == "B64_SRAM_") {
+		downloadDiv.appendChild(outputLocalStorageLink("Download save data.", findValue(keyName)));
+	}
+	else {
+		downloadDiv.appendChild(outputLocalStorageLink("Download save data.", base64(convertToBinary(findValue(keyName)))));
+	}
 	var deleteLink = generateLink("javascript:deleteStorageSlot(\"" + keyName + "\")", "Delete save slot.");
 	deleteLink.id = "storagePopupDelete";
 	subContainer.appendChild(downloadDiv);
@@ -495,7 +460,7 @@ function getLocalStorageKeys() {
 	while (index < storageLength) {
 		nextKey = findKey(index++);
 		if (nextKey !== null && nextKey.length > 0) {
-			if (nextKey.substring(0, 5) == "SRAM_") {
+			if (nextKey.substring(0, 5) == "SRAM_" || nextKey.substring(0, 9) == "B64_SRAM_") {
 				keysFound.push(nextKey);
 			}
 		}

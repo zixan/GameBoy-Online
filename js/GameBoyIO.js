@@ -5,25 +5,19 @@ var settings = [						//Some settings.
 	false,								//Force Mono sound.
 	false,								//Give priority to GameBoy mode
 	[39, 37, 38, 40, 88, 90, 16, 13],	//Keyboard button map.
-	0,									//Frameskip Amount (Auto frameskip setting allows the script to change this.)
+	true,								//Colorize GB mode?
 	false,								//Disallow typed arrays?
 	16,									//Interval for the emulator loop.
-	false,								//Auto Frame Skip
-	29,									//Maximum Frame Skip
+	8,									//Audio buffer span amount over x interpreter iterations.
+	4,									//Audio underrun effective buffer level over x interpreter iterations.
 	false,								//Override to allow for MBC1 instead of ROM only (compatibility for broken 3rd-party cartridges).
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
 	false,								//Vertical blank event availability.
-	10,									//Frameskip base factor
-	null,								//Empty option slot.
+	false,								//Scale the canvas in JS, or let the browser scale the canvas?
+	false,								//Use the GameBoy boot ROM instead of the GameBoy Color boot ROM.
 	0x40000,							//Sample Rate
 	false,								//MozBeforePaint support detected.
-	true,								//Use the GBC BIOS?
-	true,								//Colorize GB mode?
-	false,								//Render nearest-neighbor scaling in javascript?
-	false,								//Whether to display the canvas at 144x160 on fullscreen or as stretched.
-	false,								//Use the GameBoy boot ROM instead og the GameBoy Color boot ROM.
-	8,									//Audio buffer span amount over x interpreter iterations.
-	4									//Audio underrun effective buffer level over x interpreter iterations.
+	true								//Use the GBC BIOS?
 ];
 function start(canvas, ROM) {
 	clearLastEmulation();
@@ -114,7 +108,12 @@ function saveSRAM() {
 				var sram = gameboy.saveSRAMState();
 				if (sram.length > 0) {
 					cout("Saving the SRAM...", 0);
-					setValue("SRAM_" + gameboy.name, sram);
+					if (findValue("SRAM_" + gameboy.name) != null) {
+						//Remove the outdated storage format save:
+						cout("Deleting the old SRAM save due to outdated format.", 0);
+						deleteValue("SRAM_" + gameboy.name);
+					}
+					setValue("B64_SRAM_" + gameboy.name, arrayToBase64(sram));
 				}
 				else {
 					cout("SRAM could not be saved because it was empty.", 1);
@@ -158,7 +157,11 @@ function autoSave() {
 }
 function openSRAM(filename) {
 	try {
-		if (findValue("SRAM_" + filename) != null) {
+		if (findValue("B64_SRAM_" + filename) != null) {
+			cout("Found a previous SRAM state (Will attempt to load).", 0);
+			return base64ToArray(findValue("B64_SRAM_" + filename));
+		}
+		else if (findValue("SRAM_" + filename) != null) {
 			cout("Found a previous SRAM state (Will attempt to load).", 0);
 			return findValue("SRAM_" + filename);
 		}
@@ -308,5 +311,34 @@ function requestVBlank(canvasHandle) {
 				}
 			}
 		//}
+	}
+}
+//Call this when generally changing the canvas:
+function initNewCanvas() {
+	if (GameBoyEmulatorInitialized()) {
+		if (!settings[12]) {
+			gameboy.canvas.width = 160;
+			gameboy.canvas.height = 144;
+		}
+		else {
+			gameboy.canvas.width = gameboy.canvas.clientWidth;
+			gameboy.canvas.height = gameboy.canvas.clientHeight;
+		}
+		gameboy.initLCD();
+	}
+}
+//Call this when resizing the canvas:
+function initNewCanvasSize() {
+	if (GameBoyEmulatorInitialized()) {
+		if (!settings[12]) {
+			if (gameboy.width != 160 || gameboy.height != 144) {
+				initNewCanvas();
+			}
+		}
+		else {
+			if (gameboy.width != gameboy.canvas.clientWidth || gameboy.height != gameboy.canvas.clientHeight) {
+				initNewCanvas();
+			}
+		}
 	}
 }

@@ -74,3 +74,22 @@ function to_little_endian_word(str) {
 function to_byte(str) {
 	return String.fromCharCode(str & 0xFF);
 }
+function arrayToBase64(arrayIn) {
+	var binString = "";
+	var length = arrayIn.length;
+	for (var index = 0; index < length; ++index) {
+		if (typeof arrayIn[index] == "number") {
+			binString += String.fromCharCode(arrayIn[index]);
+		}
+	}
+	return base64(binString);
+}
+function base64ToArray(b64String) {
+	var binString = base64_decode(b64String);
+	var outArray = [];
+	var length = binString.length;
+	for (var index = 0; index < length;) {
+		outArray.push(binString.charCodeAt(index++) & 0xFF);
+	}
+	return outArray;
+}
