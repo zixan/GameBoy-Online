@@ -207,16 +207,6 @@ catch (error) {
 		$this->startElement('div');
 		$this->writeAttribute('class', 'setting');
 		$this->startElement('span');
-		$this->text('Auto frame skip:');
-		$this->endElement();
-		$this->startElement('input');
-		$this->writeAttribute('type', 'checkbox');
-		$this->writeAttribute('id', 'auto_frameskip');
-		$this->endElement();
-		$this->endElement();
-		$this->startElement('div');
-		$this->writeAttribute('class', 'setting');
-		$this->startElement('span');
 		$this->text('Override ROM only cartridge typing to MBC1:');
 		$this->endElement();
 		$this->startElement('input');
