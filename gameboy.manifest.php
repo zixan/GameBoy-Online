@@ -21,6 +21,6 @@ images/gradient_04.svg.php
 images/gradient_05.svg.php
 images/gradient_06.svg.php
 XAudioJS.swf
-css/GameBoy.css.php
+css/GameBoy.css
 NETWORK:
 res/proxy.php

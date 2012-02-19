@@ -24,7 +24,7 @@ DEBUG_WINDOWING = false;
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyIO.js')
 		);
 		//$this->meta = array('viewport'=>'width=device-width, height=device-height');
-		$this->style = '@import url("'.$this->server->convert_out_of_set_chars($this->server->url['folder'].CSSDIR.'/GameBoy.css.php').(($this->server->get('border-radius') == 'true') ? '?rounded=true' : '').'");';
+		$this->style = '@import url("'.$this->server->convert_out_of_set_chars($this->server->url['folder'].CSSDIR.'/GameBoy.css').(($this->server->get('border-radius') == 'true') ? '?rounded=true' : '').'");';
 		$this->manifest = $this->server->convert_out_of_set_chars($this->server->url['folder'].'gameboy.manifest.php');
 	}
 	function body_render() {
@@ -305,6 +305,7 @@ catch (error) {
 		$this->writeAttribute('id', 'local_storage_listing');
 		$this->startElement('div');
 		$this->writeAttribute('id', 'storageListingMasterContainer');
+		$this->writeAttribute('class', 'storageList');
 		$this->startElement('div');
 		$this->writeAttribute('id', 'storageListingMasterContainerSub');
 		$this->endElement();
@@ -330,6 +331,7 @@ catch (error) {
 		$this->writeAttribute('id', 'local_storage_popup');
 		$this->startElement('div');
 		$this->writeAttribute('id', 'storagePopupMasterParent');
+		$this->writeAttribute('class', 'storageList');
 		$this->startElement('div');
 		$this->writeAttribute('id', 'storagePopupMasterContainer');
 		$this->endElement();
