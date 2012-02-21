@@ -303,6 +303,15 @@ catch (error) {
 		$this->endElement();
 		$this->endElement();
 		$this->startElement('div');
+		$this->writeAttribute('id', 'download_all_storage');
+		$this->startElement('a');
+		$this->writeAttribute('href', 'about:blank');
+		$this->writeAttribute('id', 'download_local_storage_dba');
+		$this->writeAttribute('target', '_blank');
+		$this->text('Export all saved data.');
+		$this->endElement();
+		$this->endElement();
+		$this->startElement('div');
 		$this->writeAttribute('class', 'button_rack');
 		$this->startElement('button');
 		$this->writeAttribute('id', 'local_storage_list_refresh_button');

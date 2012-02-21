@@ -252,6 +252,33 @@ function generateBlob(keyName, encodedData) {
 	saveString += encodedData;
 	return saveString;
 }
+function generateMultiBlob(blobPairs) {
+	var consoleID = "GameBoy";
+	//Figure out the initial length:
+	var totalLength = 13 + 4 + 1 + consoleID.length;
+	//Append the console ID text's length:
+	saveString = to_byte(consoleID.length);
+	//Append the console ID text:
+	saveString += consoleID;
+	var keyName = "";
+	var encodedData = "";
+	//Now append all the blobs:
+	for (var index = 0; index < blobPairs.length; ++index) {
+		keyName = blobPairs[index][0];
+		encodedData = blobPairs[index][1];
+		//Append the blob ID:
+		saveString += to_byte(keyName.length);
+		saveString += keyName;
+		//Now append the save data:
+		saveString += to_little_endian_dword(encodedData.length);
+		saveString += encodedData;
+		//Update the total length:
+		totalLength += 1 + keyName.length + 4 + encodedData.length;
+	}
+	//Now add the prefix:
+	saveString = "EMULATOR_DATA" + to_little_endian_dword(totalLength) + saveString;
+	return saveString;
+}
 function decodeBlob(blobData) {
 	/*Format is as follows:
 		- 13 byte string "EMULATOR_DATA"
@@ -268,7 +295,7 @@ function decodeBlob(blobData) {
 	var length = blobData.length;
 	var blobProperties = {};
 	blobProperties.consoleID = null;
-	var blobsCount = 0;
+	var blobsCount = -1;
 	blobProperties.blobs = [];
 	if (length > 17) {
 		if (blobData.substring(0, 13) == "EMULATOR_DATA") {
@@ -281,7 +308,7 @@ function decodeBlob(blobData) {
 				for (var index = 18 + consoleIDLength; index < length;) {
 					blobIDLength = blobData.charCodeAt(index++) & 0xFF;
 					if (index + blobIDLength < length) {
-						blobProperties.blobs[blobsCount] = {};
+						blobProperties.blobs[++blobsCount] = {};
 						blobProperties.blobs[blobsCount].blobID = blobData.substring(index, index + blobIDLength);
 						index += blobIDLength;
 						if (index + 4 < length) {

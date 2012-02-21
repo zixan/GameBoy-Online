@@ -213,6 +213,7 @@ function registerGUIEvents() {
 								cout("file imported.", 0);
 								try {
 									import_save(this.result);
+									refreshStorageListing();
 								}
 								catch (error) {
 									alert(error.message + " file: " + error.fileName + " line: " + error.lineNumber);
@@ -230,6 +231,7 @@ function registerGUIEvents() {
 						var romImageString = this.files[this.files.length - 1].getAsBinary();
 						try {
 							import_save(romImageString);
+							refreshStorageListing();
 						}
 						catch (error) {
 							alert(error.message + " file: " + error.fileName + " line: " + error.lineNumber);
@@ -437,10 +439,25 @@ function refreshStorageListing() {
 	storageListMasterDivSub = document.createElement("div");
 	storageListMasterDivSub.id = "storageListingMasterContainerSub";
 	var keys = getLocalStorageKeys();
-	while (keys.length > 0) {
-		storageListMasterDivSub.appendChild(outputLocalStorageRequestLink(keys.shift()));
+	var blobPairs = [];
+	for (var index = 0; index < keys.length; ++index) {
+		blobPairs[index] = getBlobPreEncoded(keys[index]);
+		storageListMasterDivSub.appendChild(outputLocalStorageRequestLink(keys[index]));
 	}
 	storageListMasterDiv.appendChild(storageListMasterDivSub);
+	var linkToManipulate = document.getElementById("download_local_storage_dba");
+	linkToManipulate.href = "data:application/octet-stream;base64," + base64(generateMultiBlob(blobPairs));
+}
+function getBlobPreEncoded(keyName) {
+	if (keyName.substring(0, 9) == "B64_SRAM_") {
+		return [keyName.substring(4), base64_decode(findValue(keyName))];
+	}
+	else if (keyName.substring(0, 5) == "SRAM_") {
+		return [keyName, convertToBinary(findValue(keyName))];
+	}
+	else {
+		return [keyName, JSON.stringify(findValue(keyName))];
+	}
 }
 function outputLocalStorageRequestLink(keyName) {
 	var linkNode = generateLink("javascript:popupStorageDialog(\"" + keyName + "\")", keyName);
@@ -496,7 +513,8 @@ function deleteStorageSlot(keyName) {
 }
 function generateLink(address, textData) {
 	var link = document.createElement("a");
-	link.setAttribute("href", address);
+	link.href = address;
+	link.setAttribute("target", "_blank");
 	link.appendChild(document.createTextNode(textData));
 	return link;
 }
