@@ -32,6 +32,7 @@ function windowingInitialize() {
 	windowStacks[6] = windowCreate("local_storage_popup", false);
 	windowStacks[7] = windowCreate("local_storage_listing", false);
 	windowStacks[8] = windowCreate("freeze_listing", false);
+	windowStacks[9] = windowCreate("save_importer", false);
 	mainCanvas = document.getElementById("mainCanvas");
 	fullscreenCanvas = document.getElementById("fullscreen");
 	try {
@@ -65,11 +66,13 @@ function registerGUIEvents() {
 	addEvent("click", document.getElementById("instructions_close_button"), function () { windowStacks[5].hide() });
 	addEvent("click", document.getElementById("local_storage_list_close_button"), function () { windowStacks[7].hide() });
 	addEvent("click", document.getElementById("local_storage_popup_close_button"), function () { windowStacks[6].hide() });
+	addEvent("click", document.getElementById("save_importer_close_button"), function () { windowStacks[9].hide() });
 	addEvent("click", document.getElementById("freeze_list_close_button"), function () { windowStacks[8].hide() });
 	addEvent("click", document.getElementById("GameBoy_about_menu"), function () { windowStacks[2].show() });
 	addEvent("click", document.getElementById("GameBoy_settings_menu"), function () { windowStacks[3].show() });
 	addEvent("click", document.getElementById("local_storage_list_menu"), function () { refreshStorageListing(); windowStacks[7].show(); });
 	addEvent("click", document.getElementById("freeze_list_menu"), function () { refreshFreezeListing(); windowStacks[8].show(); });
+	addEvent("click", document.getElementById("view_importer"), function () { windowStacks[9].show() });
 	addEvent("keydown", document, function (event) {
 		if (event.keyCode == 27) {
 			//Fullscreen on/off
@@ -177,6 +180,56 @@ function registerGUIEvents() {
 						try {
 							initPlayer();
 							start(mainCanvas, romImageString);
+						}
+						catch (error) {
+							alert(error.message + " file: " + error.fileName + " line: " + error.lineNumber);
+						}
+						
+					}
+				}
+				else {
+					cout("Incorrect number of files selected for local loading.", 1);
+				}
+			}
+			catch (error) {
+				cout("Could not load in a locally stored ROM file.", 2);
+			}
+		}
+		else {
+			cout("could not find the handle on the file to open.", 2);
+		}
+	});
+	addEvent("change", document.getElementById("save_open"), function () {
+		windowStacks[9].hide();
+		if (typeof this.files != "undefined") {
+			try {
+				if (this.files.length >= 1) {
+					cout("Reading the local file \"" + this.files[0].name + "\" for importing.", 0);
+					try {
+						//Gecko 1.9.2+ (Standard Method)
+						var binaryHandle = new FileReader();
+						binaryHandle.onload = function () {
+							if (this.readyState == 2) {
+								cout("file imported.", 0);
+								try {
+									import_save(this.result);
+								}
+								catch (error) {
+									alert(error.message + " file: " + error.fileName + " line: " + error.lineNumber);
+								}
+							}
+							else {
+								cout("importing file, please wait...", 0);
+							}
+						}
+						binaryHandle.readAsBinaryString(this.files[this.files.length - 1]);
+					}
+					catch (error) {
+						cout("Browser does not support the FileReader object, falling back to the non-standard File object access,", 2);
+						//Gecko 1.9.0, 1.9.1 (Non-Standard Method)
+						var romImageString = this.files[this.files.length - 1].getAsBinary();
+						try {
+							import_save(romImageString);
 						}
 						catch (error) {
 							alert(error.message + " file: " + error.fileName + " line: " + error.lineNumber);

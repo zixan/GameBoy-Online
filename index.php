@@ -35,6 +35,7 @@ DEBUG_WINDOWING = false;
 		$this->displaySettings();
 		$this->displayInstructions();
 		$this->fileInput();
+		$this->saveInput();
 		$this->displayStorageListing();
 		$this->displayStoragePopup();
 		$this->displayFreezeListing();
@@ -422,6 +423,10 @@ catch (error) {
 		$this->text('Instructions');
 		$this->endElement();
 		$this->startElement('li');
+		$this->writeAttribute('id', 'view_importer');
+		$this->text('Save Importer');
+		$this->endElement();
+		$this->startElement('li');
 		$this->writeAttribute('id', 'local_storage_list_menu');
 		$this->text('Save Manager');
 		$this->endElement();
@@ -451,6 +456,26 @@ catch (error) {
 		$this->writeAttribute('id', 'input_select_close_button');
 		$this->writeAttribute('class', 'center');
 		$this->text('Close File Input');
+		$this->endElement();
+		$this->endElement();
+		$this->endElement();
+	}
+	protected function saveInput() {
+		$this->startElement('div');
+		$this->writeAttribute('id', 'save_importer');
+		$this->writeAttribute('class', 'window');
+		$this->startElement('form');
+		$this->startElement('input');
+		$this->writeAttribute('type', 'file');
+		$this->writeAttribute('id', 'save_open');
+		$this->endElement();
+		$this->endElement();
+		$this->startElement('div');
+		$this->writeAttribute('class', 'button_rack');
+		$this->startElement('button');
+		$this->writeAttribute('id', 'save_importer_close_button');
+		$this->writeAttribute('class', 'center');
+		$this->text('Close Save Importer');
 		$this->endElement();
 		$this->endElement();
 		$this->endElement();

@@ -202,6 +202,36 @@ function openState(filename, canvas) {
 		cout("Could not open the saved emulation state.", 2);
 	}
 }
+function import_save(blobData) {
+	blobData = decodeBlob(blobData);
+	if (blobData && blobData.blobs) {
+		if (blobData.blobs.length > 0) {
+			for (var index = 0; index < blobData.blobs.length; ++index) {
+				cout("Importing blob \"" + blobData.blobs[index].blobID + "\"", 0);
+				if (blobData.blobs[index].blobContent) {
+					if (blobData.blobs[index].blobID.substring(0, 5) == "SRAM_") {
+						setValue("B64_" + blobData.blobs[index].blobID, base64(blobData.blobs[index].blobContent));
+					}
+					else {
+						setValue(blobData.blobs[index].blobID, JSON.parse(blobData.blobs[index].blobContent));
+					}
+				}
+				else if (blobData.blobs[index].blobID) {
+					cout("Save file imported had blob \"" + blobData.blobs[index].blobID + "\" with no blob data interpretable.", 2);
+				}
+				else {
+					cout("Blob chunk information missing completely.", 2);
+				}
+			}
+		}
+		else {
+			cout("Could not decode the imported file.", 2);
+		}
+	}
+	else {
+		cout("Could not decode the imported file.", 2);
+	}
+}
 function generateBlob(keyName, encodedData) {
 	//Append the file format prefix:
 	var saveString = "EMULATOR_DATA";
@@ -257,19 +287,22 @@ function decodeBlob(blobData) {
 						if (index + 4 < length) {
 							blobLength = ((blobData.charCodeAt(index + 3) & 0xFF) << 24) | ((blobData.charCodeAt(index + 2) & 0xFF) << 16) | ((blobData.charCodeAt(index + 1) & 0xFF) << 8) | (blobData.charCodeAt(index) & 0xFF);
 							index += 4;
-							if (index + blobLength < length) {
+							if (index + blobLength <= length) {
 								blobProperties.blobs[blobsCount].blobContent =  blobData.substring(index, index + blobLength);
 								index += blobLength;
 							}
 							else {
+								cout("Blob length check failed, blob determined to be incomplete.", 2);
 								break;
 							}
 						}
 						else {
+							cout("Blob was incomplete, bailing out.", 2);
 							break;
 						}
 					}
 					else {
+						cout("Blob was incomplete, bailing out.", 2);
 						break;
 					}
 				}
