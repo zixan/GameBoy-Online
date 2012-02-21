@@ -514,7 +514,6 @@ function deleteStorageSlot(keyName) {
 function generateLink(address, textData) {
 	var link = document.createElement("a");
 	link.href = address;
-	link.setAttribute("target", "_blank");
 	link.appendChild(document.createTextNode(textData));
 	return link;
 }

@@ -307,7 +307,6 @@ catch (error) {
 		$this->startElement('a');
 		$this->writeAttribute('href', 'about:blank');
 		$this->writeAttribute('id', 'download_local_storage_dba');
-		$this->writeAttribute('target', '_blank');
 		$this->text('Export all saved data.');
 		$this->endElement();
 		$this->endElement();
