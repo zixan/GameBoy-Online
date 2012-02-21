@@ -5044,6 +5044,7 @@ GameBoyCore.prototype.MBCRAMUtilized = function () {
 	return this.cMBC1 || this.cMBC2 || this.cMBC3 || this.cMBC5 || this.cMBC7 || this.cRUMBLE;
 }
 GameBoyCore.prototype.recomputeDimension = function () {
+	initNewCanvas();
 	//Cache some dimension info:
 	this.width = this.canvas.width;
 	this.height = this.canvas.height;

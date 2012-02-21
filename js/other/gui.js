@@ -261,7 +261,9 @@ function registerGUIEvents() {
 	});
 	addEvent("click", document.getElementById("software_resizing"), function () {
 		settings[12] = document.getElementById("software_resizing").checked;
-		initNewCanvas();
+		if (GameBoyEmulatorInitialized()) {
+			gameboy.initLCD();
+		}
 	});
 	addEvent("click", document.getElementById("typed_arrays_disallow"), function () {
 		settings[5] = document.getElementById("typed_arrays_disallow").checked;
@@ -298,7 +300,7 @@ function fullscreenPlayer() {
 			document.getElementById("fullscreenContainer").style.display = "none";
 			windowStacks[0].show();
 		}
-		initNewCanvas();
+		gameboy.initLCD();
 		inFullscreen = !inFullscreen;
 	}
 	else {

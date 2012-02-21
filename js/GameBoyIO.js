@@ -379,7 +379,7 @@ function requestVBlank(canvasHandle) {
 		//}
 	}
 }
-//Call this when generally changing the canvas:
+//The emulator will call this to sort out the canvas properties for (re)initialization.
 function initNewCanvas() {
 	if (GameBoyEmulatorInitialized()) {
 		if (!settings[12]) {
@@ -390,7 +390,6 @@ function initNewCanvas() {
 			gameboy.canvas.width = gameboy.canvas.clientWidth;
 			gameboy.canvas.height = gameboy.canvas.clientHeight;
 		}
-		gameboy.initLCD();
 	}
 }
 //Call this when resizing the canvas:
@@ -398,12 +397,12 @@ function initNewCanvasSize() {
 	if (GameBoyEmulatorInitialized()) {
 		if (!settings[12]) {
 			if (gameboy.width != 160 || gameboy.height != 144) {
-				initNewCanvas();
+				gameboy.initLCD();
 			}
 		}
 		else {
 			if (gameboy.width != gameboy.canvas.clientWidth || gameboy.height != gameboy.canvas.clientHeight) {
-				initNewCanvas();
+				gameboy.initLCD();
 			}
 		}
 	}
