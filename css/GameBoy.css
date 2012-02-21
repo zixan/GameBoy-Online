@@ -238,7 +238,7 @@ div#terminal {
 	min-height: 100px;
 	min-width: 310px;
 }
-div#terminal, div#about, div#settings, div#local_storage_listing {
+div#terminal, div#about, div#settings, div#local_storage_listing, div#freeze_listing {
 	height: 350px;
 	width: 400px;
 }
@@ -249,7 +249,7 @@ div#local_storage_popup {
 	height: 250px;
 	width: 300px;
 }
-div#local_storage_listing {
+div#local_storage_listing, div#freeze_listing {
 	min-width: 400px;
 	min-height: 350px;
 }
@@ -445,7 +445,4 @@ ul.menu > li:hover > ul.menu {
 	top: 0px;
 	display: block;
 	display: inline-block;
-}
-li#open_saved_clicker {
-	display: none;
 }

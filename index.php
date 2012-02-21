@@ -37,6 +37,7 @@ DEBUG_WINDOWING = false;
 		$this->fileInput();
 		$this->displayStorageListing();
 		$this->displayStoragePopup();
+		$this->displayFreezeListing();
 		//Generate the Pop-Ups:
 		$this->generatePopUps();
 		//Fullscreen canvas:
@@ -315,6 +316,32 @@ catch (error) {
 		$this->endElement();
 		$this->endElement();
 	}
+	protected function displayFreezeListing() {
+		$this->startElement('div');
+		$this->writeAttribute('class', 'window');
+		$this->writeAttribute('id', 'freeze_listing');
+		$this->startElement('div');
+		$this->writeAttribute('id', 'freezeListingMasterContainer');
+		$this->writeAttribute('class', 'storageList');
+		$this->startElement('div');
+		$this->writeAttribute('id', 'freezeListingMasterContainerSub');
+		$this->endElement();
+		$this->endElement();
+		$this->startElement('div');
+		$this->writeAttribute('class', 'button_rack');
+		$this->startElement('button');
+		$this->writeAttribute('id', 'freeze_list_refresh_button');
+		$this->writeAttribute('class', 'left');
+		$this->text('Refresh List');
+		$this->endElement();
+		$this->startElement('button');
+		$this->writeAttribute('id', 'freeze_list_close_button');
+		$this->writeAttribute('class', 'right');
+		$this->text('Close Freeze State List');
+		$this->endElement();
+		$this->endElement();
+		$this->endElement();
+	}
 	protected function displayStoragePopup() {
 		$this->startElement('div');
 		$this->writeAttribute('class', 'window');
@@ -355,14 +382,6 @@ catch (error) {
 		$this->startElement('li');
 		$this->writeAttribute('id', 'internal_file_clicker');
 		$this->text('Local File');
-		$this->endElement();
-		$this->startElement('li');
-		$this->writeAttribute('id', 'open_saved_clicker');
-		$this->text('Saved State');
-		$this->startElement('ul');
-		$this->writeAttribute('id', 'save_states');
-		$this->writeAttribute('class', 'menu');
-		$this->endElement();
 		$this->endElement();
 		$this->endElement();
 		$this->endElement();
@@ -405,6 +424,10 @@ catch (error) {
 		$this->startElement('li');
 		$this->writeAttribute('id', 'local_storage_list_menu');
 		$this->text('Save Manager');
+		$this->endElement();
+		$this->startElement('li');
+		$this->writeAttribute('id', 'freeze_list_menu');
+		$this->text('Freeze State Manager');
 		$this->endElement();
 		$this->startElement('li');
 		$this->writeAttribute('id', 'view_fullscreen');

@@ -31,13 +31,12 @@ function windowingInitialize() {
 	windowStacks[5] = windowCreate("instructions", false);
 	windowStacks[6] = windowCreate("local_storage_popup", false);
 	windowStacks[7] = windowCreate("local_storage_listing", false);
+	windowStacks[8] = windowCreate("freeze_listing", false);
 	mainCanvas = document.getElementById("mainCanvas");
 	fullscreenCanvas = document.getElementById("fullscreen");
 	try {
 		//Hook the GUI controls.
 		registerGUIEvents();
-		//Load any save states:
-		loadSaveStates();
 	}
 	catch (error) {
 		cout("Fatal windowing error: \"" + error.message + "\" file:" + error.fileName + " line: " + error.lineNumber, 2);
@@ -66,9 +65,11 @@ function registerGUIEvents() {
 	addEvent("click", document.getElementById("instructions_close_button"), function () { windowStacks[5].hide() });
 	addEvent("click", document.getElementById("local_storage_list_close_button"), function () { windowStacks[7].hide() });
 	addEvent("click", document.getElementById("local_storage_popup_close_button"), function () { windowStacks[6].hide() });
+	addEvent("click", document.getElementById("freeze_list_close_button"), function () { windowStacks[8].hide() });
 	addEvent("click", document.getElementById("GameBoy_about_menu"), function () { windowStacks[2].show() });
 	addEvent("click", document.getElementById("GameBoy_settings_menu"), function () { windowStacks[3].show() });
 	addEvent("click", document.getElementById("local_storage_list_menu"), function () { refreshStorageListing(); windowStacks[7].show(); });
+	addEvent("click", document.getElementById("freeze_list_menu"), function () { refreshFreezeListing(); windowStacks[8].show(); });
 	addEvent("keydown", document, function (event) {
 		if (event.keyCode == 27) {
 			//Fullscreen on/off
@@ -304,47 +305,14 @@ function fullscreenPlayer() {
 		cout("Cannot go into fullscreen mode.", 2);
 	}
 }
-//Check for existing saves states on startup and add each to the menu:
-function loadSaveStates() {
+function runFreeze(keyName) {
 	try {
-		if (findValue("state_names") != null) {
-			var states = findValue("state_names");
-			for (var index = 0; index < states.length; index++) {
-				cout("Adding the save state \""+ states[index] + "\" drop down menu.", 0);
-				addSaveStateItem(states[index]);
-			}
-			document.getElementById("open_saved_clicker").style.display = "block";
-		}
+		initPlayer();
+		openState(keyName, mainCanvas);
 	}
 	catch (error) {
-		cout("A problem with attempting to load save states occurred.", 2);
+		cout("A problem with attempting to open the selected save state occurred.", 2);
 	}
-}
-//Add a save state to the menu:
-function addSaveStateItem(filename) {
-	var new_item = document.createElement("li");
-	new_item.appendChild(document.createTextNode(filename));
-	document.getElementById("save_states").appendChild(new_item);
-	addEvent("click", new_item, function () {
-		try {
-			if (findValue("state_names") != null) {
-				var states = findValue("state_names");
-				cout("Attempting to find a save state record with the name: \"" + this.firstChild.data + "\"", 0);
-				for (var romState in states) {
-					if (states[romState] == this.firstChild.data) {
-						initPlayer();
-						openState(states[romState], mainCanvas);
-					}
-				}
-			}
-			else {
-				cout("The selected save state seems to be missing.", 2);
-			}
-		}
-		catch (error) {
-			cout("A problem with attempting to open the selected save state occurred.", 2);
-		}
-	});
 }
 //Wrapper for localStorage getItem, so that data can be retrieved in various types.
 function findValue(key) {
@@ -384,6 +352,28 @@ function deleteValue(key) {
 function outputLocalStorageLink(keyName, dataFound) {
 	return generateLink("data:application/octet-stream;base64," + dataFound, keyName);
 }
+function refreshFreezeListing() {
+	var storageListMasterDivSub = document.getElementById("freezeListingMasterContainerSub");
+	var storageListMasterDiv = document.getElementById("freezeListingMasterContainer");
+	storageListMasterDiv.removeChild(storageListMasterDivSub);
+	storageListMasterDivSub = document.createElement("div");
+	storageListMasterDivSub.id = "freezeListingMasterContainerSub";
+	var keys = getLocalStorageKeys();
+	while (keys.length > 0) {
+		key = keys.shift();
+		if (key.substring(0, 7) == "FREEZE_") {
+			storageListMasterDivSub.appendChild(outputFreezeStateRequestLink(key));
+		}
+	}
+	storageListMasterDiv.appendChild(storageListMasterDivSub);
+}
+function outputFreezeStateRequestLink(keyName) {
+	var linkNode = generateLink("javascript:runFreeze(\"" + keyName + "\")", keyName);
+	var storageContainerDiv = document.createElement("div");
+	storageContainerDiv.className = "storageListingContainer";
+	storageContainerDiv.appendChild(linkNode)
+	return storageContainerDiv;
+}
 function refreshStorageListing() {
 	var storageListMasterDivSub = document.getElementById("storageListingMasterContainerSub");
 	var storageListMasterDiv = document.getElementById("storageListingMasterContainer");
@@ -413,12 +403,23 @@ function popupStorageDialog(keyName) {
 	var downloadDiv = document.createElement("div");
 	downloadDiv.id = "storagePopupDownload";
 	if (keyName.substring(0, 9) == "B64_SRAM_") {
-		downloadDiv.appendChild(outputLocalStorageLink("Download save data.", findValue(keyName)));
+		var downloadDiv2 = document.createElement("div");
+		downloadDiv2.id = "storagePopupDownloadRAW";
+		downloadDiv2.appendChild(outputLocalStorageLink("Download RAW save data.", findValue(keyName)));
+		subContainer.appendChild(downloadDiv2);
+		downloadDiv.appendChild(outputLocalStorageLink("Download in import compatible format.", base64(generateBlob(keyName.substring(4), base64_decode(findValue(keyName))))));
+	}
+	else if (keyName.substring(0, 5) == "SRAM_") {
+		var downloadDiv2 = document.createElement("div");
+		downloadDiv2.id = "storagePopupDownloadRAW";
+		downloadDiv2.appendChild(outputLocalStorageLink("Download RAW save data.", base64(convertToBinary(findValue(keyName)))));
+		subContainer.appendChild(downloadDiv2);
+		downloadDiv.appendChild(outputLocalStorageLink("Download in import compatible format.", base64(generateBlob(keyName, convertToBinary(findValue(keyName))))));
 	}
 	else {
-		downloadDiv.appendChild(outputLocalStorageLink("Download save data.", base64(convertToBinary(findValue(keyName)))));
+		downloadDiv.appendChild(outputLocalStorageLink("Download in import compatible format.", base64(generateBlob(keyName, JSON.stringify(findValue(keyName))))));
 	}
-	var deleteLink = generateLink("javascript:deleteStorageSlot(\"" + keyName + "\")", "Delete save slot.");
+	var deleteLink = generateLink("javascript:deleteStorageSlot(\"" + keyName + "\")", "Delete data item from HTML5 local storage.");
 	deleteLink.id = "storagePopupDelete";
 	subContainer.appendChild(downloadDiv);
 	subContainer.appendChild(deleteLink);
@@ -460,9 +461,7 @@ function getLocalStorageKeys() {
 	while (index < storageLength) {
 		nextKey = findKey(index++);
 		if (nextKey !== null && nextKey.length > 0) {
-			if (nextKey.substring(0, 5) == "SRAM_" || nextKey.substring(0, 9) == "B64_SRAM_") {
-				keysFound.push(nextKey);
-			}
+			keysFound.push(nextKey);
 		}
 		else {
 			break;
