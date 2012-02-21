@@ -20,7 +20,7 @@ function base64(data) {
 			}
 			while (index < dataLength) {
 				//Keep this loop small for speed.
-				bytes = [data.charCodeAt(index++), data.charCodeAt(index++), data.charCodeAt(index++)];
+				bytes = [data.charCodeAt(index++) & 0xFF, data.charCodeAt(index++) & 0xFF, data.charCodeAt(index++) & 0xFF];
 				base64 += toBase64[bytes[0] >> 2] + toBase64[((bytes[0] & 0x3) << 4) | (bytes[1] >> 4)] + toBase64[((bytes[1] & 0xF) << 2) | (bytes[2] >> 6)] + toBase64[bytes[2] & 0x3F];
 			}
 			if (remainder > 0) {
