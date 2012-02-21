@@ -309,6 +309,7 @@ function fullscreenPlayer() {
 }
 function runFreeze(keyName) {
 	try {
+		windowStacks[8].hide();
 		initPlayer();
 		openState(keyName, mainCanvas);
 	}
