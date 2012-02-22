@@ -4252,6 +4252,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	var index = 0;
 	var state = returnedFrom.slice(0);
 	this.ROM = this.toTypedArray(state[index++], "uint8");
+	this.ROMBankEdge = Math.floor(this.ROM.length / 0x4000);
 	this.inBootstrap = state[index++];
 	this.registerA = state[index++];
 	this.FZero = state[index++];
@@ -4709,6 +4710,7 @@ GameBoyCore.prototype.ROMLoad = function () {
 	for (; romIndex < maxLength; ++romIndex) {
 		this.ROM[romIndex] = (this.ROMImage.charCodeAt(romIndex) & 0xFF);
 	}
+	this.ROMBankEdge = Math.floor(this.ROM.length / 0x4000);
 	//Set up the emulator for the cartidge specifics:
 	this.interpretCartridge();
 	//Check for IRQ matching upon initialization:
@@ -7959,35 +7961,26 @@ GameBoyCore.prototype.VRAMCHRReadDMGCPU = function (parentObj, address) {
 }
 GameBoyCore.prototype.setCurrentMBC1ROMBank = function () {
 	//Read the cartridge ROM data from RAM memory:
-	switch (this.ROMBank1offs) {
+	switch (this.ROMBank1offs % this.ROMBankEdge) {
 		case 0x00:
 		case 0x20:
 		case 0x40:
 		case 0x60:
 			//Bank calls for 0x00, 0x20, 0x40, and 0x60 are really for 0x01, 0x21, 0x41, and 0x61.
-			this.currentROMBank = this.ROMBank1offs << 14;
+			this.currentROMBank = (this.ROMBank1offs % this.ROMBankEdge) << 14;
 			break;
 		default:
-			this.currentROMBank = (this.ROMBank1offs - 1) << 14;
-	}
-	if (this.currentROMBank + 0x4000 >= this.ROM.length) {
-		this.currentROMBank = ((this.currentROMBank + 0x4000) % this.ROM.length) - 0x4000;
+			this.currentROMBank = ((this.ROMBank1offs % this.ROMBankEdge) - 1) << 14;
 	}
 }
 GameBoyCore.prototype.setCurrentMBC2AND3ROMBank = function () {
 	//Read the cartridge ROM data from RAM memory:
 	//Only map bank 0 to bank 1 here (MBC2 is like MBC1, but can only do 16 banks, so only the bank 0 quirk appears for MBC2):
-	this.currentROMBank = Math.max(this.ROMBank1offs - 1, 0) << 14;
-	if (this.currentROMBank + 0x4000 >= this.ROM.length) {
-		this.currentROMBank = ((this.currentROMBank + 0x4000) % this.ROM.length) - 0x4000;
-	}
+	this.currentROMBank = Math.max((this.ROMBank1offs % this.ROMBankEdge) - 1, 0) << 14;
 }
 GameBoyCore.prototype.setCurrentMBC5ROMBank = function () {
 	//Read the cartridge ROM data from RAM memory:
-	this.currentROMBank = (this.ROMBank1offs - 1) << 14;
-	if (this.currentROMBank + 0x4000 >= this.ROM.length) {
-		this.currentROMBank = ((this.currentROMBank + 0x4000) % this.ROM.length) - 0x4000;
-	}
+	this.currentROMBank = ((this.ROMBank1offs % this.ROMBankEdge) - 1) << 14;
 }
 //Memory Writing:
 GameBoyCore.prototype.memoryWrite = function (address, data) {
