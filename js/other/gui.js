@@ -534,7 +534,9 @@ function getLocalStorageKeys() {
 	while (index < storageLength) {
 		nextKey = findKey(index++);
 		if (nextKey !== null && nextKey.length > 0) {
-			keysFound.push(nextKey);
+			if (nextKey.substring(0, 5) == "SRAM_" || nextKey.substring(0, 9) == "B64_SRAM_" || nextKey.substring(0, 7) == "FREEZE_" || nextKey.substring(0, 4) == "RTC_") {
+				keysFound.push(nextKey);
+			}
 		}
 		else {
 			break;
