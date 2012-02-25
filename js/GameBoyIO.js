@@ -394,14 +394,14 @@ function GameBoyGyroSignalHandler(e) {
 function VBlankSyncHandler() {
 	if (settings[11] && GameBoyEmulatorInitialized() && GameBoyEmulatorPlaying()) {
 		//Draw out our graphics now:
-		gameboy.dispatchDraw();
+		gameboy.dispatchDraw(true);
 	}
 }
 function MozVBlankSyncHandler() {
 	settings[15] = true;
 	if (settings[11] && GameBoyEmulatorInitialized() && GameBoyEmulatorPlaying()) {
 		//Draw out our graphics now:
-		gameboy.dispatchDraw();
+		gameboy.dispatchDraw(true);
 		try {
 			window.mozRequestAnimationFrame();
 		}
