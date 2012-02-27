@@ -5097,10 +5097,11 @@ GameBoyCore.prototype.initLCD = function () {
 GameBoyCore.prototype.JoyPadEvent = function (key, down) {
 	if (down) {
 		this.JoyPad &= 0xFF ^ (1 << key);
-		/*if (!this.cGBC) {
+		if (!this.cGBC && (!this.usedBootROM || !this.usedGBCBootROM)) {
 			this.interruptsRequested |= 0x10;	//A real GBC doesn't set this!
+			this.remainingClocks = 0;
 			this.checkIRQMatching();
-		}*/
+		}
 	}
 	else {
 		this.JoyPad |= (1 << key);
@@ -7988,7 +7989,7 @@ GameBoyCore.prototype.VRAMCHRReadDMGCPU = function (parentObj, address) {
 }
 GameBoyCore.prototype.setCurrentMBC1ROMBank = function () {
 	//Read the cartridge ROM data from RAM memory:
-	switch (this.ROMBank1offs % this.ROMBankEdge) {
+	switch (this.ROMBank1offs) {
 		case 0x00:
 		case 0x20:
 		case 0x40:
@@ -8180,6 +8181,14 @@ GameBoyCore.prototype.MBC1WriteRAMBank = function (parentObj, address, data) {
 GameBoyCore.prototype.MBC1WriteType = function (parentObj, address, data) {
 	//MBC1 mode setting:
 	parentObj.MBC1Mode = ((data & 0x1) == 0x1);
+	if (parentObj.MBC1Mode) {
+		parentObj.ROMBank1offs &= 0x1F;
+		parentObj.setCurrentMBC1ROMBank();
+	}
+	else {
+		parentObj.currMBCRAMBank = 0;
+		parentObj.currMBCRAMBankPosition = -0xA000;
+	}
 }
 GameBoyCore.prototype.MBC2WriteROMBank = function (parentObj, address, data) {
 	//MBC2 ROM bank switching:
