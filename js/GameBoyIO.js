@@ -258,7 +258,7 @@ function generateMultiBlob(blobPairs) {
 	//Figure out the initial length:
 	var totalLength = 13 + 4 + 1 + consoleID.length;
 	//Append the console ID text's length:
-	saveString = to_byte(consoleID.length);
+	var saveString = to_byte(consoleID.length);
 	//Append the console ID text:
 	saveString += consoleID;
 	var keyName = "";
