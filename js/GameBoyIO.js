@@ -1,5 +1,7 @@
+"use strict";
 var gameboy = null;						//GameBoyCore object.
-var gbRunInterval;						//GameBoyCore Timer
+var gbRunInterval - null;				//GameBoyCore Timer
+var vblankQueueClear = true;			//Vblank Queue Detection Flag
 var settings = [						//Some settings.
 	true, 								//Turn on sound.
 	false,								//Force Mono sound.
@@ -16,7 +18,6 @@ var settings = [						//Some settings.
 	false,								//Scale the canvas in JS, or let the browser scale the canvas?
 	false,								//Use the GameBoy boot ROM instead of the GameBoy Color boot ROM.
 	0x40000,							//Sample Rate
-	false,								//MozBeforePaint support detected.
 	true								//Use the GBC BIOS?
 ];
 function start(canvas, ROM) {
@@ -396,47 +397,28 @@ function VBlankSyncHandler() {
 		//Draw out our graphics now:
 		gameboy.dispatchDraw(true);
 	}
-}
-function MozVBlankSyncHandler() {
-	settings[15] = true;
-	if (settings[11] && GameBoyEmulatorInitialized() && GameBoyEmulatorPlaying()) {
-		//Draw out our graphics now:
-		gameboy.dispatchDraw(true);
-		try {
-			window.mozRequestAnimationFrame();
-		}
-		catch (error) {
-			try {
-				window.requestAnimationFrame();
-			}
-			catch (error) { }
-		}
-	}
+	vblankQueueClear = true;
 }
 function requestVBlank(canvasHandle) {
 	settings[11] = true;
-	if (!settings[15]) {
-		/*try {
-			window.mozRequestAnimationFrame(VBlankSyncHandler);
+	if (vblankQueueClear) {
+		try {
+			window.webkitRequestAnimationFrame(VBlankSyncHandler, canvasHandle);
 		}
-		catch (e) {*/
+		catch (e) {
 			try {
-				window.webkitRequestAnimationFrame(VBlankSyncHandler, canvasHandle);
+				window.msRequestAnimationFrame(VBlankSyncHandler);
 			}
 			catch (e) {
 				try {
-					window.msRequestAnimationFrame(VBlankSyncHandler);
+					window.requestAnimationFrame(VBlankSyncHandler);
 				}
 				catch (e) {
-					try {
-						window.requestAnimationFrame(VBlankSyncHandler);
-					}
-					catch (e) {
-						settings[11] = false;
-					}
+					settings[11] = false;
 				}
 			}
-		//}
+		}
+		vblankQueueClear = false;
 	}
 }
 //The emulator will call this to sort out the canvas properties for (re)initialization.
