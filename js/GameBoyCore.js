@@ -167,7 +167,6 @@ function GameBoyCore(canvas, ROMImage) {
 	this.lastUnrenderedLine = 0;		//Last rendered scan line...
 	this.queuedScanLines = 0;
 	this.totalLinesPassed = 0;
-	this.skipFrameBufferPreparation = false;
 	this.haltPostClocks = 0;			//Post-Halt clocking.
 	//ROM Cartridge Components:
 	this.cMBC1 = false;					//Does the cartridge use MBC1?
@@ -4439,7 +4438,6 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.initSound();
 	this.noiseSampleTable = (this.noiseTableLength == 0x8000) ? this.LSFR15Table : this.LSFR7Table;
 	this.channel4VolumeShifter = (this.noiseTableLength == 0x8000) ? 15 : 7;
-	this.drawToCanvas();
 }
 GameBoyCore.prototype.returnFromRTCState = function () {
 	if (typeof this.openRTC == "function" && this.cTIMER) {
@@ -4629,7 +4627,6 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.windowY = 0;
 	this.windowX = 0;
 	this.drewBlank = 0;
-	this.drewFrame = true;
 	this.midScanlineOffset = -1;
 	this.currentX = 0;
 }
@@ -5084,7 +5081,13 @@ GameBoyCore.prototype.initLCD = function () {
 		settings[11] = false;										//Reset our v-blank support to force an immediate buffer draw.
 		if (this.swizzledFrame == null) {
 			this.swizzledFrame = this.getTypedArray(69120, 0xFF, "uint8");
-			this.prepareFrame();
+			//Update the swizzle buffer:
+			if (this.drewBlank == 0) {
+				this.swizzleFrameBuffer();
+			}
+			else {
+				this.clearFrameBuffer();
+			}
 		}
 		else {
 			this.requestDraw();
@@ -5686,7 +5689,8 @@ GameBoyCore.prototype.run = function () {
 					this.executeIteration();
 				}
 			}
-			
+			//Request the graphics target to be updated:
+			this.requestDraw();
 		}
 		else {		//We can only get here if there was an internal error, but the loop was restarted.
 			cout("Iterator restarted a faulted core.", 2);
@@ -6038,20 +6042,12 @@ GameBoyCore.prototype.initializeLCDController = function () {
 							//Make sure our gfx are up-to-date:
 							parentObj.graphicsJITVBlank();
 							//Draw the frame:
-							parentObj.drawToCanvas();
-						}
-						else {
-							//Keep the requests for v-blank constant, to prevent stuttering in RAF in Chrome!!!
-							parentObj.skipFrameBufferPreparation = !parentObj.drewFrame;
-							requestVBlank(this.canvas);
+							parentObj.prepareFrame();
 						}
 					}
 					else {
 						//LCD off takes at least 2 frames:
 						--parentObj.drewBlank;
-						//Keep the requests for v-blank constant, to prevent stuttering in RAF in Chrome!!!
-						parentObj.skipFrameBufferPreparation = !parentObj.drewFrame;
-						requestVBlank(this.canvas);
 					}
 					parentObj.LINECONTROL[144](parentObj);	//Scan Line and STAT Mode Control.
 				}
@@ -6111,8 +6107,12 @@ GameBoyCore.prototype.initializeLCDController = function () {
 	}
 }
 GameBoyCore.prototype.DisplayShowOff = function () {
-	this.drewBlank = 2;
-	this.drawToCanvas();
+	if (this.drewBlank == 0) {
+		//Output a blank screen to the output framebuffer:
+		this.clearFrameBuffer();
+		this.drewBlank = 2;
+		this.drewFrame = true;
+	}
 }
 GameBoyCore.prototype.executeHDMA = function () {
 	this.DMAWrite(1);
@@ -6162,39 +6162,24 @@ GameBoyCore.prototype.clockUpdate = function () {
 		}
 	}
 }
-GameBoyCore.prototype.drawToCanvas = function () {
-	//Draw the frame buffer to the canvas:
-	if (!this.drewFrame) {	//Throttle blitting to once per interpreter loop iteration.
-		this.prepareFrame();
-		this.drewFrame = true;
-	}
-}
 GameBoyCore.prototype.prepareFrame = function () {
-	if (this.drewBlank == 0) {
-		//Copy and convert our internal framebuffer to our output friendly framebuffer:
-		this.swizzleFrameBuffer();
-	}
-	else {
-		//Output a blank screen to the output framebuffer:
-		this.clearFrameBuffer();
-	}
-	//Request the graphics target to be updated:
-	this.requestDraw();
+	//Copy the internal frame buffer to the output buffer:
+	this.swizzleFrameBuffer();
+	this.drewFrame = true;
 }
 GameBoyCore.prototype.requestDraw = function () {
-	this.skipFrameBufferPreparation = false;
 	if (!settings[11]) {
 		//If we have not detected v-blank timing support, then we'll just blit now:
-		this.dispatchDraw(false);
+		this.dispatchDraw();
 	}
 	//Request a v-blank event to occur:
 	requestVBlank(this.canvas);
 }
-GameBoyCore.prototype.dispatchDraw = function (forceDummyDraw) {
+GameBoyCore.prototype.dispatchDraw = function () {
 	var canvasRGBALength = this.rgbCount;
 	if (canvasRGBALength > 0) {
-		if (!this.skipFrameBufferPreparation) {
-			//We actually need to update the graphics target:
+		if (this.drewFrame) {
+			//We actually updated the graphics internally, so copy out:
 			var frameBuffer = (canvasRGBALength == 92160) ? this.swizzledFrame : this.resizeFrameBuffer();
 			var canvasData = this.canvasBuffer.data;
 			var bufferIndex = 0;
@@ -6203,12 +6188,8 @@ GameBoyCore.prototype.dispatchDraw = function (forceDummyDraw) {
 				canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
 				canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
 			}
-			this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 		}
-		else if (forceDummyDraw) {
-			//Always do a graphics framebuffer out, even if dummy, for stable frame rates in Google Chrome:
-			this.drawContext.putImageData(this.canvasBuffer, 0, 0);
-		}
+		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 	}
 }
 GameBoyCore.prototype.swizzleFrameBuffer = function () {

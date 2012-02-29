@@ -395,13 +395,13 @@ function GameBoyGyroSignalHandler(e) {
 function VBlankSyncHandler() {
 	if (settings[11] && GameBoyEmulatorInitialized() && GameBoyEmulatorPlaying()) {
 		//Draw out our graphics now:
-		gameboy.dispatchDraw(true);
+		gameboy.dispatchDraw();
 	}
 	vblankQueueClear = true;
 }
 function requestVBlank(canvasHandle) {
-	settings[11] = true;
 	if (vblankQueueClear) {
+		settings[11] = true;
 		try {
 			window.webkitRequestAnimationFrame(VBlankSyncHandler, canvasHandle);
 		}
