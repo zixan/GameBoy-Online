@@ -5081,17 +5081,9 @@ GameBoyCore.prototype.initLCD = function () {
 		settings[11] = false;										//Reset our v-blank support to force an immediate buffer draw.
 		if (this.swizzledFrame == null) {
 			this.swizzledFrame = this.getTypedArray(69120, 0xFF, "uint8");
-			//Update the swizzle buffer:
-			if (this.drewBlank == 0) {
-				this.swizzleFrameBuffer();
-			}
-			else {
-				this.clearFrameBuffer();
-			}
 		}
-		else {
-			this.requestDraw();
-		}
+		//Test the draw system and browser vblank latching:
+		this.requestDraw();
 	}
 	catch (error) {
 		throw(new Error("HTML5 Canvas support required: " + error.message + "file: " + error.fileName + ", line: " + error.lineNumber));
