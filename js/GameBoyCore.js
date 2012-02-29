@@ -6103,9 +6103,9 @@ GameBoyCore.prototype.DisplayShowOff = function () {
 	if (this.drewBlank == 0) {
 		//Output a blank screen to the output framebuffer:
 		this.clearFrameBuffer();
-		this.drewBlank = 2;
 		this.drewFrame = true;
 	}
+	this.drewBlank = 2;
 }
 GameBoyCore.prototype.executeHDMA = function () {
 	this.DMAWrite(1);
