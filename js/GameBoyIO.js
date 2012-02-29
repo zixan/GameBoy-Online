@@ -1,6 +1,6 @@
 "use strict";
 var gameboy = null;						//GameBoyCore object.
-var gbRunInterval - null;				//GameBoyCore Timer
+var gbRunInterval = null;				//GameBoyCore Timer
 var vblankQueueClear = true;			//Vblank Queue Detection Flag
 var settings = [						//Some settings.
 	true, 								//Turn on sound.
