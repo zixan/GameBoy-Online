@@ -5083,6 +5083,7 @@ GameBoyCore.prototype.initLCD = function () {
 			this.swizzledFrame = this.getTypedArray(69120, 0xFF, "uint8");
 		}
 		//Test the draw system and browser vblank latching:
+		this.drewFrame = true;										//Copy the latest graphics to buffer.
 		this.requestDraw();
 	}
 	catch (error) {
@@ -6030,7 +6031,7 @@ GameBoyCore.prototype.initializeLCDController = function () {
 					//Attempt to blit out to our canvas:
 					if (parentObj.drewBlank == 0) {
 						//Ensure JIT framing alignment:
-						if (!parentObj.drewFrame && (parentObj.totalLinesPassed < 144 || (parentObj.totalLinesPassed == 144 && parentObj.midScanlineOffset > -1))) {
+						if (parentObj.totalLinesPassed < 144 || (parentObj.totalLinesPassed == 144 && parentObj.midScanlineOffset > -1)) {
 							//Make sure our gfx are up-to-date:
 							parentObj.graphicsJITVBlank();
 							//Draw the frame:
