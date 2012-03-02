@@ -6034,13 +6034,14 @@ GameBoyCore.prototype.initializeLCDController = function () {
 						if (parentObj.totalLinesPassed < 144 || (parentObj.totalLinesPassed == 144 && parentObj.midScanlineOffset > -1)) {
 							//Make sure our gfx are up-to-date:
 							parentObj.graphicsJITVBlank();
-							//Draw the frame:
-							parentObj.prepareFrame();
 						}
+						//Draw the frame:
+						parentObj.prepareFrame();
 					}
 					else {
 						//LCD off takes at least 2 frames:
 						--parentObj.drewBlank;
+						parentObj.fadeFrame();
 					}
 					parentObj.LINECONTROL[144](parentObj);	//Scan Line and STAT Mode Control.
 				}
@@ -6160,6 +6161,26 @@ GameBoyCore.prototype.prepareFrame = function () {
 	this.swizzleFrameBuffer();
 	this.drewFrame = true;
 }
+GameBoyCore.prototype.fadeFrame = function () {
+	//Fade to white while LCD is still off:
+	var swizzledFrame = this.swizzledFrame;
+	var canvasIndex = 0;
+	if (this.cGBC || this.colorizedGBPalettes) {
+		for (; canvasIndex < 69120; ++canvasIndex) {
+			swizzledFrame[canvasIndex] = (swizzledFrame[canvasIndex] + 0xF8) >> 1;
+		}
+	}
+	else {
+		for (; canvasIndex < 69120; ++canvasIndex) {
+			swizzledFrame[canvasIndex] = (swizzledFrame[canvasIndex] + 239) >> 1;
+			++canvasIndex;
+			swizzledFrame[canvasIndex] = (swizzledFrame[canvasIndex] + 255) >> 1;
+			++canvasIndex;
+			swizzledFrame[canvasIndex] = (swizzledFrame[canvasIndex] + 222) >> 1;
+		}
+	}
+	this.drewFrame = true;
+}
 GameBoyCore.prototype.requestDraw = function () {
 	if (!settings[11]) {
 		//If we have not detected v-blank timing support, then we'll just blit now:
@@ -6192,9 +6213,12 @@ GameBoyCore.prototype.swizzleFrameBuffer = function () {
 	var bufferIndex = 0;
 	var canvasIndex = 0;
 	while (canvasIndex < 69120) {
-		swizzledFrame[canvasIndex++] = (frameBuffer[bufferIndex] >> 16) & 0xFF;		//Red
-		swizzledFrame[canvasIndex++] = (frameBuffer[bufferIndex] >> 8) & 0xFF;		//Green
-		swizzledFrame[canvasIndex++] = frameBuffer[bufferIndex++] & 0xFF;			//Blue
+		swizzledFrame[canvasIndex] = (((frameBuffer[bufferIndex] >> 16) & 0xFF) + swizzledFrame[canvasIndex]) >> 1;		//Red
+		++canvasIndex;
+		swizzledFrame[canvasIndex] = (((frameBuffer[bufferIndex] >> 8) & 0xFF) + swizzledFrame[canvasIndex]) >> 1;		//Green
+		++canvasIndex;
+		swizzledFrame[canvasIndex] = ((frameBuffer[bufferIndex++] & 0xFF) + swizzledFrame[canvasIndex]) >> 1;			//Blue
+		++canvasIndex;
 	}
 }
 GameBoyCore.prototype.clearFrameBuffer = function () {
