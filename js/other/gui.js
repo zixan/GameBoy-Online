@@ -139,6 +139,15 @@ function registerGUIEvents() {
 			}
 		}
 	});
+	addEvent("click", document.getElementById("set_blur"), function () {
+		if (GameBoyEmulatorInitialized()) {
+			var blurFactor = prompt("Set the LCD blur factor here:", "0.3");
+			if (blurFactor != null && blurFactor.length > 0) {
+				settings[16] = blurFactor - 0;
+				gameboy.recomputeBlur();
+			}
+		}
+	});
 	addEvent("click", document.getElementById("internal_file_clicker"), function () {
 		var file_opener = document.getElementById("local_file_open");
 		windowStacks[4].show();

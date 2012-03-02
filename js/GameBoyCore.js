@@ -5049,8 +5049,13 @@ GameBoyCore.prototype.recomputeDimension = function () {
 	this.height = this.canvas.height;
 	this.rgbCount = this.width * this.height * 4;
 }
+GameBoyCore.prototype.recomputeBlur = function () {
+	this.blurMultiplier = Math.min(Math.max(settings[16], 0), 0.5) * 2;
+	this.blurDivider = 1 + this.blurMultiplier;
+}
 GameBoyCore.prototype.initLCD = function () {
 	this.recomputeDimension();
+	this.recomputeBlur();
 	if (this.rgbCount != 92160) {
 		//Only create the resizer handle if we need it:
 		this.compileResizeFrameBufferFunction();
@@ -6167,16 +6172,16 @@ GameBoyCore.prototype.fadeFrame = function () {
 	var canvasIndex = 0;
 	if (this.cGBC || this.colorizedGBPalettes) {
 		for (; canvasIndex < 69120; ++canvasIndex) {
-			swizzledFrame[canvasIndex] = (swizzledFrame[canvasIndex] + 0xF8) >> 1;
+			swizzledFrame[canvasIndex] = Math.round(((swizzledFrame[canvasIndex] * this.blurMultiplier) + 0xF8) / this.blurDivider);
 		}
 	}
 	else {
 		for (; canvasIndex < 69120; ++canvasIndex) {
-			swizzledFrame[canvasIndex] = (swizzledFrame[canvasIndex] + 239) >> 1;
+			swizzledFrame[canvasIndex] = Math.round(((swizzledFrame[canvasIndex] * this.blurMultiplier) + 239) / this.blurDivider);
 			++canvasIndex;
-			swizzledFrame[canvasIndex] = (swizzledFrame[canvasIndex] + 255) >> 1;
+			swizzledFrame[canvasIndex] = Math.round(((swizzledFrame[canvasIndex] * this.blurMultiplier) + 255) / this.blurDivider);
 			++canvasIndex;
-			swizzledFrame[canvasIndex] = (swizzledFrame[canvasIndex] + 222) >> 1;
+			swizzledFrame[canvasIndex] = Math.round(((swizzledFrame[canvasIndex] * this.blurMultiplier) + 222) / this.blurDivider);
 		}
 	}
 	this.drewFrame = true;
@@ -6213,11 +6218,11 @@ GameBoyCore.prototype.swizzleFrameBuffer = function () {
 	var bufferIndex = 0;
 	var canvasIndex = 0;
 	while (canvasIndex < 69120) {
-		swizzledFrame[canvasIndex] = (((frameBuffer[bufferIndex] >> 16) & 0xFF) + swizzledFrame[canvasIndex]) >> 1;		//Red
+		swizzledFrame[canvasIndex] = Math.round(((swizzledFrame[canvasIndex] * this.blurMultiplier) + ((frameBuffer[bufferIndex] >> 16) & 0xFF)) / this.blurDivider);		//Red
 		++canvasIndex;
-		swizzledFrame[canvasIndex] = (((frameBuffer[bufferIndex] >> 8) & 0xFF) + swizzledFrame[canvasIndex]) >> 1;		//Green
+		swizzledFrame[canvasIndex] = Math.round(((swizzledFrame[canvasIndex] * this.blurMultiplier) + ((frameBuffer[bufferIndex] >> 8) & 0xFF)) / this.blurDivider);		//Green
 		++canvasIndex;
-		swizzledFrame[canvasIndex] = ((frameBuffer[bufferIndex++] & 0xFF) + swizzledFrame[canvasIndex]) >> 1;			//Blue
+		swizzledFrame[canvasIndex] = Math.round(((swizzledFrame[canvasIndex] * this.blurMultiplier) + (frameBuffer[bufferIndex++] & 0xFF)) / this.blurDivider);				//Blue
 		++canvasIndex;
 	}
 }

@@ -183,9 +183,9 @@ Resize.prototype.resizeHeightRGB = function (buffer) {
 			}
 		} while (weight > 0 && actualPosition < this.widthPassResultSize);
 		for (pixelOffset = 0; pixelOffset < this.targetWidthMultipliedByChannels;) {
-			outputBuffer[outputOffset++] = output[pixelOffset++] / ratioWeight;
-			outputBuffer[outputOffset++] = output[pixelOffset++] / ratioWeight;
-			outputBuffer[outputOffset++] = output[pixelOffset++] / ratioWeight;
+			outputBuffer[outputOffset++] = Math.round(output[pixelOffset++] / ratioWeight);
+			outputBuffer[outputOffset++] = Math.round(output[pixelOffset++] / ratioWeight);
+			outputBuffer[outputOffset++] = Math.round(output[pixelOffset++] / ratioWeight);
 		}
 	} while (outputOffset < this.finalResultSize);
 	return outputBuffer;
@@ -232,10 +232,10 @@ Resize.prototype.resizeHeightRGBA = function (buffer) {
 			}
 		} while (weight > 0 && actualPosition < this.widthPassResultSize);
 		for (pixelOffset = 0; pixelOffset < this.targetWidthMultipliedByChannels;) {
-			outputBuffer[outputOffset++] = output[pixelOffset++] / ratioWeight;
-			outputBuffer[outputOffset++] = output[pixelOffset++] / ratioWeight;
-			outputBuffer[outputOffset++] = output[pixelOffset++] / ratioWeight;
-			outputBuffer[outputOffset++] = output[pixelOffset++] / ratioWeight;
+			outputBuffer[outputOffset++] = Math.round(output[pixelOffset++] / ratioWeight);
+			outputBuffer[outputOffset++] = Math.round(output[pixelOffset++] / ratioWeight);
+			outputBuffer[outputOffset++] = Math.round(output[pixelOffset++] / ratioWeight);
+			outputBuffer[outputOffset++] = Math.round(output[pixelOffset++] / ratioWeight);
 		}
 	} while (outputOffset < this.finalResultSize);
 	return outputBuffer;
@@ -254,13 +254,26 @@ Resize.prototype.initializeFirstPassBuffers = function () {
 }
 Resize.prototype.initializeSecondPassBuffers = function () {
 	//Initialize the internal height pass buffers:
-	this.heightBuffer = this.generateFloatBuffer(this.finalResultSize);
+	this.heightBuffer = this.generateUint8Buffer(this.finalResultSize);
 	this.outputHeightWorkBench = this.generateFloatBuffer(this.targetWidthMultipliedByChannels);
 }
 Resize.prototype.generateFloatBuffer = function (bufferLength) {
 	//Generate a float32 typed array buffer:
 	try {
 		return new Float32Array(bufferLength);
+	}
+	catch (error) {
+		return [];
+	}
+}
+Resize.prototype.generateUint8Buffer = function (bufferLength) {
+	//Generate a uint8 typed array buffer:
+	if (window.opera) {
+		//Opera breaks spec with int typed arrays, so force to work with float:
+		return this.generateFloatBuffer(bufferLength);
+	}
+	try {
+		return new Uint8Array(bufferLength);
 	}
 	catch (error) {
 		return [];
