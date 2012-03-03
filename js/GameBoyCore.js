@@ -5164,7 +5164,7 @@ GameBoyCore.prototype.intializeWhiteNoise = function () {
 		//Normalize the last LSFR value for usage:
 		randomFactor = 1 - (LSFR & 1);	//Docs say it's the inverse.
 		//Cache the different volume level results:
-		this.LSFR15Table[0x08000 | index] = randomFactor * 0x1 / 0x1E;
+		this.LSFR15Table[0x08000 | index] = randomFactor / 0x1E;
 		this.LSFR15Table[0x10000 | index] = randomFactor * 0x2 / 0x1E;
 		this.LSFR15Table[0x18000 | index] = randomFactor * 0x3 / 0x1E;
 		this.LSFR15Table[0x20000 | index] = randomFactor * 0x4 / 0x1E;
@@ -5190,7 +5190,7 @@ GameBoyCore.prototype.intializeWhiteNoise = function () {
 		//Normalize the last LSFR value for usage:
 		randomFactor = 1 - (LSFR & 1);	//Docs say it's the inverse.
 		//Cache the different volume level results:
-		this.LSFR7Table[0x080 | index] = randomFactor * 0x1 / 0x1E;
+		this.LSFR7Table[0x080 | index] = randomFactor / 0x1E;
 		this.LSFR7Table[0x100 | index] = randomFactor * 0x2 / 0x1E;
 		this.LSFR7Table[0x180 | index] = randomFactor * 0x3 / 0x1E;
 		this.LSFR7Table[0x200 | index] = randomFactor * 0x4 / 0x1E;
