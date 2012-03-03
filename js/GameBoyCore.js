@@ -5049,13 +5049,8 @@ GameBoyCore.prototype.recomputeDimension = function () {
 	this.height = this.canvas.height;
 	this.rgbCount = this.width * this.height * 4;
 }
-GameBoyCore.prototype.recomputeBlur = function () {
-	this.blurMultiplier = Math.min(Math.max(settings[16], 0), 0.5) * 2;
-	this.blurDivider = 1 + this.blurMultiplier;
-}
 GameBoyCore.prototype.initLCD = function () {
 	this.recomputeDimension();
-	this.recomputeBlur();
 	if (this.rgbCount != 92160) {
 		//Only create the resizer handle if we need it:
 		this.compileResizeFrameBufferFunction();
@@ -6039,14 +6034,13 @@ GameBoyCore.prototype.initializeLCDController = function () {
 						if (parentObj.totalLinesPassed < 144 || (parentObj.totalLinesPassed == 144 && parentObj.midScanlineOffset > -1)) {
 							//Make sure our gfx are up-to-date:
 							parentObj.graphicsJITVBlank();
+							//Draw the frame:
+							parentObj.prepareFrame();
 						}
-						//Draw the frame:
-						parentObj.prepareFrame();
 					}
 					else {
 						//LCD off takes at least 2 frames:
 						--parentObj.drewBlank;
-						parentObj.fadeFrame();
 					}
 					parentObj.LINECONTROL[144](parentObj);	//Scan Line and STAT Mode Control.
 				}
@@ -6166,26 +6160,6 @@ GameBoyCore.prototype.prepareFrame = function () {
 	this.swizzleFrameBuffer();
 	this.drewFrame = true;
 }
-GameBoyCore.prototype.fadeFrame = function () {
-	//Fade to white while LCD is still off:
-	var swizzledFrame = this.swizzledFrame;
-	var canvasIndex = 0;
-	if (this.cGBC || this.colorizedGBPalettes) {
-		for (; canvasIndex < 69120; ++canvasIndex) {
-			swizzledFrame[canvasIndex] = Math.round(((swizzledFrame[canvasIndex] * this.blurMultiplier) + 0xF8) / this.blurDivider);
-		}
-	}
-	else {
-		for (; canvasIndex < 69120; ++canvasIndex) {
-			swizzledFrame[canvasIndex] = Math.round(((swizzledFrame[canvasIndex] * this.blurMultiplier) + 239) / this.blurDivider);
-			++canvasIndex;
-			swizzledFrame[canvasIndex] = Math.round(((swizzledFrame[canvasIndex] * this.blurMultiplier) + 255) / this.blurDivider);
-			++canvasIndex;
-			swizzledFrame[canvasIndex] = Math.round(((swizzledFrame[canvasIndex] * this.blurMultiplier) + 222) / this.blurDivider);
-		}
-	}
-	this.drewFrame = true;
-}
 GameBoyCore.prototype.requestDraw = function () {
 	if (!settings[11]) {
 		//If we have not detected v-blank timing support, then we'll just blit now:
@@ -6216,14 +6190,10 @@ GameBoyCore.prototype.swizzleFrameBuffer = function () {
 	var frameBuffer = this.frameBuffer;
 	var swizzledFrame = this.swizzledFrame;
 	var bufferIndex = 0;
-	var canvasIndex = 0;
-	while (canvasIndex < 69120) {
-		swizzledFrame[canvasIndex] = Math.round(((swizzledFrame[canvasIndex] * this.blurMultiplier) + ((frameBuffer[bufferIndex] >> 16) & 0xFF)) / this.blurDivider);		//Red
-		++canvasIndex;
-		swizzledFrame[canvasIndex] = Math.round(((swizzledFrame[canvasIndex] * this.blurMultiplier) + ((frameBuffer[bufferIndex] >> 8) & 0xFF)) / this.blurDivider);		//Green
-		++canvasIndex;
-		swizzledFrame[canvasIndex] = Math.round(((swizzledFrame[canvasIndex] * this.blurMultiplier) + (frameBuffer[bufferIndex++] & 0xFF)) / this.blurDivider);				//Blue
-		++canvasIndex;
+	for (var canvasIndex = 0; canvasIndex < 69120;) {
+		swizzledFrame[canvasIndex++] = (frameBuffer[bufferIndex] >> 16) & 0xFF;		//Red
+		swizzledFrame[canvasIndex++] = (frameBuffer[bufferIndex] >> 8) & 0xFF;		//Green
+		swizzledFrame[canvasIndex++] = frameBuffer[bufferIndex++] & 0xFF;			//Blue
 	}
 }
 GameBoyCore.prototype.clearFrameBuffer = function () {

@@ -407,10 +407,6 @@ catch (error) {
 		$this->text('Set Speed Multiplier');
 		$this->endElement();
 		$this->startElement('li');
-		$this->writeAttribute('id', 'set_blur');
-		$this->text('Set LCD Blur Factor');
-		$this->endElement();
-		$this->startElement('li');
 		$this->writeAttribute('id', 'restart_cpu_clicker');
 		$this->text('Restart');
 		$this->endElement();

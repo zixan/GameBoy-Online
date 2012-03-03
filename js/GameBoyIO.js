@@ -18,8 +18,7 @@ var settings = [						//Some settings.
 	false,								//Scale the canvas in JS, or let the browser scale the canvas?
 	false,								//Use the GameBoy boot ROM instead of the GameBoy Color boot ROM.
 	0x40000,							//Sample Rate
-	true,								//Use the GBC BIOS?
-	0.3									//Blur weighting
+	true								//Use the GBC BIOS?
 ];
 function start(canvas, ROM) {
 	clearLastEmulation();
