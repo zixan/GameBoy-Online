@@ -1,3 +1,4 @@
+"use strict";
 //Cross-Browser Ajax Access
 //(c) 2009-10 - Grant Galitz
 function Ajax() {
@@ -25,6 +26,7 @@ function Ajax() {
 		this.aIFramePost = [], this.aXMLGet = [], this.aActiveXGet = [], this.aIFrameGet = [], this.aSelectedGet = [], this.aSelectedPost = [],
 		this.sSelectedAcceptType = "AUTO", this.sXMLAcceptType = "AUTO", this.sActiveXAcceptType = "AUTO", this.sIFrameAcceptType = "AUTO";
 		this.StartTime = this.timestamp();
+		var arg = null;
 		for (arg in arguments[0]) {
 			switch (arg) {
 				case "URL":
@@ -339,13 +341,12 @@ Ajax.prototype.run = function () {
 	}
 }
 Ajax.prototype.composeGET = function () {
-	var index;
 	var getString = "";
 	var aLocalGet = this.aSelectedGet.slice(0);
 	if (!this.bCached) {
 		aLocalGet[aLocalGet.length] = "ajaxtimestamp=" + this.timestamp();
 	}
-	for (index = 0; index < aLocalGet.length; index++) {
+	for (var index = 0; index < aLocalGet.length; index++) {
 		getString += ((index == 0) ? "?" : "&");
 		getString += aLocalGet[index];
 	}
@@ -353,8 +354,7 @@ Ajax.prototype.composeGET = function () {
 }
 Ajax.prototype.composePOST = function () {
 	var postString = "";
-	var index;
-	for (index = 0; index < this.aSelectedPost.length; index++) {
+	for (var index = 0; index < this.aSelectedPost.length; index++) {
 		postString += this.aSelectedPost[index];
 		if ((index + 1) < this.aSelectedPost.length) {
 			postString += "&";
