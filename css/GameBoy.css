@@ -5,6 +5,7 @@ html {
 	background-repeat: none;
 	background-image: url("../images/gradient_01.svg.php");
 	background-image: linear-gradient(315deg, rgb(200, 200, 255), rgb(200, 255, 200));
+	background-image: -o-linear-gradient(315deg, rgb(200, 200, 255), rgb(200, 255, 200));
 	background-image: -moz-linear-gradient(315deg, rgb(200, 200, 255), rgb(200, 255, 200));
 	background-image: -webkit-gradient(linear, left top, right bottom, color-stop(0, #C8C8FF), color-stop(1, #C8FFC8));
 	margin: 0px;
@@ -102,6 +103,7 @@ div.menubar {
 	background-attachment: scroll;
 	background-image: url("../images/gradient_02.svg.php");
 	background-image: linear-gradient(top, rgb(150, 150, 150), rgb(220, 220, 220), rgb(180, 180, 180));
+	background-image: -o-gradient(top, rgb(150, 150, 150), rgb(220, 220, 220), rgb(180, 180, 180));
 	background-image: -moz-linear-gradient(top, rgb(150, 150, 150), rgb(220, 220, 220), rgb(180, 180, 180));
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #969696), color-stop(0.5, #DCDCDC), color-stop(1, #B4B4B4));
 }
@@ -125,6 +127,7 @@ div.menubar > span:hover {
 	background-attachment: scroll;
 	background-image: url("../images/gradient_03.svg.php");
 	background-image: linear-gradient(top, rgb(160, 160, 160), rgb(190, 190, 190), rgb(160, 160, 160));
+	background-image: -o-linear-gradient(top, rgb(160, 160, 160), rgb(190, 190, 190), rgb(160, 160, 160));
 	background-image: -moz-linear-gradient(top, rgb(160, 160, 160), rgb(190, 190, 190), rgb(160, 160, 160));
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #A0A0A0), color-stop(0.5, #BEBEBE), color-stop(1, #A0A0A0));
 }
@@ -137,6 +140,7 @@ div.menubar > span:active {
 	background-attachment: scroll;
 	background-image: url("../images/gradient_04.svg.php");
 	background-image: linear-gradient(top, rgb(190, 190, 190), rgb(160, 160, 160), rgb(190, 190, 190));
+	background-image: -o-linear-gradient(top, rgb(190, 190, 190), rgb(160, 160, 160), rgb(190, 190, 190));
 	background-image: -moz-linear-gradient(top, rgb(190, 190, 190), rgb(160, 160, 160), rgb(190, 190, 190));
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #BEBEBE), color-stop(0.5, #A0A0A0), color-stop(1, #BEBEBE));
 }
@@ -155,6 +159,7 @@ div#gfx {
 	background-attachment: scroll;
 	background-image: url("../images/gradient_05.svg.php");
 	background-image: linear-gradient(top, rgb(200, 50, 50), rgb(200, 75, 150));
+	background-image: -o-linear-gradient(top, rgb(200, 50, 50), rgb(200, 75, 150));
 	background-image: -moz-linear-gradient(top, rgb(200, 50, 50), rgb(200, 75, 150));
 	background-image: -webkit-gradient(linear, left top, left bottom, color-stop(0, #C83232), color-stop(1, #C84B96));
 }
@@ -417,6 +422,7 @@ ul.menu {
 	background-attachment: scroll;
 	background-image: url("../images/gradient_06.svg.php");
 	background-image: linear-gradient(left, rgb(200, 200, 200), rgb(240, 240, 240));
+	background-image: -o-linear-gradient(left, rgb(200, 200, 200), rgb(240, 240, 240));
 	background-image: -moz-linear-gradient(left, rgb(200, 200, 200), rgb(240, 240, 240));
 	background-image: -webkit-gradient(linear, top left, top right, color-stop(0, #C8C8C8), color-stop(1, #DCDCDC));
 	border-radius: 3px;
