@@ -9545,10 +9545,6 @@ GameBoyCore.prototype.toTypedArray = function (baseArray, memtype) {
 			return [];
 		}
 		var length = baseArray.length;
-		if (window.opera && memtype != "float32") {
-			//Opera typed array bug workaround:
-			throw(Error("Opera has critical int32 and uint8 typed array bugs, working around it."));
-		}
 		switch (memtype) {
 			case "uint8":
 				var typedArrayTemp = new Uint8Array(length);
@@ -9589,10 +9585,6 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 	try {
 		if (settings[5]) {
 			throw(new Error(""));
-		}
-		if (window.opera && numberType != "float32") {
-			//Opera typed array bug workaround:
-			throw(Error("Opera has critical int32 and uint8 typed array bugs, working around it."));
 		}
 		switch (numberType) {
 			case "uint8":
