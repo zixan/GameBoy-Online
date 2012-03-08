@@ -268,10 +268,6 @@ Resize.prototype.generateFloatBuffer = function (bufferLength) {
 }
 Resize.prototype.generateUint8Buffer = function (bufferLength) {
 	//Generate a uint8 typed array buffer:
-	if (window.opera) {
-		//Opera breaks spec with int typed arrays, so force to work with float:
-		return this.generateFloatBuffer(bufferLength);
-	}
 	try {
 		return new Uint8Array(bufferLength);
 	}
