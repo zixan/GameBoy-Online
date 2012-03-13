@@ -245,6 +245,8 @@ function GameBoyCore(canvas, ROMImage) {
 	this.width = 160;
 	this.height = 144;
 	this.rgbCount = this.width * this.height * 4;
+	//Initialize the white noise cache tables ahead of time:
+	this.intializeWhiteNoise();
 }
 GameBoyCore.prototype.GBBOOTROM = [		//GB BOOT ROM
 	//Converted Neviksti's ROM dump to this array:
@@ -5115,12 +5117,15 @@ GameBoyCore.prototype.GyroEvent = function (x, y) {
 	this.lowY = y & 0xFF;
 }
 GameBoyCore.prototype.initSound = function () {
+	this.sampleSize = settings[14] / 1000 * settings[6];
+	cout("...Samples per interpreter loop iteration (Per Channel): " + this.sampleSize, 0);
+	this.samplesOut = this.sampleSize / this.CPUCyclesPerIteration;
+	cout("...Samples per clock cycle (Per Channel): " + this.samplesOut, 0);
 	if (settings[0]) {
 		this.soundChannelsAllocated = (!settings[1]) ? 2 : 1;
 		this.soundFrameShifter = this.soundChannelsAllocated - 1;
 		try {
 			var parentObj = this;
-			this.sampleSize = settings[14] / 1000 * settings[6];
 			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], Math.max(this.sampleSize * settings[8], 2048) << this.soundFrameShifter, Math.max(this.sampleSize * 20, 8192) << this.soundFrameShifter, function (sampleCount) {
 				return parentObj.audioUnderRun(sampleCount);
 			}, -1);
@@ -5144,14 +5149,10 @@ GameBoyCore.prototype.initSound = function () {
 	}
 }
 GameBoyCore.prototype.initAudioBuffer = function () {
-	this.audioTicks = this.audioIndex = 0;
+	this.audioIndex = 0;
 	this.bufferContainAmount = Math.max(this.sampleSize * settings[7], 4096) << this.soundFrameShifter;
-	cout("...Samples per interpreter loop iteration (Per Channel): " + this.sampleSize, 0);
-	this.samplesOut = this.sampleSize / this.CPUCyclesPerIteration;
-	cout("...Samples per clock cycle (Per Channel): " + this.samplesOut, 0);
 	this.numSamplesTotal = this.sampleSize << this.soundFrameShifter;
 	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, -1, "float32");
-	this.intializeWhiteNoise();
 }
 GameBoyCore.prototype.intializeWhiteNoise = function () {
 	//Noise Sample Tables:
@@ -5371,19 +5372,30 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 		}
 	}
 }
-GameBoyCore.prototype.audioJIT = function () {
-	if (settings[0]) {
-		//Audio Sample Generation Timing:
-		var amount = this.audioTicks * this.samplesOut;
-		var actual = amount | 0;
-		this.rollover += amount - actual;
-		if (this.rollover >= 1) {
-			--this.rollover;
-			++actual;
+//Generate audio, but don't actually output it (Used for when sound is disabled by user/browser):
+GameBoyCore.prototype.generateAudioFake = function (numSamples) {
+	if (this.soundMasterEnabled) {
+		while (--numSamples > -1) {
+			this.audioChannelsComputeStereo();
 		}
-		this.generateAudio(actual);
+	}
+}
+GameBoyCore.prototype.audioJIT = function () {
+	//Audio Sample Generation Timing:
+	var amount = this.audioTicks * this.samplesOut;
+	var actual = amount | 0;
+	this.rollover += amount - actual;
+	if (this.rollover >= 1) {
+		--this.rollover;
+		++actual;
 	}
 	this.audioTicks = 0;
+	if (settings[0]) {
+		this.generateAudio(actual);
+	}
+	else {
+		this.generateAudioFake(actual);
+	}
 }
 GameBoyCore.prototype.audioChannelsComputeStereo = function () {
 	//Channel 1:
