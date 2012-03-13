@@ -6196,10 +6196,9 @@ GameBoyCore.prototype.dispatchDraw = function () {
 			this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 		}
 		else if (settings[11]) {
-			//If timing with requestAnimationFrame, make dummy canvas calls to ensure timing is evenly spaced:
-			this.drawContext.clearRect(0, 0, 0, 0);
+			//Create a dummy putImageData call for browsers that require a canvas call for proper timing:
+			this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 		}
-		
 	}
 }
 GameBoyCore.prototype.swizzleFrameBuffer = function () {
