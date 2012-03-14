@@ -130,6 +130,15 @@ function registerGUIEvents() {
 			}
 		}
 	});
+	addEvent("click", document.getElementById("set_speed"), function () {
+		if (GameBoyEmulatorInitialized()) {
+			var speed = prompt("Set the speed multiplier here:", "1.0");
+			if (speed != null && speed.length > 0) {
+				gameboy.setEmulatorSpeed(Math.min(Math.max(parseFloat(speed), 0.01), 50));
+				gameboy.initSound();
+			}
+		}
+	});
 	addEvent("click", document.getElementById("internal_file_clicker"), function () {
 		var file_opener = document.getElementById("local_file_open");
 		windowStacks[4].show();
@@ -276,6 +285,12 @@ function registerGUIEvents() {
 	});
 	addEvent("click", document.getElementById("enable_sound"), function () {
 		settings[0] = document.getElementById("enable_sound").checked;
+		if (GameBoyEmulatorInitialized()) {
+			gameboy.initSound();
+		}
+	});
+	addEvent("click", document.getElementById("enable_mono_sound"), function () {
+		settings[1] = document.getElementById("enable_mono_sound").checked;
 		if (GameBoyEmulatorInitialized()) {
 			gameboy.initSound();
 		}
