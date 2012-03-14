@@ -10,14 +10,14 @@ var settings = [						//Some settings.
 	true,								//Colorize GB mode?
 	false,								//Disallow typed arrays?
 	16,									//Interval for the emulator loop.
-	8,									//Audio buffer span amount over x interpreter iterations.
-	4,									//Audio underrun effective buffer level over x interpreter iterations.
+	4,									//Audio buffer span amount over x interpreter iterations.
+	8,									//Audio buffer size.
 	false,								//Override to allow for MBC1 instead of ROM only (compatibility for broken 3rd-party cartridges).
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
 	false,								//Vertical blank event availability.
 	false,								//Scale the canvas in JS, or let the browser scale the canvas?
 	false,								//Use the GameBoy boot ROM instead of the GameBoy Color boot ROM.
-	0x40000,							//Sample Rate
+	0x10,								//Internal interpolator
 	true								//Use the GBC BIOS?
 ];
 function start(canvas, ROM) {

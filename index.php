@@ -178,16 +178,6 @@ catch (error) {
 		$this->startElement('div');
 		$this->writeAttribute('class', 'setting');
 		$this->startElement('span');
-		$this->text('Force Mono Sound:');
-		$this->endElement();
-		$this->startElement('input');
-		$this->writeAttribute('type', 'checkbox');
-		$this->writeAttribute('id', 'enable_mono_sound');
-		$this->endElement();
-		$this->endElement();
-		$this->startElement('div');
-		$this->writeAttribute('class', 'setting');
-		$this->startElement('span');
 		$this->text('GB mode has priority over GBC mode:');
 		$this->endElement();
 		$this->startElement('input');
@@ -401,10 +391,6 @@ catch (error) {
 		$this->startElement('li');
 		$this->writeAttribute('id', 'save_state_clicker');
 		$this->text('Save Freeze State');
-		$this->endElement();
-		$this->startElement('li');
-		$this->writeAttribute('id', 'set_speed');
-		$this->text('Set Speed Multiplier');
 		$this->endElement();
 		$this->startElement('li');
 		$this->writeAttribute('id', 'restart_cpu_clicker');
