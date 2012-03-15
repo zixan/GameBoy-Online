@@ -5293,6 +5293,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			}
 			if (this.sequencerClocks == 0) {
 				this.audioComputeSequencer();
+				this.computeAudioChannels();
 				this.sequencerClocks = 0x2000;
 			}
 		}
@@ -5313,7 +5314,6 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 GameBoyCore.prototype.generateAudioFake = function (numSamples) {
 	if (this.soundMasterEnabled) {
 		while (--numSamples > -1) {
-			this.audioChannelsComputeStereo();
 			if (--this.sequencerClocks == 0) {
 				this.audioComputeSequencer();
 				this.sequencerClocks = 8192;
