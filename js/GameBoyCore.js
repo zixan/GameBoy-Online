@@ -5352,7 +5352,7 @@ GameBoyCore.prototype.audioComputeSequencer = function () {
 }
 GameBoyCore.prototype.clockAudioLength = function () {
 	//Channel 1:
-	if (this.channel1totalLength > 0) {
+	if (this.channel1totalLength > 1) {
 		--this.channel1totalLength;
 	}
 	else if (this.channel1totalLength == 1) {
@@ -5360,7 +5360,7 @@ GameBoyCore.prototype.clockAudioLength = function () {
 		this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
 	}
 	//Channel 2:
-	if (this.channel2totalLength > 0) {
+	if (this.channel2totalLength > 1) {
 		--this.channel2totalLength;
 	}
 	else if (this.channel2totalLength == 1) {
@@ -5368,7 +5368,7 @@ GameBoyCore.prototype.clockAudioLength = function () {
 		this.memory[0xFF26] &= 0xFD;	//Channel #2 On Flag Off
 	}
 	//Channel 3:
-	if (this.channel3totalLength > 0) {
+	if (this.channel3totalLength > 1) {
 		--this.channel3totalLength;
 	}
 	else if (this.channel3totalLength == 1) {
@@ -5376,7 +5376,7 @@ GameBoyCore.prototype.clockAudioLength = function () {
 		this.memory[0xFF26] &= 0xFB;	//Channel #3 On Flag Off
 	}
 	//Channel 4:
-	if (this.channel4totalLength > 0) {
+	if (this.channel4totalLength > 1) {
 		--this.channel4totalLength;
 	}
 	else if (this.channel4totalLength == 1) {
