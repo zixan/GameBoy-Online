@@ -5284,7 +5284,7 @@ GameBoyCore.prototype.outputAudio = function () {
 GameBoyCore.prototype.generateAudio = function (numSamples) {
 	if (this.soundMasterEnabled) {
 		for (var samplesToGenerate = 0; numSamples > 0;) {
-			samplesToGenerate = Math.min(numSamples, this.sequencerClocks);
+			samplesToGenerate = (numSamples < this.sequencerClocks) ? numSamples : this.sequencerClocks;
 			this.sequencerClocks -= samplesToGenerate;
 			numSamples -= samplesToGenerate;
 			this.generateAudioGenerationPath();
