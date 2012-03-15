@@ -5421,12 +5421,19 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 			if (!this.channel1envelopeType) {
 				if (this.channel1envelopeVolume > 0) {
 					--this.channel1envelopeVolume;
+					this.channel1envelopeSweeps = this.channel1envelopeSweepsLast;
+				}
+				else {
+					this.channel1envelopeSweepsLast = 0;
 				}
 			}
 			else if (this.channel1envelopeVolume < 0xF) {
 				++this.channel1envelopeVolume;
+				this.channel1envelopeSweeps = this.channel1envelopeSweepsLast;
 			}
-			this.channel1envelopeSweeps = this.channel1envelopeSweepsLast;
+			else {
+				this.channel1envelopeSweepsLast = 0;
+			}
 		}
 	}
 	//Channel 2:
@@ -5438,12 +5445,19 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 			if (!this.channel2envelopeType) {
 				if (this.channel2envelopeVolume > 0) {
 					--this.channel2envelopeVolume;
+					this.channel2envelopeSweeps = this.channel2envelopeSweepsLast;
+				}
+				else {
+					this.channel2envelopeSweepsLast = 0;
 				}
 			}
 			else if (this.channel2envelopeVolume < 0xF) {
 				++this.channel2envelopeVolume;
+				this.channel2envelopeSweeps = this.channel2envelopeSweepsLast;
 			}
-			this.channel2envelopeSweeps = this.channel2envelopeSweepsLast;
+			else {
+				this.channel2envelopeSweepsLast = 0;
+			}
 		}
 	}
 	//Channel 4:
@@ -5455,12 +5469,19 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 			if (!this.channel4envelopeType) {
 				if (this.channel4envelopeVolume > 0) {
 					this.channel4currentVolume = --this.channel4envelopeVolume << this.channel4VolumeShifter;
+					this.channel4envelopeSweeps = this.channel4envelopeSweepsLast;
+				}
+				else {
+					this.channel4envelopeSweepsLast = 0;
 				}
 			}
 			else if (this.channel4envelopeVolume < 0xF) {
 				this.channel4currentVolume = ++this.channel4envelopeVolume << this.channel4VolumeShifter;
+				this.channel4envelopeSweeps = this.channel4envelopeSweepsLast;
 			}
-			this.channel4envelopeSweeps = this.channel4envelopeSweepsLast;
+			else {
+				this.channel4envelopeSweepsLast = 0;
+			}
 		}
 	}
 }
