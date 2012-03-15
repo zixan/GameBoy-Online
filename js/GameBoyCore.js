@@ -125,8 +125,8 @@ function GameBoyCore(canvas, ROMImage) {
 	this.soundMasterEnabled = false;			//As its name implies
 	this.channel3PCM = null;					//Channel 3 adjusted sample buffer.
 	//Vin Shit:
-	this.VinLeftChannelMasterVolume = 1;		//Computed post-mixing volume.
-	this.VinRightChannelMasterVolume = 1;		//Computed post-mixing volume.
+	this.VinLeftChannelMasterVolume = 8;		//Computed post-mixing volume.
+	this.VinRightChannelMasterVolume = 8;		//Computed post-mixing volume.
 	//Channel paths enabled:
 	this.leftChannel1 = false;
 	this.leftChannel2 = false;
@@ -4357,7 +4357,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel3patternType = state[index++];
 	this.channel3frequency = state[index++];
 	this.channel3consecutive = state[index++];
-	this.channel3PCM = this.toTypedArray(state[index++], "float32");
+	this.channel3PCM = this.toTypedArray(state[index++], "uint8");
 	this.channel3adjustedFrequencyPrep = state[index++];
 	this.channel4FrequencyPeriod = state[index++];
 	this.channel4lastSampleLookup = state[index++];
@@ -4467,7 +4467,7 @@ GameBoyCore.prototype.initMemory = function () {
 	this.BGCHRBank1 = this.getTypedArray(0x800, 0, "uint8");
 	this.TICKTable = this.toTypedArray(this.TICKTable, "uint8");
 	this.SecondaryTICKTable = this.toTypedArray(this.SecondaryTICKTable, "uint8");
-	this.channel3PCM = this.getTypedArray(0x80, 0, "float32");
+	this.channel3PCM = this.getTypedArray(0x80, 0, "uint8");
 }
 GameBoyCore.prototype.generateCacheArray = function (tileAmount) {
 	var tileArray = [];
@@ -4650,8 +4650,8 @@ GameBoyCore.prototype.initBootstrap = function () {
 	this.rightChannel4 = false;
 	this.channel2frequency = this.channel1frequency = 0;
 	this.channel4consecutive = this.channel2consecutive = this.channel1consecutive = false;
-	this.VinLeftChannelMasterVolume = 1;
-	this.VinRightChannelMasterVolume = 1;
+	this.VinLeftChannelMasterVolume = 8;
+	this.VinRightChannelMasterVolume = 8;
 	this.memory[0xFF00] = 0xF;	//Set the joypad state.
 }
 GameBoyCore.prototype.ROMLoad = function () {
@@ -5125,61 +5125,61 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioIndex = 0;
 	this.bufferContainAmount = Math.max(this.sampleSize * settings[7] / settings[14], 4096) << 1;
 	this.numSamplesTotal = (this.sampleSize - (this.sampleSize % settings[14])) << 1;
-	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, -1, "float32");
+	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, -1, "int16");
 	this.secondaryBuffer = this.getTypedArray(this.numSamplesTotal / settings[14], -1, "float32");
 }
 GameBoyCore.prototype.intializeWhiteNoise = function () {
 	//Noise Sample Tables:
 	var randomFactor = 1;
 	//15-bit LSFR Cache Generation:
-	this.LSFR15Table = this.getTypedArray(0x80000, 0, "float32");
+	this.LSFR15Table = this.getTypedArray(0x80000, 0, "uint8");
 	var LSFR = 0x7FFF;	//Seed value has all its bits set.
 	var LSFRShifted = 0x3FFF;
 	for (var index = 0; index < 0x8000; ++index) {
 		//Normalize the last LSFR value for usage:
 		randomFactor = 1 - (LSFR & 1);	//Docs say it's the inverse.
 		//Cache the different volume level results:
-		this.LSFR15Table[0x08000 | index] = randomFactor / 0x1E;
-		this.LSFR15Table[0x10000 | index] = randomFactor * 0x2 / 0x1E;
-		this.LSFR15Table[0x18000 | index] = randomFactor * 0x3 / 0x1E;
-		this.LSFR15Table[0x20000 | index] = randomFactor * 0x4 / 0x1E;
-		this.LSFR15Table[0x28000 | index] = randomFactor * 0x5 / 0x1E;
-		this.LSFR15Table[0x30000 | index] = randomFactor * 0x6 / 0x1E;
-		this.LSFR15Table[0x38000 | index] = randomFactor * 0x7 / 0x1E;
-		this.LSFR15Table[0x40000 | index] = randomFactor * 0x8 / 0x1E;
-		this.LSFR15Table[0x48000 | index] = randomFactor * 0x9 / 0x1E;
-		this.LSFR15Table[0x50000 | index] = randomFactor * 0xA / 0x1E;
-		this.LSFR15Table[0x58000 | index] = randomFactor * 0xB / 0x1E;
-		this.LSFR15Table[0x60000 | index] = randomFactor * 0xC / 0x1E;
-		this.LSFR15Table[0x68000 | index] = randomFactor * 0xD / 0x1E;
-		this.LSFR15Table[0x70000 | index] = randomFactor * 0xE / 0x1E;
-		this.LSFR15Table[0x78000 | index] = randomFactor / 2;
+		this.LSFR15Table[0x08000 | index] = randomFactor;
+		this.LSFR15Table[0x10000 | index] = randomFactor * 0x2;
+		this.LSFR15Table[0x18000 | index] = randomFactor * 0x3;
+		this.LSFR15Table[0x20000 | index] = randomFactor * 0x4;
+		this.LSFR15Table[0x28000 | index] = randomFactor * 0x5;
+		this.LSFR15Table[0x30000 | index] = randomFactor * 0x6;
+		this.LSFR15Table[0x38000 | index] = randomFactor * 0x7;
+		this.LSFR15Table[0x40000 | index] = randomFactor * 0x8;
+		this.LSFR15Table[0x48000 | index] = randomFactor * 0x9;
+		this.LSFR15Table[0x50000 | index] = randomFactor * 0xA;
+		this.LSFR15Table[0x58000 | index] = randomFactor * 0xB;
+		this.LSFR15Table[0x60000 | index] = randomFactor * 0xC;
+		this.LSFR15Table[0x68000 | index] = randomFactor * 0xD;
+		this.LSFR15Table[0x70000 | index] = randomFactor * 0xE;
+		this.LSFR15Table[0x78000 | index] = randomFactor * 0xF;
 		//Recompute the LSFR algorithm:
 		LSFRShifted = LSFR >> 1;
 		LSFR = LSFRShifted | (((LSFRShifted ^ LSFR) & 0x1) << 14);
 	}
 	//7-bit LSFR Cache Generation:
-	this.LSFR7Table = this.getTypedArray(0x800, 0, "float32");
+	this.LSFR7Table = this.getTypedArray(0x800, 0, "uint8");
 	LSFR = 0x7F;	//Seed value has all its bits set.
 	for (index = 0; index < 0x80; ++index) {
 		//Normalize the last LSFR value for usage:
 		randomFactor = 1 - (LSFR & 1);	//Docs say it's the inverse.
 		//Cache the different volume level results:
-		this.LSFR7Table[0x080 | index] = randomFactor / 0x1E;
-		this.LSFR7Table[0x100 | index] = randomFactor * 0x2 / 0x1E;
-		this.LSFR7Table[0x180 | index] = randomFactor * 0x3 / 0x1E;
-		this.LSFR7Table[0x200 | index] = randomFactor * 0x4 / 0x1E;
-		this.LSFR7Table[0x280 | index] = randomFactor * 0x5 / 0x1E;
-		this.LSFR7Table[0x300 | index] = randomFactor * 0x6 / 0x1E;
-		this.LSFR7Table[0x380 | index] = randomFactor * 0x7 / 0x1E;
-		this.LSFR7Table[0x400 | index] = randomFactor * 0x8 / 0x1E;
-		this.LSFR7Table[0x480 | index] = randomFactor * 0x9 / 0x1E;
-		this.LSFR7Table[0x500 | index] = randomFactor * 0xA / 0x1E;
-		this.LSFR7Table[0x580 | index] = randomFactor * 0xB / 0x1E;
-		this.LSFR7Table[0x600 | index] = randomFactor * 0xC / 0x1E;
-		this.LSFR7Table[0x680 | index] = randomFactor * 0xD / 0x1E;
-		this.LSFR7Table[0x700 | index] = randomFactor * 0xE / 0x1E;
-		this.LSFR7Table[0x780 | index] = randomFactor / 2;
+		this.LSFR7Table[0x080 | index] = randomFactor;
+		this.LSFR7Table[0x100 | index] = randomFactor * 0x2;
+		this.LSFR7Table[0x180 | index] = randomFactor * 0x3;
+		this.LSFR7Table[0x200 | index] = randomFactor * 0x4;
+		this.LSFR7Table[0x280 | index] = randomFactor * 0x5;
+		this.LSFR7Table[0x300 | index] = randomFactor * 0x6;
+		this.LSFR7Table[0x380 | index] = randomFactor * 0x7;
+		this.LSFR7Table[0x400 | index] = randomFactor * 0x8;
+		this.LSFR7Table[0x480 | index] = randomFactor * 0x9;
+		this.LSFR7Table[0x500 | index] = randomFactor * 0xA;
+		this.LSFR7Table[0x580 | index] = randomFactor * 0xB;
+		this.LSFR7Table[0x600 | index] = randomFactor * 0xC;
+		this.LSFR7Table[0x680 | index] = randomFactor * 0xD;
+		this.LSFR7Table[0x700 | index] = randomFactor * 0xE;
+		this.LSFR7Table[0x780 | index] = randomFactor * 0xF;
 		//Recompute the LSFR algorithm:
 		LSFRShifted = LSFR >> 1;
 		LSFR = LSFRShifted | (((LSFRShifted ^ LSFR) & 0x1) << 6);
@@ -5250,8 +5250,8 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 	this.channel3FrequencyPeriod = 0x800;
 	this.channel3lastSampleLookup = 0;
 	this.channel4lastSampleLookup = 0;
-	this.VinLeftChannelMasterVolume = 1;
-	this.VinRightChannelMasterVolume = 1;
+	this.VinLeftChannelMasterVolume = 8;
+	this.VinRightChannelMasterVolume = 8;
 	this.sequencerClocks = 0x2000;
 	this.sequencePosition = 0;
 	this.channel4FrequencyPeriod = 8;
@@ -5268,14 +5268,15 @@ GameBoyCore.prototype.outputAudio = function () {
 	var averageL = 0;
 	var averageR = 0;
 	var index3 = 0;
-	var grouper = settings[14];
+	var divisor1 = settings[14];
+	var divisor2 = divisor1 * 0xF0;
 	for (var index = 0; index < this.numSamplesTotal;) {
-		for (index2 = averageL = averageR = 0; index2 < grouper; ++index2) {
+		for (index2 = averageL = averageR = 0; index2 < divisor1; ++index2) {
 			averageL += this.currentBuffer[index++];
 			averageR += this.currentBuffer[index++];
 		}
-		this.secondaryBuffer[index3++] = averageL / grouper;
-		this.secondaryBuffer[index3++] = averageR / grouper;
+		this.secondaryBuffer[index3++] = averageL / divisor2 - 1;
+		this.secondaryBuffer[index3++] = averageR / divisor2 - 1;
 	}
 	this.audioHandle.writeAudioNoCallback(this.secondaryBuffer);
 }
@@ -5289,8 +5290,8 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			this.generateAudioGenerationPath();
 			while (--samplesToGenerate > -1) {
 				this.computeAudioChannels();
-				this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1;
-				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
+				this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume;
+				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
 					this.outputAudio();
@@ -5305,8 +5306,8 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 	else {
 		//SILENT OUTPUT:
 		while (--numSamples > -1) {
-			this.currentBuffer[this.audioIndex++] = -1;
-			this.currentBuffer[this.audioIndex++] = -1;
+			this.currentBuffer[this.audioIndex++] = 0;
+			this.currentBuffer[this.audioIndex++] = 0;
 			if (this.audioIndex == this.numSamplesTotal) {
 				this.audioIndex = 0;
 				this.outputAudio();
@@ -5419,11 +5420,11 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 		else {
 			if (!this.channel1envelopeType) {
 				if (this.channel1envelopeVolume > 0) {
-					this.channel1currentVolume = --this.channel1envelopeVolume / 0x1E;
+					this.channel1currentVolume = --this.channel1envelopeVolume;
 				}
 			}
 			else if (this.channel1envelopeVolume < 0xF) {
-				this.channel1currentVolume = ++this.channel1envelopeVolume / 0x1E;
+				this.channel1currentVolume = ++this.channel1envelopeVolume;
 			}
 			this.channel1envelopeSweeps = this.channel1envelopeSweepsLast;
 		}
@@ -5436,11 +5437,11 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 		else {
 			if (!this.channel2envelopeType) {
 				if (this.channel2envelopeVolume > 0) {
-					this.channel2currentVolume = --this.channel2envelopeVolume / 0x1E;
+					this.channel2currentVolume = --this.channel2envelopeVolume;
 				}
 			}
 			else if (this.channel2envelopeVolume < 0xF) {
-				this.channel2currentVolume = ++this.channel2envelopeVolume / 0x1E;
+				this.channel2currentVolume = ++this.channel2envelopeVolume;
 			}
 			this.channel2envelopeSweeps = this.channel2envelopeSweepsLast;
 		}
@@ -5508,7 +5509,7 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 		}
 	}
 	//Channel 4:
-	if (this.channel4Enabled) {
+	if (this.channel4consecutive || this.channel4totalLength > 0) {
 		if (this.leftChannel4) {
 			this.currentSampleLeft += this.cachedChannel4Sample;
 		}
@@ -8497,7 +8498,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				else if ((parentObj.memory[0xFF12] & 0xF) == 0x8) {
 					parentObj.channel1envelopeVolume = (1 + parentObj.channel1envelopeVolume) & 0xF;
 				}
-				parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
+				parentObj.channel1currentVolume = parentObj.channel1envelopeVolume;
 			}
 			parentObj.channel1envelopeType = ((data & 0x08) == 0x08);
 			parentObj.memory[0xFF12] = data;
@@ -8526,7 +8527,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				var nr12 = parentObj.memory[0xFF12];
 				if (nr12 > 0x07) {
 					parentObj.channel1envelopeVolume = nr12 >> 4;
-					parentObj.channel1currentVolume = parentObj.channel1envelopeVolume / 0x1E;
+					parentObj.channel1currentVolume = parentObj.channel1envelopeVolume;
 					parentObj.channel1envelopeSweepsLast = parentObj.channel1envelopeSweeps = nr12 & 0x7;
 					if (parentObj.channel1totalLength <= 0) {
 						parentObj.channel1totalLength = 0x40;
@@ -8588,7 +8589,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				else if ((parentObj.memory[0xFF17] & 0xF) == 0x8) {
 					parentObj.channel2envelopeVolume = (1 + parentObj.channel2envelopeVolume) & 0xF;
 				}
-				parentObj.channel2currentVolume = parentObj.channel2envelopeVolume / 0x1E;
+				parentObj.channel2currentVolume = parentObj.channel2envelopeVolume;
 			}
 			parentObj.channel2envelopeType = ((data & 0x08) == 0x08);
 			parentObj.memory[0xFF17] = data;
@@ -8612,7 +8613,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				var nr22 = parentObj.memory[0xFF17];
 				if (nr22 > 0x7) {
 					parentObj.channel2envelopeVolume = nr22 >> 4;
-					parentObj.channel2currentVolume = parentObj.channel2envelopeVolume / 0x1E;
+					parentObj.channel2currentVolume = parentObj.channel2envelopeVolume;
 					parentObj.channel2envelopeSweepsLast = parentObj.channel2envelopeSweeps = nr22 & 0x7;
 					if (parentObj.channel2totalLength <= 0) {
 						parentObj.channel2totalLength = 0x40;
@@ -8762,8 +8763,8 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if (parentObj.soundMasterEnabled && parentObj.memory[0xFF24] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF24] = data;
-			parentObj.VinLeftChannelMasterVolume = (((data >> 4) & 0x07) + 1) / 8;
-			parentObj.VinRightChannelMasterVolume = ((data & 0x07) + 1) / 8;
+			parentObj.VinLeftChannelMasterVolume = ((data >> 4) & 0x07) + 1;
+			parentObj.VinRightChannelMasterVolume = (data & 0x07) + 1;
 		}
 	}
 	this.memoryHighWriter[0x25] = this.memoryWriter[0xFF25] = function (parentObj, address, data) {
@@ -8813,192 +8814,192 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if (parentObj.memory[0xFF30] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF30] = data;
-			parentObj.channel3PCM[0x20] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x40] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x60] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x21] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x41] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x61] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x20] = data >> 4;
+			parentObj.channel3PCM[0x40] = data >> 5;
+			parentObj.channel3PCM[0x60] = data >> 6;
+			parentObj.channel3PCM[0x21] = data & 0xF;
+			parentObj.channel3PCM[0x41] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x61] = (data & 0xC) >> 2;
 		}
 	}
 	this.memoryHighWriter[0x31] = this.memoryWriter[0xFF31] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF31] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF31] = data;
-			parentObj.channel3PCM[0x22] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x42] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x62] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x23] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x43] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x63] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x22] = data >> 4;
+			parentObj.channel3PCM[0x42] = data >> 5;
+			parentObj.channel3PCM[0x62] = data >> 6;
+			parentObj.channel3PCM[0x23] = data & 0xF;
+			parentObj.channel3PCM[0x43] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x63] = (data & 0xC) >> 2;
 		}
 	}
 	this.memoryHighWriter[0x32] = this.memoryWriter[0xFF32] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF32] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF32] = data;
-			parentObj.channel3PCM[0x24] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x44] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x64] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x25] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x45] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x65] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x24] = data >> 4;
+			parentObj.channel3PCM[0x44] = data >> 5;
+			parentObj.channel3PCM[0x64] = data >> 6;
+			parentObj.channel3PCM[0x25] = data & 0xF;
+			parentObj.channel3PCM[0x45] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x65] = (data & 0xC) >> 2;
 		}
 	}
 	this.memoryHighWriter[0x33] = this.memoryWriter[0xFF33] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF33] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF33] = data;
-			parentObj.channel3PCM[0x26] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x46] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x66] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x27] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x47] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x67] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x26] = data >> 4;
+			parentObj.channel3PCM[0x46] = data >> 5;
+			parentObj.channel3PCM[0x66] = data >> 6;
+			parentObj.channel3PCM[0x27] = data & 0xF;
+			parentObj.channel3PCM[0x47] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x67] = (data & 0xC) >> 2;
 		}
 	}
 	this.memoryHighWriter[0x34] = this.memoryWriter[0xFF34] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF34] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF34] = data;
-			parentObj.channel3PCM[0x28] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x48] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x68] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x29] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x49] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x69] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x28] = data >> 4;
+			parentObj.channel3PCM[0x48] = data >> 5;
+			parentObj.channel3PCM[0x68] = data >> 6;
+			parentObj.channel3PCM[0x29] = data & 0xF;
+			parentObj.channel3PCM[0x49] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x69] = (data & 0xC) >> 2;
 		}
 	}
 	this.memoryHighWriter[0x35] = this.memoryWriter[0xFF35] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF35] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF35] = data;
-			parentObj.channel3PCM[0x2A] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x4A] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x6A] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x2B] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x4B] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x6B] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x2A] = data >> 4;
+			parentObj.channel3PCM[0x4A] = data >> 5;
+			parentObj.channel3PCM[0x6A] = data >> 6;
+			parentObj.channel3PCM[0x2B] = data & 0xF;
+			parentObj.channel3PCM[0x4B] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x6B] = (data & 0xC) >> 2;
 		}
 	}
 	this.memoryHighWriter[0x36] = this.memoryWriter[0xFF36] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF36] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF36] = data;
-			parentObj.channel3PCM[0x2C] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x4C] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x6C] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x2D] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x4D] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x6D] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x2C] = data >> 4;
+			parentObj.channel3PCM[0x4C] = data >> 5;
+			parentObj.channel3PCM[0x6C] = data >> 6;
+			parentObj.channel3PCM[0x2D] = data & 0xF;
+			parentObj.channel3PCM[0x4D] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x6D] = (data & 0xC) >> 2;
 		}
 	}
 	this.memoryHighWriter[0x37] = this.memoryWriter[0xFF37] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF37] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF37] = data;
-			parentObj.channel3PCM[0x2E] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x4E] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x6E] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x2F] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x4F] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x6F] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x2E] = data >> 4;
+			parentObj.channel3PCM[0x4E] = data >> 5;
+			parentObj.channel3PCM[0x6E] = data >> 6;
+			parentObj.channel3PCM[0x2F] = data & 0xF;
+			parentObj.channel3PCM[0x4F] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x6F] = (data & 0xC) >> 2;
 		}
 	}
 	this.memoryHighWriter[0x38] = this.memoryWriter[0xFF38] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF38] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF38] = data;
-			parentObj.channel3PCM[0x30] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x50] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x70] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x31] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x51] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x71] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x30] = data >> 4;
+			parentObj.channel3PCM[0x50] = data >> 5;
+			parentObj.channel3PCM[0x70] = data >> 6;
+			parentObj.channel3PCM[0x31] = data & 0xF;
+			parentObj.channel3PCM[0x51] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x71] = (data & 0xC) >> 2;
 		}
 	}
 	this.memoryHighWriter[0x39] = this.memoryWriter[0xFF39] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF39] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF39] = data;
-			parentObj.channel3PCM[0x32] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x52] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x72] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x33] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x53] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x73] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x32] = data >> 4;
+			parentObj.channel3PCM[0x52] = data >> 5;
+			parentObj.channel3PCM[0x72] = data >> 6;
+			parentObj.channel3PCM[0x33] = data & 0xF;
+			parentObj.channel3PCM[0x53] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x73] = (data & 0xC) >> 2;
 		}
 	}
 	this.memoryHighWriter[0x3A] = this.memoryWriter[0xFF3A] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF3A] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF3A] = data;
-			parentObj.channel3PCM[0x34] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x54] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x74] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x35] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x55] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x75] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x34] = data >> 4;
+			parentObj.channel3PCM[0x54] = data >> 5;
+			parentObj.channel3PCM[0x74] = data >> 6;
+			parentObj.channel3PCM[0x35] = data & 0xF;
+			parentObj.channel3PCM[0x55] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x75] = (data & 0xC) >> 2;
 		}
 	}
 	this.memoryHighWriter[0x3B] = this.memoryWriter[0xFF3B] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF3B] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF3B] = data;
-			parentObj.channel3PCM[0x36] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x56] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x76] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x37] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x57] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x77] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x36] = data >> 4;
+			parentObj.channel3PCM[0x56] = data >> 5;
+			parentObj.channel3PCM[0x76] = data >> 6;
+			parentObj.channel3PCM[0x37] = data & 0xF;
+			parentObj.channel3PCM[0x57] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x77] = (data & 0xC) >> 2;
 		}
 	}
 	this.memoryHighWriter[0x3C] = this.memoryWriter[0xFF3C] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF3C] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF3C] = data;
-			parentObj.channel3PCM[0x38] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x58] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x78] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x39] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x59] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x79] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x38] = data >> 4;
+			parentObj.channel3PCM[0x58] = data >> 5;
+			parentObj.channel3PCM[0x78] = data >> 6;
+			parentObj.channel3PCM[0x39] = data & 0xF;
+			parentObj.channel3PCM[0x59] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x79] = (data & 0xC) >> 2;
 		}
 	}
 	this.memoryHighWriter[0x3D] = this.memoryWriter[0xFF3D] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF3D] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF3D] = data;
-			parentObj.channel3PCM[0x3A] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x5A] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x7A] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x3B] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x5B] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x7B] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x3A] = data >> 4;
+			parentObj.channel3PCM[0x5A] = data >> 5;
+			parentObj.channel3PCM[0x7A] = data >> 6;
+			parentObj.channel3PCM[0x3B] = data & 0xF;
+			parentObj.channel3PCM[0x5B] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x7B] = (data & 0xC) >> 2;
 		}
 	}
 	this.memoryHighWriter[0x3E] = this.memoryWriter[0xFF3E] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF3E] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF3E] = data;
-			parentObj.channel3PCM[0x3C] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x5C] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x7C] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x3D] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x5D] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x7D] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x3C] = data >> 4;
+			parentObj.channel3PCM[0x5C] = data >> 5;
+			parentObj.channel3PCM[0x7C] = data >> 6;
+			parentObj.channel3PCM[0x3D] = data & 0xF;
+			parentObj.channel3PCM[0x5D] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x7D] = (data & 0xC) >> 2;
 		}
 	}
 	this.memoryHighWriter[0x3F] = this.memoryWriter[0xFF3F] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF3F] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF3F] = data;
-			parentObj.channel3PCM[0x3E] = (data >> 4) / 0x1E;
-			parentObj.channel3PCM[0x5E] = (data >> 5) / 0x1E;
-			parentObj.channel3PCM[0x7E] = (data >> 6) / 0x1E;
-			parentObj.channel3PCM[0x3F] = (data & 0xF) / 0x1E;
-			parentObj.channel3PCM[0x5F] = (data & 0xE) / 0x3C;
-			parentObj.channel3PCM[0x7F] = (data & 0xC) / 0x78;
+			parentObj.channel3PCM[0x3E] = data >> 4;
+			parentObj.channel3PCM[0x5E] = data >> 5;
+			parentObj.channel3PCM[0x7E] = data >> 6;
+			parentObj.channel3PCM[0x3F] = data & 0xF;
+			parentObj.channel3PCM[0x5F] = (data & 0xE) >> 1;
+			parentObj.channel3PCM[0x7F] = (data & 0xC) >> 2;
 		}
 	}
 	//SCY
@@ -9466,6 +9467,9 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 		switch (numberType) {
 			case "uint8":
 				var arrayHandle = new Uint8Array(length);
+				break;
+			case "int16":
+				var arrayHandle = new Int16Array(length);
 				break;
 			case "int32":
 				var arrayHandle = new Int32Array(length);
