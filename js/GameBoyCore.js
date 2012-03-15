@@ -5277,12 +5277,11 @@ GameBoyCore.prototype.outputAudio = function () {
 	}
 	this.audioHandle.writeAudioNoCallback(this.secondaryBuffer);
 }
-GameBoyCore.prototype.generateNonFrameAudio
 //Below are the audio generation functions timed against the CPU:
 GameBoyCore.prototype.generateAudio = function (numSamples) {
 	if (this.soundMasterEnabled) {
 		while (numSamples > 0) {
-			for (this.generateAudioGenerationPath(); numSamples > 0 && this.sequencerClocks > 0; --numSamples, --this.sequencerClocks) {
+			for (this.generateAudioGenerationPath(); --numSamples > -1 && --this.sequencerClocks > -1;) {
 				this.computeAudioChannels();
 				this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1;
 				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
@@ -5293,7 +5292,6 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			}
 			if (this.sequencerClocks == 0) {
 				this.audioComputeSequencer();
-				this.computeAudioChannels();
 				this.sequencerClocks = 0x2000;
 			}
 		}
