@@ -5296,6 +5296,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			}
 			if (this.sequencerClocks == -1) {
 				this.audioComputeSequencer();
+				this.generateAudioGenerationPath();
 				this.sequencerClocks = 0x1FFF;
 			}
 		}
