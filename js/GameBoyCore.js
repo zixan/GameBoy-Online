@@ -128,14 +128,14 @@ function GameBoyCore(canvas, ROMImage) {
 	this.VinLeftChannelMasterVolume = 1;		//Computed post-mixing volume.
 	this.VinRightChannelMasterVolume = 1;		//Computed post-mixing volume.
 	//Channel paths enabled:
-	this.leftChannel0 = false;
 	this.leftChannel1 = false;
 	this.leftChannel2 = false;
 	this.leftChannel3 = false;
-	this.rightChannel0 = false;
+	this.leftChannel4 = false;
 	this.rightChannel1 = false;
 	this.rightChannel2 = false;
 	this.rightChannel3 = false;
+	this.rightChannel4 = false;
 	//Current Samples Being Computed:
 	this.currentSampleLeft = 0;
 	this.currentSampleRight = 0;
@@ -4193,14 +4193,14 @@ GameBoyCore.prototype.saveState = function () {
 		this.soundMasterEnabled,
 		this.VinLeftChannelMasterVolume,
 		this.VinRightChannelMasterVolume,
-		this.leftChannel0,
 		this.leftChannel1,
 		this.leftChannel2,
 		this.leftChannel3,
-		this.rightChannel0,
+		this.leftChannel4,
 		this.rightChannel1,
 		this.rightChannel2,
 		this.rightChannel3,
+		this.rightChannel4,
 		this.actualScanLine,
 		this.lastUnrenderedLine,
 		this.queuedScanLines,
@@ -4372,14 +4372,14 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.soundMasterEnabled = state[index++];
 	this.VinLeftChannelMasterVolume = state[index++];
 	this.VinRightChannelMasterVolume = state[index++];
-	this.leftChannel0 = state[index++];
 	this.leftChannel1 = state[index++];
 	this.leftChannel2 = state[index++];
 	this.leftChannel3 = state[index++];
-	this.rightChannel0 = state[index++];
+	this.leftChannel4 = state[index++];
 	this.rightChannel1 = state[index++];
 	this.rightChannel2 = state[index++];
 	this.rightChannel3 = state[index++];
+	this.rightChannel4 = state[index++];
 	this.actualScanLine = state[index++];
 	this.lastUnrenderedLine = state[index++];
 	this.queuedScanLines = state[index++];
@@ -4593,14 +4593,14 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.VinLeftChannelMasterVolume = 1;
 	this.VinRightChannelMasterVolume = 1;
 	this.soundMasterEnabled = true;
-	this.leftChannel0 = true;
 	this.leftChannel1 = true;
 	this.leftChannel2 = true;
 	this.leftChannel3 = true;
-	this.rightChannel0 = true;
+	this.leftChannel4 = true;
 	this.rightChannel1 = true;
-	this.rightChannel2 = false;
+	this.rightChannel2 = true;
 	this.rightChannel3 = false;
+	this.rightChannel4 = false;
 	this.DIVTicks = 27044;
 	this.LCDTicks = 160;
 	this.timerTicks = 0;
@@ -4641,14 +4641,14 @@ GameBoyCore.prototype.initBootstrap = function () {
 	this.registerE = 0;
 	this.FZero = this.FSubtract = this.FHalfCarry = this.FCarry = false;
 	this.registersHL = 0;
-	this.leftChannel0 = false;
 	this.leftChannel1 = false;
 	this.leftChannel2 = false;
 	this.leftChannel3 = false;
-	this.rightChannel0 = false;
+	this.leftChannel4 = false;
 	this.rightChannel1 = false;
 	this.rightChannel2 = false;
 	this.rightChannel3 = false;
+	this.rightChannel4 = false;
 	this.channel2frequency = this.channel1frequency = 0;
 	this.channel4consecutive = this.channel2consecutive = this.channel1consecutive = false;
 	this.VinLeftChannelMasterVolume = 1;
@@ -5254,7 +5254,7 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 	this.channel4lastSampleLookup = 0;
 	this.VinLeftChannelMasterVolume = 1;
 	this.VinRightChannelMasterVolume = 1;
-	this.sequencerClocks = 0x1FFF;
+	this.sequencerClocks = 0x2000;
 	this.sequencePosition = 0;
 	this.channel4FrequencyPeriod = 8;
 	this.channel4Tracker = 8;
@@ -5284,8 +5284,10 @@ GameBoyCore.prototype.outputAudio = function () {
 //Below are the audio generation functions timed against the CPU:
 GameBoyCore.prototype.generateAudio = function (numSamples) {
 	if (this.soundMasterEnabled) {
-		while (numSamples > 0) {
-			for (this.generateAudioGenerationPath(); --numSamples > -1 && --this.sequencerClocks > -1;) {
+		for (var samplesToGenerate = 0; numSamples > 0; numSamples -= samplesToGenerate) {
+			samplesToGenerate = Math.min(numSamples, this.sequencerClocks);
+			this.generateAudioGenerationPath();
+			while (--samplesToGenerate > -1) {
 				this.computeAudioChannels();
 				this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume - 1;
 				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume - 1;
@@ -5294,9 +5296,12 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 					this.outputAudio();
 				}
 			}
-			if (this.sequencerClocks == -1) {
+			if (numSamples >= this.sequencerClocks) {
 				this.audioComputeSequencer();
-				this.sequencerClocks = 0x1FFF;
+				this.sequencerClocks = 0x2000;
+			}
+			else {
+				this.sequencerClocks -= samplesToGenerate;
 			}
 		}
 	}
@@ -5317,9 +5322,9 @@ GameBoyCore.prototype.generateAudioFake = function (numSamples) {
 	if (this.soundMasterEnabled) {
 		while (--numSamples > -1) {
 			this.computeAudioChannels();
-			if (--this.sequencerClocks == -1) {
+			if (--this.sequencerClocks == 0) {
 				this.audioComputeSequencer();
-				this.sequencerClocks = 0x1FFF;
+				this.sequencerClocks = 0x2000;
 			}
 		}
 	}
@@ -5465,8 +5470,8 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 	//Channel 1:
 	if (this.channel1Enabled) {
 		if (this.channel1lastSampleLookup < this.channel1adjustedDuty) {	//Seems the top three freq bits drive the duty.
-			this.currentSampleLeft = (this.leftChannel0) ? this.channel1currentVolume : 0;
-			this.currentSampleRight = (this.rightChannel0) ? this.channel1currentVolume : 0;
+			this.currentSampleLeft = (this.leftChannel1) ? this.channel1currentVolume : 0;
+			this.currentSampleRight = (this.rightChannel1) ? this.channel1currentVolume : 0;
 		}
 		else {
 			this.currentSampleRight = this.currentSampleLeft = 0;
@@ -5481,10 +5486,10 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 	//Channel 2:
 	if (this.channel2Enabled) {
 		if (this.channel2lastSampleLookup < this.channel2adjustedDuty) {
-			if (this.leftChannel1) {
+			if (this.leftChannel2) {
 				this.currentSampleLeft += this.channel2currentVolume;
 			}
-			if (this.rightChannel1) {
+			if (this.rightChannel2) {
 				this.currentSampleRight += this.channel2currentVolume;
 			}
 		}
@@ -5494,10 +5499,10 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 	}
 	//Channel 3:
 	if (this.channel3Enabled) {
-		if (this.leftChannel2) {
+		if (this.leftChannel3) {
 			this.currentSampleLeft += this.cachedChannel3Sample;
 		}
-		if (this.rightChannel2) {
+		if (this.rightChannel3) {
 			this.currentSampleRight += this.cachedChannel3Sample;
 		}
 	}
@@ -5508,10 +5513,10 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 	}
 	//Channel 4:
 	if (this.channel4Enabled) {
-		if (this.leftChannel3) {
+		if (this.leftChannel4) {
 			this.currentSampleLeft += this.cachedChannel4Sample;
 		}
-		if (this.rightChannel3) {
+		if (this.rightChannel4) {
 			this.currentSampleRight += this.cachedChannel4Sample;
 		}
 	}
@@ -8770,14 +8775,14 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if (parentObj.soundMasterEnabled && parentObj.memory[0xFF25] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF25] = data;
-			parentObj.rightChannel0 = ((data & 0x01) == 0x01);
-			parentObj.rightChannel1 = ((data & 0x02) == 0x02);
-			parentObj.rightChannel2 = ((data & 0x04) == 0x04);
-			parentObj.rightChannel3 = ((data & 0x08) == 0x08);
-			parentObj.leftChannel0 = ((data & 0x10) == 0x10);
-			parentObj.leftChannel1 = ((data & 0x20) == 0x20);
-			parentObj.leftChannel2 = ((data & 0x40) == 0x40);
-			parentObj.leftChannel3 = (data > 0x7F);
+			parentObj.rightChannel1 = ((data & 0x01) == 0x01);
+			parentObj.rightChannel2 = ((data & 0x02) == 0x02);
+			parentObj.rightChannel3 = ((data & 0x04) == 0x04);
+			parentObj.rightChannel4 = ((data & 0x08) == 0x08);
+			parentObj.leftChannel1 = ((data & 0x10) == 0x10);
+			parentObj.leftChannel2 = ((data & 0x20) == 0x20);
+			parentObj.leftChannel3 = ((data & 0x40) == 0x40);
+			parentObj.leftChannel4 = (data > 0x7F);
 		}
 	}
 	this.memoryHighWriter[0x26] = this.memoryWriter[0xFF26] = function (parentObj, address, data) {
