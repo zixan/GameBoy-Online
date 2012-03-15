@@ -44,11 +44,10 @@ function windowingInitialize() {
 	}
 	//Update the settings to the emulator's default:
 	document.getElementById("enable_sound").checked = settings[0];
-	document.getElementById("enable_mono_sound").checked = settings[1];
+	document.getElementById("enable_gbc_bios").checked = settings[1];
 	document.getElementById("disable_colors").checked = settings[2];
 	document.getElementById("rom_only_override").checked = settings[9];
 	document.getElementById("mbc_enable_override").checked = settings[10];
-	document.getElementById("enable_gbc_bios").checked = settings[15];
 	document.getElementById("enable_colorization").checked = settings[4];
 	document.getElementById("do_minimal").checked = showAsMinimal;
 	document.getElementById("software_resizing").checked = settings[12];
@@ -127,15 +126,6 @@ function registerGUIEvents() {
 			}
 			catch (error) {
 				alert(error.message + " file: " + error.fileName + " line: " + error.lineNumber);
-			}
-		}
-	});
-	addEvent("click", document.getElementById("set_speed"), function () {
-		if (GameBoyEmulatorInitialized()) {
-			var speed = prompt("Set the speed multiplier here:", "1.0");
-			if (speed != null && speed.length > 0) {
-				gameboy.setEmulatorSpeed(Math.min(Math.max(parseFloat(speed), 0.01), 50));
-				gameboy.initSound();
 			}
 		}
 	});
@@ -289,12 +279,6 @@ function registerGUIEvents() {
 			gameboy.initSound();
 		}
 	});
-	addEvent("click", document.getElementById("enable_mono_sound"), function () {
-		settings[1] = document.getElementById("enable_mono_sound").checked;
-		if (GameBoyEmulatorInitialized()) {
-			gameboy.initSound();
-		}
-	});
 	addEvent("click", document.getElementById("disable_colors"), function () {
 		settings[2] = document.getElementById("disable_colors").checked;
 	});
@@ -305,7 +289,7 @@ function registerGUIEvents() {
 		settings[10] = document.getElementById("mbc_enable_override").checked;
 	});
 	addEvent("click", document.getElementById("enable_gbc_bios"), function () {
-		settings[15] = document.getElementById("enable_gbc_bios").checked;
+		settings[1] = document.getElementById("enable_gbc_bios").checked;
 	});
 	addEvent("click", document.getElementById("enable_colorization"), function () {
 		settings[4] = document.getElementById("enable_colorization").checked;
