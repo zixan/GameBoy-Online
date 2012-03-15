@@ -5545,7 +5545,7 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 	}
 }
 GameBoyCore.prototype.generateAudioGenerationPath = function () {
-	this.channel1Enabled = (this.channel1consecutive || this.channel1totalLength > 0);
+	this.channel1Enabled = ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1Fault == 0);
 	this.channel2Enabled = (this.channel2consecutive || this.channel2totalLength > 0);
 	this.channel3Enabled = (this.channel3canPlay && (this.channel3consecutive || this.channel3totalLength > 0));
 	this.channel4Enabled = (this.channel4consecutive || this.channel4totalLength > 0);
