@@ -5254,12 +5254,16 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 	this.channel4lastSampleLookup = 0;
 	this.VinLeftChannelMasterVolume = 1;
 	this.VinRightChannelMasterVolume = 1;
-	this.sequencerClocks = 8192;
+	this.sequencerClocks = 0x1FFF;
 	this.sequencePosition = 0;
 	this.channel4FrequencyPeriod = 8;
 	this.channel4Tracker = 8;
 	this.cachedChannel3Sample = 0;
 	this.cachedChannel4Sample = 0;
+	this.channel1CanPlay = false;
+	this.channel2CanPlay = false;
+	this.channel3CanPlay = false;
+	this.channel4CanPlay = false;
 }
 GameBoyCore.prototype.outputAudio = function () {
 	var index2 = 0;
@@ -5290,9 +5294,9 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 					this.outputAudio();
 				}
 			}
-			if (this.sequencerClocks == 0) {
+			if (this.sequencerClocks == -1) {
 				this.audioComputeSequencer();
-				this.sequencerClocks = 0x2000;
+				this.sequencerClocks = 0x1FFF;
 			}
 		}
 	}
@@ -5314,7 +5318,7 @@ GameBoyCore.prototype.generateAudioFake = function (numSamples) {
 		while (--numSamples > -1) {
 			if (--this.sequencerClocks == 0) {
 				this.audioComputeSequencer();
-				this.sequencerClocks = 8192;
+				this.sequencerClocks = 0x1FFF;
 			}
 		}
 	}
@@ -5485,8 +5489,8 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 		}
 	}
 	if (--this.channel2lastSampleLookup == 0) {
-			this.channel2lastSampleLookup = this.channel2adjustedFrequencyPrep;
-		}
+		this.channel2lastSampleLookup = this.channel2adjustedFrequencyPrep;
+	}
 	//Channel 3:
 	if (this.channel3CanPlay) {
 		if (this.leftChannel2) {
@@ -5521,6 +5525,9 @@ GameBoyCore.prototype.generateAudioGenerationPath = function () {
 	this.channel2CanPlay = (this.channel2consecutive || this.channel2totalLength > 0);
 	this.channel3CanPlay = (this.channel3canPlay && (this.channel3consecutive || this.channel3totalLength > 0));
 	this.channel4CanPlay = (this.channel4consecutive || this.channel4totalLength > 0);
+	//Reset the channel caches:
+	this.cachedChannel3Sample = this.channel3PCM[this.channel3lastSampleLookup | this.channel3patternType];
+	this.cachedChannel4Sample = this.noiseSampleTable[this.channel4currentVolume | this.channel4lastSampleLookup];
 }
 GameBoyCore.prototype.run = function () {
 	//The preprocessing before the actual iteration loop:
