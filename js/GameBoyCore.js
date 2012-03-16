@@ -8547,7 +8547,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				var nr12 = parentObj.memory[0xFF12];
 				if (nr12 > 0x07) {
 					parentObj.channel1envelopeVolume = nr12 >> 4;
-					parentObj.channel1envelopeSweepsLast = parentObj.channel1envelopeSweeps = nr12 & 0x7;
+					parentObj.channel1envelopeSweepsLast = nr12 & 0x7;
 					if (parentObj.channel1totalLength == 0) {
 						parentObj.channel1totalLength = 0x40;
 					}
@@ -8631,7 +8631,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				var nr22 = parentObj.memory[0xFF17];
 				if (nr22 > 0x7) {
 					parentObj.channel2envelopeVolume = nr22 >> 4;
-					parentObj.channel2envelopeSweepsLast = parentObj.channel2envelopeSweeps = nr22 & 0x7;
+					parentObj.channel2envelopeSweepsLast = nr22 & 0x7;
 					if (parentObj.channel2totalLength == 0) {
 						parentObj.channel2totalLength = 0x40;
 					}
@@ -8765,7 +8765,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				if (nr42 > 0x7) {
 					parentObj.channel4envelopeVolume = nr42 >> 4;
 					parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
-					parentObj.channel4envelopeSweepsLast = parentObj.channel4envelopeSweeps = nr42 & 0x7;
+					parentObj.channel4envelopeSweepsLast = nr42 & 0x7;
 					if (parentObj.channel4totalLength == 0) {
 						parentObj.channel4totalLength = 0x40;
 					}
