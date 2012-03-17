@@ -5091,7 +5091,7 @@ GameBoyCore.prototype.GyroEvent = function (x, y) {
 }
 GameBoyCore.prototype.initSound = function () {
 	this.sampleSize = 0x400000 / 1000 * settings[6];
-	this.samplesOut = this.sampleSize / this.baseCPUCyclesPerIteration / settings[14];
+	this.samplesOut = this.sampleSize / this.baseCPUCyclesPerIteration;
 	if (settings[0]) {
 		try {
 			var parentObj = this;
