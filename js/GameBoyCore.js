@@ -5413,7 +5413,7 @@ GameBoyCore.prototype.clockAudioSweep = function () {
 }
 GameBoyCore.prototype.clockAudioEnvelope = function () {
 	//Channel 1:
-	if (this.channel1envelopeSweepsLast > 0) {
+	if (this.channel1envelopeSweepsLast > -1) {
 		if (this.channel1envelopeSweeps > 0) {
 			--this.channel1envelopeSweeps;
 		}
@@ -5424,7 +5424,7 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 					this.channel1envelopeSweeps = this.channel1envelopeSweepsLast;
 				}
 				else {
-					this.channel1envelopeSweepsLast = 0;
+					this.channel1envelopeSweepsLast = -1;
 				}
 			}
 			else if (this.channel1envelopeVolume < 0xF) {
@@ -5432,12 +5432,12 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 				this.channel1envelopeSweeps = this.channel1envelopeSweepsLast;
 			}
 			else {
-				this.channel1envelopeSweepsLast = 0;
+				this.channel1envelopeSweepsLast = -1;
 			}
 		}
 	}
 	//Channel 2:
-	if (this.channel2envelopeSweepsLast > 0) {
+	if (this.channel2envelopeSweepsLast > -1) {
 		if (this.channel2envelopeSweeps > 0) {
 			--this.channel2envelopeSweeps;
 		}
@@ -5448,7 +5448,7 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 					this.channel2envelopeSweeps = this.channel2envelopeSweepsLast;
 				}
 				else {
-					this.channel2envelopeSweepsLast = 0;
+					this.channel2envelopeSweepsLast = -1;
 				}
 			}
 			else if (this.channel2envelopeVolume < 0xF) {
@@ -5456,12 +5456,12 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 				this.channel2envelopeSweeps = this.channel2envelopeSweepsLast;
 			}
 			else {
-				this.channel2envelopeSweepsLast = 0;
+				this.channel2envelopeSweepsLast = -1;
 			}
 		}
 	}
 	//Channel 4:
-	if (this.channel4envelopeSweepsLast > 0) {
+	if (this.channel4envelopeSweepsLast > -1) {
 		if (this.channel4envelopeSweeps > 0) {
 			--this.channel4envelopeSweeps;
 		}
@@ -5472,7 +5472,7 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 					this.channel4envelopeSweeps = this.channel4envelopeSweepsLast;
 				}
 				else {
-					this.channel4envelopeSweepsLast = 0;
+					this.channel4envelopeSweepsLast = -1;
 				}
 			}
 			else if (this.channel4envelopeVolume < 0xF) {
@@ -5480,7 +5480,7 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 				this.channel4envelopeSweeps = this.channel4envelopeSweepsLast;
 			}
 			else {
-				this.channel4envelopeSweepsLast = 0;
+				this.channel4envelopeSweepsLast = -1;
 			}
 		}
 	}
@@ -8547,7 +8547,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				var nr12 = parentObj.memory[0xFF12];
 				if (nr12 > 0x07) {
 					parentObj.channel1envelopeVolume = nr12 >> 4;
-					parentObj.channel1envelopeSweepsLast = nr12 & 0x7;
+					parentObj.channel1envelopeSweepsLast = (nr12 & 0x7) - 1;
 					if (parentObj.channel1totalLength == 0) {
 						parentObj.channel1totalLength = 0x40;
 					}
@@ -8631,7 +8631,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				var nr22 = parentObj.memory[0xFF17];
 				if (nr22 > 0x7) {
 					parentObj.channel2envelopeVolume = nr22 >> 4;
-					parentObj.channel2envelopeSweepsLast = nr22 & 0x7;
+					parentObj.channel2envelopeSweepsLast = (nr22 & 0x7) - 1;
 					if (parentObj.channel2totalLength == 0) {
 						parentObj.channel2totalLength = 0x40;
 					}
@@ -8765,7 +8765,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				if (nr42 > 0x7) {
 					parentObj.channel4envelopeVolume = nr42 >> 4;
 					parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
-					parentObj.channel4envelopeSweepsLast = nr42 & 0x7;
+					parentObj.channel4envelopeSweepsLast = (nr42 & 0x7) - 1;
 					if (parentObj.channel4totalLength == 0) {
 						parentObj.channel4totalLength = 0x40;
 					}
