@@ -4353,7 +4353,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel3patternType = state[index++];
 	this.channel3frequency = state[index++];
 	this.channel3consecutive = state[index++];
-	this.channel3PCM = this.toTypedArray(state[index++], "uint8");
+	this.channel3PCM = this.toTypedArray(state[index++], "int8");
 	this.channel3adjustedFrequencyPrep = state[index++];
 	this.channel4FrequencyPeriod = state[index++];
 	this.channel4lastSampleLookup = state[index++];
@@ -4463,7 +4463,7 @@ GameBoyCore.prototype.initMemory = function () {
 	this.BGCHRBank1 = this.getTypedArray(0x800, 0, "uint8");
 	this.TICKTable = this.toTypedArray(this.TICKTable, "uint8");
 	this.SecondaryTICKTable = this.toTypedArray(this.SecondaryTICKTable, "uint8");
-	this.channel3PCM = this.getTypedArray(0x80, 0, "uint8");
+	this.channel3PCM = this.getTypedArray(0x20, 0, "int8");
 }
 GameBoyCore.prototype.generateCacheArray = function (tileAmount) {
 	var tileArray = [];
@@ -4563,7 +4563,7 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.channel2frequency = 0;
 	this.channel3canPlay = false;
 	this.channel3totalLength = 0;
-	this.channel3patternType = 0;
+	this.channel3patternType = 4;
 	this.channel3frequency = 0;
 	this.channel3consecutive = true;
 	this.channel3Tracker = 0x418;
@@ -5221,7 +5221,7 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 	this.channel2frequency = 0;
 	this.channel3canPlay = false;
 	this.channel3totalLength = 0;
-	this.channel3patternType = 0;
+	this.channel3patternType = 4;
 	this.channel3frequency = 0;
 	this.channel3consecutive = true;
 	this.channel3Tracker = 0x800;
@@ -5279,7 +5279,6 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			samplesToGenerate = (numSamples < this.sequencerClocks) ? numSamples : this.sequencerClocks;
 			this.sequencerClocks -= samplesToGenerate;
 			numSamples -= samplesToGenerate;
-			this.generateAudioGenerationPath();
 			while (--samplesToGenerate > -1) {
 				this.computeAudioChannels();
 				this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume;
@@ -5357,6 +5356,7 @@ GameBoyCore.prototype.clockAudioLength = function () {
 	}
 	else if (this.channel1totalLength == 1) {
 		this.channel1totalLength = 0;
+		this.channel1EnableCheck();
 		this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
 	}
 	//Channel 2:
@@ -5365,6 +5365,7 @@ GameBoyCore.prototype.clockAudioLength = function () {
 	}
 	else if (this.channel2totalLength == 1) {
 		this.channel2totalLength = 0;
+		this.channel2EnableCheck();
 		this.memory[0xFF26] &= 0xFD;	//Channel #2 On Flag Off
 	}
 	//Channel 3:
@@ -5373,6 +5374,7 @@ GameBoyCore.prototype.clockAudioLength = function () {
 	}
 	else if (this.channel3totalLength == 1) {
 		this.channel3totalLength = 0;
+		this.channel3EnableCheck();
 		this.memory[0xFF26] &= 0xFB;	//Channel #3 On Flag Off
 	}
 	//Channel 4:
@@ -5381,6 +5383,7 @@ GameBoyCore.prototype.clockAudioLength = function () {
 	}
 	else if (this.channel4totalLength == 1) {
 		this.channel4totalLength = 0;
+		this.channel4EnableCheck();
 		this.memory[0xFF26] &= 0xF7;	//Channel #4 On Flag Off
 	}
 }
@@ -5470,6 +5473,7 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 				if (this.channel4envelopeVolume > 0) {
 					this.channel4currentVolume = --this.channel4envelopeVolume << this.channel4VolumeShifter;
 					this.channel4envelopeSweeps = this.channel4envelopeSweepsLast;
+					this.channel4UpdateCache();
 				}
 				else {
 					this.channel4envelopeSweepsLast = -1;
@@ -5478,6 +5482,7 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 			else if (this.channel4envelopeVolume < 0xF) {
 				this.channel4currentVolume = ++this.channel4envelopeVolume << this.channel4VolumeShifter;
 				this.channel4envelopeSweeps = this.channel4envelopeSweepsLast;
+				this.channel4UpdateCache();
 			}
 			else {
 				this.channel4envelopeSweepsLast = -1;
@@ -5525,8 +5530,8 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 		}
 		if (--this.channel3Tracker == 0) {
 			this.channel3lastSampleLookup = (this.channel3lastSampleLookup + 1) & 0x1F;
-			this.cachedChannel3Sample = this.channel3PCM[this.channel3lastSampleLookup | this.channel3patternType];
 			this.channel3Tracker = this.channel3FrequencyPeriod;
+			this.channel3UpdateCache();
 		}
 	}
 	//Channel 4:
@@ -5539,18 +5544,27 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 		}
 		if (--this.channel4Tracker == 0) {
 			this.channel4lastSampleLookup = (this.channel4lastSampleLookup + 1) & this.channel4BitRange;
-			this.cachedChannel4Sample = this.noiseSampleTable[this.channel4currentVolume | this.channel4lastSampleLookup];
 			this.channel4Tracker = this.channel4FrequencyPeriod;
+			this.channel4UpdateCache();
 		}
 	}
 }
-GameBoyCore.prototype.generateAudioGenerationPath = function () {
-	this.channel1Enabled = ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1Fault == 0);
-	this.channel2Enabled = (this.channel2consecutive || this.channel2totalLength > 0);
+GameBoyCore.prototype.channel1EnableCheck = function () {
+	this.channel1Enabled = ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1Fault == 0 && this.memory[0xFF12] > 7);
+}
+GameBoyCore.prototype.channel2EnableCheck = function () {
+	this.channel2Enabled = ((this.channel2consecutive || this.channel2totalLength > 0) && this.memory[0xFF17] > 7);
+}
+GameBoyCore.prototype.channel3EnableCheck = function () {
 	this.channel3Enabled = (this.channel3canPlay && (this.channel3consecutive || this.channel3totalLength > 0));
-	this.channel4Enabled = (this.channel4consecutive || this.channel4totalLength > 0);
-	//Reset the channel caches:
-	this.cachedChannel3Sample = this.channel3PCM[this.channel3lastSampleLookup | this.channel3patternType];
+}
+GameBoyCore.prototype.channel4EnableCheck = function () {
+	this.channel4Enabled = ((this.channel4consecutive || this.channel4totalLength > 0) && this.memory[0xFF21] > 7);
+}
+GameBoyCore.prototype.channel3UpdateCache = function () {
+	this.cachedChannel3Sample = this.channel3PCM[this.channel3lastSampleLookup] >> this.channel3patternType;
+}
+GameBoyCore.prototype.channel4UpdateCache = function () {
 	this.cachedChannel4Sample = this.noiseSampleTable[this.channel4currentVolume | this.channel4lastSampleLookup];
 }
 GameBoyCore.prototype.run = function () {
@@ -8480,6 +8494,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				parentObj.channel1Fault &= 0x1;
 			}
 			parentObj.memory[0xFF10] = data;
+			parentObj.channel1EnableCheck();
 		}
 	}
 	this.memoryHighWriter[0x11] = this.memoryWriter[0xFF11] = function (parentObj, address, data) {
@@ -8494,16 +8509,13 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.channel1adjustedDuty = (parentObj.channel1adjustedFrequencyPrep >> 3) * parentObj.channel1CachedDuty;
 			parentObj.channel1totalLength = 0x40 - (data & 0x3F);
 			parentObj.memory[0xFF11] = data & 0xC0;
+			parentObj.channel1EnableCheck();
 		}
 	}
 	this.memoryHighWriter[0x12] = this.memoryWriter[0xFF12] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
 			parentObj.audioJIT();
-			if (data < 0x08) {
-				//Manual says this is a way to turn off the audio:
-				parentObj.channel1envelopeVolume = 0;
-			}
-			else if ((parentObj.channel1consecutive || parentObj.channel1totalLength > 0) && parentObj.channel1envelopeSweeps == 0) {
+			if (parentObj.channel1Enabled) {
 				//Zombie Volume PAPU Bug:
 				if (((parentObj.memory[0xFF12] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF12] & 0x8) == 0) {
@@ -8522,6 +8534,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			}
 			parentObj.channel1envelopeType = ((data & 0x08) == 0x08);
 			parentObj.memory[0xFF12] = data;
+			parentObj.channel1EnableCheck();
 		}
 	}
 	this.memoryHighWriter[0x13] = this.memoryWriter[0xFF13] = function (parentObj, address, data) {
@@ -8545,12 +8558,10 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				parentObj.channel1numSweep = parentObj.channel1frequencySweepDivider;
 				//Reload 0xFF12:
 				var nr12 = parentObj.memory[0xFF12];
-				if (nr12 > 0x07) {
-					parentObj.channel1envelopeVolume = nr12 >> 4;
-					parentObj.channel1envelopeSweepsLast = (nr12 & 0x7) - 1;
-					if (parentObj.channel1totalLength == 0) {
-						parentObj.channel1totalLength = 0x40;
-					}
+				parentObj.channel1envelopeVolume = nr12 >> 4;
+				parentObj.channel1envelopeSweepsLast = (nr12 & 0x7) - 1;
+				if (parentObj.channel1totalLength == 0) {
+					parentObj.channel1totalLength = 0x40;
 				}
 				if ((data & 0x40) == 0x40) {
 					parentObj.memory[0xFF26] |= 0x1;
@@ -8568,6 +8579,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			//Pre-calculate the frequency computation outside the waveform generator for speed:
 			parentObj.channel1adjustedFrequencyPrep = (0x800 - parentObj.channel1frequency) << 5;
 			parentObj.channel1adjustedDuty = (parentObj.channel1adjustedFrequencyPrep >> 3) * parentObj.channel1CachedDuty;
+			parentObj.channel1EnableCheck();
 			parentObj.memory[0xFF14] = data & 0x40;
 		}
 	}
@@ -8583,16 +8595,13 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.channel2adjustedDuty = (parentObj.channel2adjustedFrequencyPrep >> 3) * parentObj.channel2CachedDuty;
 			parentObj.channel2totalLength = 0x40 - (data & 0x3F);
 			parentObj.memory[0xFF16] = data & 0xC0;
+			parentObj.channel2EnableCheck();
 		}
 	}
 	this.memoryHighWriter[0x17] = this.memoryWriter[0xFF17] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
 			parentObj.audioJIT();
-			if (data < 0x08) {
-				//Manual says this is a way to turn off the audio:
-				parentObj.channel2envelopeVolume = 0;
-			}
-			else if ((parentObj.channel2consecutive || parentObj.channel2totalLength > 0) && parentObj.channel2envelopeSweeps == 0) {
+			if (parentObj.channel2Enabled) {
 				//Zombie Volume PAPU Bug:
 				if (((parentObj.memory[0xFF17] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF17] & 0x8) == 0) {
@@ -8611,6 +8620,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			}
 			parentObj.channel2envelopeType = ((data & 0x08) == 0x08);
 			parentObj.memory[0xFF17] = data;
+			parentObj.channel2EnableCheck();
 		}
 	}
 	this.memoryHighWriter[0x18] = this.memoryWriter[0xFF18] = function (parentObj, address, data) {
@@ -8629,12 +8639,10 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			if (data > 0x7F) {
 				//Reload 0xFF17:
 				var nr22 = parentObj.memory[0xFF17];
-				if (nr22 > 0x7) {
-					parentObj.channel2envelopeVolume = nr22 >> 4;
-					parentObj.channel2envelopeSweepsLast = (nr22 & 0x7) - 1;
-					if (parentObj.channel2totalLength == 0) {
-						parentObj.channel2totalLength = 0x40;
-					}
+				parentObj.channel2envelopeVolume = nr22 >> 4;
+				parentObj.channel2envelopeSweepsLast = (nr22 & 0x7) - 1;
+				if (parentObj.channel2totalLength == 0) {
+					parentObj.channel2totalLength = 0x40;
 				}
 				if ((data & 0x40) == 0x40) {
 					parentObj.memory[0xFF26] |= 0x2;
@@ -8646,6 +8654,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.channel2adjustedFrequencyPrep = (0x800 - parentObj.channel2frequency) << 5;
 			parentObj.channel2adjustedDuty = (parentObj.channel2adjustedFrequencyPrep >> 3) * parentObj.channel2CachedDuty;
 			parentObj.memory[0xFF19] = data & 0x40;
+			parentObj.channel2EnableCheck();
 		}
 	}
 	this.memoryHighWriter[0x1A] = this.memoryWriter[0xFF1A] = function (parentObj, address, data) {
@@ -8653,12 +8662,14 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.audioJIT();
 			if (!parentObj.channel3canPlay && data >= 0x80) {
 				parentObj.channel3lastSampleLookup = 0;
+				parentObj.channel3UpdateCache();
 			}
 			parentObj.channel3canPlay = (data > 0x7F);
 			if (parentObj.channel3canPlay && parentObj.memory[0xFF1A] > 0x7F && !parentObj.channel3consecutive) {
 				parentObj.memory[0xFF26] |= 0x4;
 			}
 			parentObj.memory[0xFF1A] = data & 0x80;
+			parentObj.channel3EnableCheck();
 		}
 	}
 	this.memoryHighWriter[0x1B] = this.memoryWriter[0xFF1B] = function (parentObj, address, data) {
@@ -8668,12 +8679,15 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			}
 			parentObj.channel3totalLength = 0x100 - data;
 			parentObj.memory[0xFF1B] = data;
+			parentObj.channel3EnableCheck();
 		}
 	}
 	this.memoryHighWriter[0x1C] = this.memoryWriter[0xFF1C] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
 			parentObj.audioJIT();
-			parentObj.channel3patternType = parentObj.memory[0xFF1C] = data & 0x60;
+			data &= 0x60;
+			parentObj.memory[0xFF1C] = data;
+			parentObj.channel3patternType = (data == 0) ? 4 : ((data >> 5) - 1);
 		}
 	}
 	this.memoryHighWriter[0x1D] = this.memoryWriter[0xFF1D] = function (parentObj, address, data) {
@@ -8700,6 +8714,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.channel3frequency = ((data & 0x7) << 8) | (parentObj.channel3frequency & 0xFF);
 			parentObj.channel3FrequencyPeriod = (0x800 - parentObj.channel3frequency) << 1;
 			parentObj.memory[0xFF1E] = data & 0x40;
+			parentObj.channel3EnableCheck();
 		}
 	}
 	this.memoryHighWriter[0x20] = this.memoryWriter[0xFF20] = function (parentObj, address, data) {
@@ -8709,16 +8724,13 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			}
 			parentObj.channel4totalLength = 0x40 - (data & 0x3F);
 			parentObj.memory[0xFF20] = data | 0xC0;
+			parentObj.channel4EnableCheck();
 		}
 	}
 	this.memoryHighWriter[0x21] = this.memoryWriter[0xFF21] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
 			parentObj.audioJIT();
-			if (data < 0x08) {
-				//Manual says this is a way to turn off the audio:
-				parentObj.channel4currentVolume = parentObj.channel4envelopeVolume = 0;
-			}
-			/*else if ((parentObj.channel4consecutive || parentObj.channel4totalLength > 0) && parentObj.channel4envelopeSweeps == 0) {
+			/*if (parentObj.channel4Enabled) {
 				//Zombie Volume PAPU Bug:
 				if (((parentObj.memory[0xFF21] ^ data) & 0x8) == 0x8) {
 					if ((parentObj.memory[0xFF21] & 0x8) == 0) {
@@ -8738,6 +8750,8 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			}*/
 			parentObj.channel4envelopeType = ((data & 0x08) == 0x08);
 			parentObj.memory[0xFF21] = data;
+			parentObj.channel4UpdateCache();
+			parentObj.channel4EnableCheck();
 		}
 	}
 	this.memoryHighWriter[0x22] = this.memoryWriter[0xFF22] = function (parentObj, address, data) {
@@ -8753,6 +8767,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				parentObj.noiseSampleTable = (bitWidth == 0x8) ? parentObj.LSFR7Table : parentObj.LSFR15Table;
 			}
 			parentObj.memory[0xFF22] = data;
+			parentObj.channel4UpdateCache();
 		}
 	}
 	this.memoryHighWriter[0x23] = this.memoryWriter[0xFF23] = function (parentObj, address, data) {
@@ -8762,18 +8777,17 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.channel4consecutive = ((data & 0x40) == 0x0);
 			if (data > 0x7F) {
 				var nr42 = parentObj.memory[0xFF21];
-				if (nr42 > 0x7) {
-					parentObj.channel4envelopeVolume = nr42 >> 4;
-					parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
-					parentObj.channel4envelopeSweepsLast = (nr42 & 0x7) - 1;
-					if (parentObj.channel4totalLength == 0) {
-						parentObj.channel4totalLength = 0x40;
-					}
+				parentObj.channel4envelopeVolume = nr42 >> 4;
+				parentObj.channel4currentVolume = parentObj.channel4envelopeVolume << parentObj.channel4VolumeShifter;
+				parentObj.channel4envelopeSweepsLast = (nr42 & 0x7) - 1;
+				if (parentObj.channel4totalLength == 0) {
+					parentObj.channel4totalLength = 0x40;
 				}
 				if ((data & 0x40) == 0x40) {
 					parentObj.memory[0xFF26] |= 0x8;
 				}
 			}
+			parentObj.channel4EnableCheck();
 		}
 	}
 	this.memoryHighWriter[0x24] = this.memoryWriter[0xFF24] = function (parentObj, address, data) {
@@ -8831,192 +8845,128 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if (parentObj.memory[0xFF30] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF30] = data;
-			parentObj.channel3PCM[0x20] = data >> 4;
-			parentObj.channel3PCM[0x40] = data >> 5;
-			parentObj.channel3PCM[0x60] = data >> 6;
-			parentObj.channel3PCM[0x21] = data & 0xF;
-			parentObj.channel3PCM[0x41] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x61] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0x0] = data >> 4;
+			parentObj.channel3PCM[0x1] = data & 0xF;
 		}
 	}
 	this.memoryHighWriter[0x31] = this.memoryWriter[0xFF31] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF31] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF31] = data;
-			parentObj.channel3PCM[0x22] = data >> 4;
-			parentObj.channel3PCM[0x42] = data >> 5;
-			parentObj.channel3PCM[0x62] = data >> 6;
-			parentObj.channel3PCM[0x23] = data & 0xF;
-			parentObj.channel3PCM[0x43] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x63] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0x2] = data >> 4;
+			parentObj.channel3PCM[0x3] = data & 0xF;
 		}
 	}
 	this.memoryHighWriter[0x32] = this.memoryWriter[0xFF32] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF32] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF32] = data;
-			parentObj.channel3PCM[0x24] = data >> 4;
-			parentObj.channel3PCM[0x44] = data >> 5;
-			parentObj.channel3PCM[0x64] = data >> 6;
-			parentObj.channel3PCM[0x25] = data & 0xF;
-			parentObj.channel3PCM[0x45] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x65] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0x4] = data >> 4;
+			parentObj.channel3PCM[0x5] = data & 0xF;;
 		}
 	}
 	this.memoryHighWriter[0x33] = this.memoryWriter[0xFF33] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF33] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF33] = data;
-			parentObj.channel3PCM[0x26] = data >> 4;
-			parentObj.channel3PCM[0x46] = data >> 5;
-			parentObj.channel3PCM[0x66] = data >> 6;
-			parentObj.channel3PCM[0x27] = data & 0xF;
-			parentObj.channel3PCM[0x47] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x67] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0x6] = data >> 4;
+			parentObj.channel3PCM[0x7] = data & 0xF;
 		}
 	}
 	this.memoryHighWriter[0x34] = this.memoryWriter[0xFF34] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF34] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF34] = data;
-			parentObj.channel3PCM[0x28] = data >> 4;
-			parentObj.channel3PCM[0x48] = data >> 5;
-			parentObj.channel3PCM[0x68] = data >> 6;
-			parentObj.channel3PCM[0x29] = data & 0xF;
-			parentObj.channel3PCM[0x49] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x69] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0x8] = data >> 4;
+			parentObj.channel3PCM[0x9] = data & 0xF;
 		}
 	}
 	this.memoryHighWriter[0x35] = this.memoryWriter[0xFF35] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF35] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF35] = data;
-			parentObj.channel3PCM[0x2A] = data >> 4;
-			parentObj.channel3PCM[0x4A] = data >> 5;
-			parentObj.channel3PCM[0x6A] = data >> 6;
-			parentObj.channel3PCM[0x2B] = data & 0xF;
-			parentObj.channel3PCM[0x4B] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x6B] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0xA] = data >> 4;
+			parentObj.channel3PCM[0xB] = data & 0xF;
 		}
 	}
 	this.memoryHighWriter[0x36] = this.memoryWriter[0xFF36] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF36] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF36] = data;
-			parentObj.channel3PCM[0x2C] = data >> 4;
-			parentObj.channel3PCM[0x4C] = data >> 5;
-			parentObj.channel3PCM[0x6C] = data >> 6;
-			parentObj.channel3PCM[0x2D] = data & 0xF;
-			parentObj.channel3PCM[0x4D] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x6D] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0xC] = data >> 4;
+			parentObj.channel3PCM[0xD] = data & 0xF;
 		}
 	}
 	this.memoryHighWriter[0x37] = this.memoryWriter[0xFF37] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF37] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF37] = data;
-			parentObj.channel3PCM[0x2E] = data >> 4;
-			parentObj.channel3PCM[0x4E] = data >> 5;
-			parentObj.channel3PCM[0x6E] = data >> 6;
-			parentObj.channel3PCM[0x2F] = data & 0xF;
-			parentObj.channel3PCM[0x4F] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x6F] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0xE] = data >> 4;
+			parentObj.channel3PCM[0xF] = data & 0xF;
 		}
 	}
 	this.memoryHighWriter[0x38] = this.memoryWriter[0xFF38] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF38] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF38] = data;
-			parentObj.channel3PCM[0x30] = data >> 4;
-			parentObj.channel3PCM[0x50] = data >> 5;
-			parentObj.channel3PCM[0x70] = data >> 6;
-			parentObj.channel3PCM[0x31] = data & 0xF;
-			parentObj.channel3PCM[0x51] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x71] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0x10] = data >> 4;
+			parentObj.channel3PCM[0x11] = data & 0xF;
 		}
 	}
 	this.memoryHighWriter[0x39] = this.memoryWriter[0xFF39] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF39] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF39] = data;
-			parentObj.channel3PCM[0x32] = data >> 4;
-			parentObj.channel3PCM[0x52] = data >> 5;
-			parentObj.channel3PCM[0x72] = data >> 6;
-			parentObj.channel3PCM[0x33] = data & 0xF;
-			parentObj.channel3PCM[0x53] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x73] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0x12] = data >> 4;
+			parentObj.channel3PCM[0x13] = data & 0xF;
 		}
 	}
 	this.memoryHighWriter[0x3A] = this.memoryWriter[0xFF3A] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF3A] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF3A] = data;
-			parentObj.channel3PCM[0x34] = data >> 4;
-			parentObj.channel3PCM[0x54] = data >> 5;
-			parentObj.channel3PCM[0x74] = data >> 6;
-			parentObj.channel3PCM[0x35] = data & 0xF;
-			parentObj.channel3PCM[0x55] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x75] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0x14] = data >> 4;
+			parentObj.channel3PCM[0x15] = data & 0xF;
 		}
 	}
 	this.memoryHighWriter[0x3B] = this.memoryWriter[0xFF3B] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF3B] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF3B] = data;
-			parentObj.channel3PCM[0x36] = data >> 4;
-			parentObj.channel3PCM[0x56] = data >> 5;
-			parentObj.channel3PCM[0x76] = data >> 6;
-			parentObj.channel3PCM[0x37] = data & 0xF;
-			parentObj.channel3PCM[0x57] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x77] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0x16] = data >> 4;
+			parentObj.channel3PCM[0x17] = data & 0xF;
 		}
 	}
 	this.memoryHighWriter[0x3C] = this.memoryWriter[0xFF3C] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF3C] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF3C] = data;
-			parentObj.channel3PCM[0x38] = data >> 4;
-			parentObj.channel3PCM[0x58] = data >> 5;
-			parentObj.channel3PCM[0x78] = data >> 6;
-			parentObj.channel3PCM[0x39] = data & 0xF;
-			parentObj.channel3PCM[0x59] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x79] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0x18] = data >> 4;
+			parentObj.channel3PCM[0x19] = data & 0xF;
 		}
 	}
 	this.memoryHighWriter[0x3D] = this.memoryWriter[0xFF3D] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF3D] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF3D] = data;
-			parentObj.channel3PCM[0x3A] = data >> 4;
-			parentObj.channel3PCM[0x5A] = data >> 5;
-			parentObj.channel3PCM[0x7A] = data >> 6;
-			parentObj.channel3PCM[0x3B] = data & 0xF;
-			parentObj.channel3PCM[0x5B] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x7B] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0x1A] = data >> 4;
+			parentObj.channel3PCM[0x1B] = data & 0xF;
 		}
 	}
 	this.memoryHighWriter[0x3E] = this.memoryWriter[0xFF3E] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF3E] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF3E] = data;
-			parentObj.channel3PCM[0x3C] = data >> 4;
-			parentObj.channel3PCM[0x5C] = data >> 5;
-			parentObj.channel3PCM[0x7C] = data >> 6;
-			parentObj.channel3PCM[0x3D] = data & 0xF;
-			parentObj.channel3PCM[0x5D] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x7D] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0x1C] = data >> 4;
+			parentObj.channel3PCM[0x1D] = data & 0xF;
 		}
 	}
 	this.memoryHighWriter[0x3F] = this.memoryWriter[0xFF3F] = function (parentObj, address, data) {
 		if (parentObj.memory[0xFF3F] != data) {
 			parentObj.audioJIT();
 			parentObj.memory[0xFF3F] = data;
-			parentObj.channel3PCM[0x3E] = data >> 4;
-			parentObj.channel3PCM[0x5E] = data >> 5;
-			parentObj.channel3PCM[0x7E] = data >> 6;
-			parentObj.channel3PCM[0x3F] = data & 0xF;
-			parentObj.channel3PCM[0x5F] = (data & 0xE) >> 1;
-			parentObj.channel3PCM[0x7F] = (data & 0xC) >> 2;
+			parentObj.channel3PCM[0x1E] = data >> 4;
+			parentObj.channel3PCM[0x1F] = data & 0xF;
 		}
 	}
 	//SCY
