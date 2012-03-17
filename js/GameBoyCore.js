@@ -4536,7 +4536,7 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.mode0TriggerSTAT = false;
 	this.LCDisOn = true;
 	this.channel1adjustedFrequencyPrep = 0x10000;
-	this.channel1adjustedDuty = 0x8000;
+	this.channel1adjustedDuty = 0x7FFF;
 	this.channel1CachedDuty = 4;
 	this.channel1totalLength = 0;
 	this.channel1envelopeVolume = 0;
@@ -4553,7 +4553,7 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.channel1frequencySweepDivider = 0;
 	this.channel1decreaseSweep = false;
 	this.channel2adjustedFrequencyPrep = 0x10000;
-	this.channel2adjustedDuty = 0x400;
+	this.channel2adjustedDuty = 0x3FF;
 	this.channel2totalLength = 0;
 	this.channel2envelopeVolume = 0;
 	this.channel2envelopeType = false;
@@ -4577,8 +4577,8 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.channel4consecutive = true;
 	this.channel4BitRange = 0x7FFF;
 	this.channel4VolumeShifter = 15;
-	this.channel1lastSampleLookup = 0x800;
-	this.channel2lastSampleLookup = 0x800;
+	this.channel1lastSampleLookup = 0x7FF;
+	this.channel2lastSampleLookup = 0x7FF;
 	this.channel3Tracker = 0x800;
 	this.channel3FrequencyPeriod = 0x800;
 	this.channel3lastSampleLookup = 0;
@@ -5194,7 +5194,7 @@ GameBoyCore.prototype.audioUnderrunAdjustment = function () {
 }
 GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 	this.channel1adjustedFrequencyPrep = 0x10000;
-	this.channel1adjustedDuty = 0x8000;
+	this.channel1adjustedDuty = 0x7FFF;
 	this.channel1CachedDuty = 4;
 	this.channel1totalLength = 0;
 	this.channel1envelopeVolume = 0;
@@ -5211,7 +5211,7 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 	this.channel1frequencySweepDivider = 0;
 	this.channel1decreaseSweep = false;
 	this.channel2adjustedFrequencyPrep = 0x10000;
-	this.channel2adjustedDuty = 0x8000;
+	this.channel2adjustedDuty = 0x7FFF;
 	this.channel2totalLength = 0;
 	this.channel2envelopeVolume = 0;
 	this.channel2envelopeType = false;
@@ -5236,8 +5236,8 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 	this.channel4BitRange = 0x7FFF;
 	this.noiseSampleTable = this.LSFR15Table;
 	this.channel4VolumeShifter = 15;
-	this.channel1lastSampleLookup = 0x10000;
-	this.channel2lastSampleLookup = 0x10000;
+	this.channel1lastSampleLookup = 0xFFFF;
+	this.channel2lastSampleLookup = 0xFFFF;
 	this.channel3Tracker = 0x800;
 	this.channel3FrequencyPeriod = 0x800;
 	this.channel3lastSampleLookup = 0;
@@ -5396,14 +5396,14 @@ GameBoyCore.prototype.clockAudioSweep = function () {
 				this.channel1ShadowFrequency -= this.channel1ShadowFrequency >> this.channel1frequencySweepDivider;
 				//Pre-calculate the frequency computation outside the waveform generator for speed:
 				this.channel1adjustedFrequencyPrep = (0x800 - this.channel1ShadowFrequency) << 5;
-				this.channel1adjustedDuty = (this.channel1adjustedFrequencyPrep >> 3) * this.channel1CachedDuty;
+				this.channel1adjustedDuty = (this.channel1adjustedFrequencyPrep >> 3) * this.channel1CachedDuty - 1;
 			}
 			else {
 				this.channel1ShadowFrequency += this.channel1ShadowFrequency >> this.channel1frequencySweepDivider;
 				if (this.channel1ShadowFrequency <= 0x7FF) {
 					//Pre-calculate the frequency computation outside the waveform generator for speed:
 					this.channel1adjustedFrequencyPrep = (0x800 - this.channel1ShadowFrequency) << 5;
-					this.channel1adjustedDuty = (this.channel1adjustedFrequencyPrep >> 3) * this.channel1CachedDuty;
+					this.channel1adjustedDuty = (this.channel1adjustedFrequencyPrep >> 3) * this.channel1CachedDuty - 1;
 				}
 				else {
 					this.channel1Fault |= 0x2;
@@ -5501,10 +5501,11 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 			if (this.rightChannel1) {
 				this.currentSampleRight = this.channel1envelopeVolume;
 			}
+			if (this.channel1lastSampleLookup == 0) {
+				this.channel1lastSampleLookup = this.channel1adjustedFrequencyPrep;
+			}
 		}
-		if (--this.channel1lastSampleLookup == 0) {
-			this.channel1lastSampleLookup = this.channel1adjustedFrequencyPrep;
-		}
+		--this.channel1lastSampleLookup;
 	}
 	//Channel 2:
 	if (this.channel2Enabled) {
@@ -5515,10 +5516,11 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 			if (this.rightChannel2) {
 				this.currentSampleRight += this.channel2envelopeVolume;
 			}
+			if (this.channel2lastSampleLookup == 0) {
+				this.channel2lastSampleLookup = this.channel2adjustedFrequencyPrep;
+			}
 		}
-		if (--this.channel2lastSampleLookup == 0) {
-			this.channel2lastSampleLookup = this.channel2adjustedFrequencyPrep;
-		}
+		--this.channel2lastSampleLookup;
 	}
 	//Channel 3:
 	if (this.channel3Enabled) {
@@ -8506,7 +8508,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				data &= 0x3F;
 			}
 			parentObj.channel1CachedDuty = parentObj.dutyLookup[data >> 6];
-			parentObj.channel1adjustedDuty = (parentObj.channel1adjustedFrequencyPrep >> 3) * parentObj.channel1CachedDuty;
+			parentObj.channel1adjustedDuty = (parentObj.channel1adjustedFrequencyPrep >> 3) * parentObj.channel1CachedDuty - 1;
 			parentObj.channel1totalLength = 0x40 - (data & 0x3F);
 			parentObj.memory[0xFF11] = data & 0xC0;
 			parentObj.channel1EnableCheck();
@@ -8543,7 +8545,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.channel1frequency = (parentObj.channel1frequency & 0x700) | data;
 			//Pre-calculate the frequency computation outside the waveform generator for speed:
 			parentObj.channel1adjustedFrequencyPrep = (0x800 - parentObj.channel1frequency) << 5;
-			parentObj.channel1adjustedDuty = (parentObj.channel1adjustedFrequencyPrep >> 3) * parentObj.channel1CachedDuty;
+			parentObj.channel1adjustedDuty = (parentObj.channel1adjustedFrequencyPrep >> 3) * parentObj.channel1CachedDuty - 1;
 			parentObj.memory[0xFF13] = data;
 		}
 	}
@@ -8578,7 +8580,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			}
 			//Pre-calculate the frequency computation outside the waveform generator for speed:
 			parentObj.channel1adjustedFrequencyPrep = (0x800 - parentObj.channel1frequency) << 5;
-			parentObj.channel1adjustedDuty = (parentObj.channel1adjustedFrequencyPrep >> 3) * parentObj.channel1CachedDuty;
+			parentObj.channel1adjustedDuty = (parentObj.channel1adjustedFrequencyPrep >> 3) * parentObj.channel1CachedDuty - 1;
 			parentObj.channel1EnableCheck();
 			parentObj.memory[0xFF14] = data & 0x40;
 		}
@@ -8592,7 +8594,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				data &= 0x3F;
 			}
 			parentObj.channel2CachedDuty = parentObj.dutyLookup[data >> 6];
-			parentObj.channel2adjustedDuty = (parentObj.channel2adjustedFrequencyPrep >> 3) * parentObj.channel2CachedDuty;
+			parentObj.channel2adjustedDuty = (parentObj.channel2adjustedFrequencyPrep >> 3) * parentObj.channel2CachedDuty - 1;
 			parentObj.channel2totalLength = 0x40 - (data & 0x3F);
 			parentObj.memory[0xFF16] = data & 0xC0;
 			parentObj.channel2EnableCheck();
@@ -8629,7 +8631,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.channel2frequency = (parentObj.channel2frequency & 0x700) | data;
 			//Pre-calculate the frequency computation outside the waveform generator for speed:
 			parentObj.channel2adjustedFrequencyPrep = (0x800 - parentObj.channel2frequency) << 5;
-			parentObj.channel2adjustedDuty = (parentObj.channel2adjustedFrequencyPrep >> 3) * parentObj.channel2CachedDuty;
+			parentObj.channel2adjustedDuty = (parentObj.channel2adjustedFrequencyPrep >> 3) * parentObj.channel2CachedDuty - 1;
 			parentObj.memory[0xFF18] = data;
 		}
 	}
@@ -8652,7 +8654,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.channel2frequency = ((data & 0x7) << 8) | (parentObj.channel2frequency & 0xFF);
 			//Pre-calculate the frequency computation outside the waveform generator for speed:
 			parentObj.channel2adjustedFrequencyPrep = (0x800 - parentObj.channel2frequency) << 5;
-			parentObj.channel2adjustedDuty = (parentObj.channel2adjustedFrequencyPrep >> 3) * parentObj.channel2CachedDuty;
+			parentObj.channel2adjustedDuty = (parentObj.channel2adjustedFrequencyPrep >> 3) * parentObj.channel2CachedDuty - 1;
 			parentObj.memory[0xFF19] = data & 0x40;
 			parentObj.channel2EnableCheck();
 		}
