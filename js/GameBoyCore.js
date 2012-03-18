@@ -8565,6 +8565,12 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				if (parentObj.channel1totalLength == 0) {
 					parentObj.channel1totalLength = 0x40;
 				}
+				if (parentObj.channel1lastTimeSweep > 0 || parentObj.channel1frequencySweepDivider > 0) {
+					parentObj.memory[0xFF26] |= 0x1;
+				}
+				else {
+					parentObj.memory[0xFF26] &= 0x1;
+				}
 				if ((data & 0x40) == 0x40) {
 					parentObj.memory[0xFF26] |= 0x1;
 				}
