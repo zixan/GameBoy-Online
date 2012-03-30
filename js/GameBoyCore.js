@@ -211,8 +211,6 @@ function GameBoyCore(canvas, ROMImage) {
 	this.BGCHRBank1 = null;
 	this.BGCHRBank2 = null;
 	this.BGCHRCurrentBank = null;
-	//DMG X-Coord to OAM address lookup cache:
-	this.OAMAddresses = this.ArrayPad(168, null);
 	//Tile Data Cache:
 	this.tileCache = null;
 	//Palettes:
@@ -4221,7 +4219,6 @@ GameBoyCore.prototype.saveState = function () {
 		this.numRAMBanks,
 		this.windowY,
 		this.windowX,
-		this.returnOAMXCacheCopy(this.OAMAddresses),
 		this.fromTypedArray(this.gbcOBJRawPalette),
 		this.fromTypedArray(this.gbcBGRawPalette),
 		this.fromTypedArray(this.gbOBJPalette),
@@ -4398,7 +4395,6 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.numRAMBanks = state[index++];
 	this.windowY = state[index++];
 	this.windowX = state[index++];
-	this.OAMAddresses = this.returnOAMXCacheCopy(state[index++]);
 	this.gbcOBJRawPalette = this.toTypedArray(state[index++], "uint8");
 	this.gbcBGRawPalette = this.toTypedArray(state[index++], "uint8");
 	this.gbOBJPalette = this.toTypedArray(state[index++], "int32");
@@ -5007,9 +5003,6 @@ GameBoyCore.prototype.setupRAM = function () {
 	if (this.cGBC) {
 		this.VRAM = this.getTypedArray(0x2000, 0, "uint8");
 		this.GBCMemory = this.getTypedArray(0x7000, 0, "uint8");
-	}
-	else {
-		this.resetOAMXCache();
 	}
 	this.memoryReadJumpCompile();
 	this.memoryWriteJumpCompile();
@@ -6194,6 +6187,8 @@ GameBoyCore.prototype.initializeModeSpecificArrays = function () {
 		this.BGPalette = this.gbBGPalette;
 		this.OBJPalette = this.gbOBJPalette;
 		this.tileCache = this.generateCacheArray(0x700);
+		this.sortBuffer = this.getTypedArray(0x100, 0, "uint8");
+		this.OAMAddressCache = this.getTypedArray(10, 0, "int32");
 	}
 	this.renderPathBuild();
 }
@@ -6217,7 +6212,8 @@ GameBoyCore.prototype.GBCtoGBModeAdjust = function () {
 		this.BGPalette = this.gbBGPalette;
 		this.OBJPalette = this.gbOBJPalette;
 	}
-	this.resetOAMXCache();
+	this.sortBuffer = this.getTypedArray(0x100, 0, "uint8");
+	this.OAMAddressCache = this.getTypedArray(10, 0, "int32");
 	this.renderPathBuild();
 	this.memoryReadJumpCompile();
 	this.memoryWriteJumpCompile();
@@ -6855,104 +6851,46 @@ GameBoyCore.prototype.SpriteGBLayerRender = function (scanlineToRender) {
 		var lineAdjusted = scanlineToRender + 0x10;
 		var OAMAddress = 0xFE00;
 		var yoffset = 0;
-		var xcoord = 0;
+		var xcoord = 1;
+		var xCoordStart = 0;
+		var xCoordEnd = 0;
 		var attrCode = 0;
 		var palette = 0;
 		var tile = null;
 		var data = 0;
 		var spriteCount = 0;
-		var currentColumn = 0;
 		var length = 0;
 		var currentPixel = 0;
-		var onXCoord = 1;
-		var pixelOffsetLocal = this.pixelStart;
+		var linePixel = 0;
+		//Clear our x-coord sort buffer:
+		while (xcoord < 168) {
+			this.sortBuffer[xcoord++] = 0xFF;
+		}
 		if (this.gfxSpriteNormalHeight) {
 			//Draw the visible sprites:
-			for (var lowestSpriteAddress = this.findLowestSpriteDrawable(scanlineToRender, 0x7); onXCoord < 8; ++onXCoord) {
-				currentColumn = this.OAMAddresses[onXCoord];
-				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length; ++spriteCount) {
-					OAMAddress = currentColumn[spriteCount];
-					if (OAMAddress < lowestSpriteAddress) {
-						yoffset = lineAdjusted - this.memory[OAMAddress];
-						if ((yoffset & 0x7) == yoffset) {
-							yoffset <<= 3;
-							attrCode = this.memory[OAMAddress | 3];
-							palette = (attrCode & 0x10) >> 2;
-							tile = this.tileCache[((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2]];
-							for (xcoord = 8 - onXCoord, currentPixel = pixelOffsetLocal; xcoord < 8; ++xcoord, ++currentPixel) {
-								if (this.frameBuffer[currentPixel] >= 0x2000000) {
-									data = tile[yoffset | xcoord];
-									if (data > 0) {
-										this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
-									}
-								}
-								else if (this.frameBuffer[currentPixel] < 0x1000000) {
-									data = tile[yoffset | xcoord];
-									if (data > 0 && attrCode < 0x80) {
-										this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
-									}
-								}
+			for (var length = this.findLowestSpriteDrawable(lineAdjusted, 0x7); spriteCount < length; ++spriteCount) {
+				OAMAddress = this.OAMAddressCache[spriteCount];
+				yoffset = (lineAdjusted - this.memory[OAMAddress]) << 3;
+				attrCode = this.memory[OAMAddress | 3];
+				palette = (attrCode & 0x10) >> 2;
+				tile = this.tileCache[((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2]];
+				linePixel = xCoordStart = this.memory[OAMAddress | 1];
+				xCoordEnd = Math.min(168 - linePixel, 8);
+				xcoord = (linePixel > 7) ? 0 : (8 - linePixel);
+				for (currentPixel = this.pixelStart + ((linePixel > 8) ? (linePixel - 8) : 0); xcoord < xCoordEnd; ++xcoord, ++currentPixel, ++linePixel) {	
+					if (this.sortBuffer[linePixel] > xCoordStart) {
+						if (this.frameBuffer[currentPixel] >= 0x2000000) {
+							data = tile[yoffset | xcoord];
+							if (data > 0) {
+								this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
+								this.sortBuffer[linePixel] = xCoordStart;
 							}
 						}
-					}
-				}
-			}
-			for (pixelOffsetLocal -= 8; onXCoord < 161; ++onXCoord) {
-				currentColumn = this.OAMAddresses[onXCoord];
-				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length; ++spriteCount) {
-					OAMAddress = currentColumn[spriteCount];
-					if (OAMAddress < lowestSpriteAddress) {
-						yoffset = lineAdjusted - this.memory[OAMAddress];
-						if ((yoffset & 0x7) == yoffset) {
-							yoffset <<= 3;
-							attrCode = this.memory[OAMAddress | 3];
-							palette = (attrCode & 0x10) >> 2;
-							tile = this.tileCache[((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2]];
-							for (xcoord = 0, currentPixel = pixelOffsetLocal + onXCoord; xcoord < 8; ++xcoord, ++currentPixel) {
-								if (this.frameBuffer[currentPixel] >= 0x2000000) {
-									data = tile[yoffset | xcoord];
-									if (data > 0) {
-										this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
-									}
-								}
-								else if (this.frameBuffer[currentPixel] < 0x1000000) {
-									data = tile[yoffset | xcoord];
-									if (data > 0 && attrCode < 0x80) {
-										this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-			for (pixelOffsetLocal += 167; onXCoord < 168; ++onXCoord) {
-				currentColumn = this.OAMAddresses[onXCoord];
-				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length; ++spriteCount) {
-					OAMAddress = currentColumn[spriteCount];
-					if (OAMAddress < lowestSpriteAddress) {
-						yoffset = lineAdjusted - this.memory[OAMAddress];
-						if ((yoffset & 0x7) == yoffset) {
-							yoffset <<= 3;
-							attrCode = this.memory[OAMAddress | 3];
-							palette = (attrCode & 0x10) >> 2;
-							tile = this.tileCache[((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2]];
-							for (xcoord = 167 - onXCoord, currentPixel = pixelOffsetLocal; xcoord > -1; --xcoord, --currentPixel) {
-								if (this.frameBuffer[currentPixel] >= 0x2000000) {
-									data = tile[yoffset | xcoord];
-									if (data > 0) {
-										this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
-									}
-								}
-								else if (this.frameBuffer[currentPixel] < 0x1000000) {
-									data = tile[yoffset | xcoord];
-									if (data > 0 && attrCode < 0x80) {
-										this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
-									}
-								}
+						else if (this.frameBuffer[currentPixel] < 0x1000000) {
+							data = tile[yoffset | xcoord];
+							if (data > 0 && attrCode < 0x80) {
+								this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
+								this.sortBuffer[linePixel] = xCoordStart;
 							}
 						}
 					}
@@ -6961,106 +6899,35 @@ GameBoyCore.prototype.SpriteGBLayerRender = function (scanlineToRender) {
 		}
 		else {
 			//Draw the visible sprites:
-			for (var lowestSpriteAddress = this.findLowestSpriteDrawable(scanlineToRender, 0xF); onXCoord < 8; ++onXCoord) {
-				currentColumn = this.OAMAddresses[onXCoord];
-				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length; ++spriteCount) {
-					OAMAddress = currentColumn[spriteCount];
-					if (OAMAddress < lowestSpriteAddress) {
-						yoffset = lineAdjusted - this.memory[OAMAddress];
-						if ((yoffset & 0xF) == yoffset) {
-							attrCode = this.memory[OAMAddress | 0x3];
-							palette = (attrCode & 0x10) >> 2;
-							if ((attrCode & 0x40) == (0x40 & (yoffset << 3))) {
-								tile = this.tileCache[((attrCode & 0x60) << 4) | (this.memory[OAMAddress | 0x2] & 0xFE)];
-							}
-							else {
-								tile = this.tileCache[((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2] | 1];
-							}
-							yoffset = (yoffset & 0x7) << 3;
-							for (xcoord = 8 - onXCoord, currentPixel = pixelOffsetLocal; xcoord < 8; ++xcoord, ++currentPixel) {
-								if (this.frameBuffer[currentPixel] >= 0x2000000) {
-									data = tile[yoffset | xcoord];
-									if (data > 0) {
-										this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
-									}
-								}
-								else if (this.frameBuffer[currentPixel] < 0x1000000) {
-									data = tile[yoffset | xcoord];
-									if (data > 0 && attrCode < 0x80) {
-										this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
-									}
-								}
+			for (var length = this.findLowestSpriteDrawable(lineAdjusted, 0xF); spriteCount < length; ++spriteCount) {
+				OAMAddress = this.OAMAddressCache[spriteCount];
+				yoffset = (lineAdjusted - this.memory[OAMAddress]) << 3;
+				attrCode = this.memory[OAMAddress | 3];
+				palette = (attrCode & 0x10) >> 2;
+				if ((attrCode & 0x40) == (0x40 & yoffset)) {
+					tile = this.tileCache[((attrCode & 0x60) << 4) | (this.memory[OAMAddress | 0x2] & 0xFE)];
+				}
+				else {
+					tile = this.tileCache[((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2] | 1];
+				}
+				yoffset &= 0x3F;
+				linePixel = xCoordStart = this.memory[OAMAddress | 1];
+				xCoordEnd = Math.min(168 - linePixel, 8);
+				xcoord = (linePixel > 7) ? 0 : (8 - linePixel);
+				for (currentPixel = this.pixelStart + ((linePixel > 8) ? (linePixel - 8) : 0); xcoord < xCoordEnd; ++xcoord, ++currentPixel, ++linePixel) {	
+					if (this.sortBuffer[linePixel] > xCoordStart) {
+						if (this.frameBuffer[currentPixel] >= 0x2000000) {
+							data = tile[yoffset | xcoord];
+							if (data > 0) {
+								this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
+								this.sortBuffer[linePixel] = xCoordStart;
 							}
 						}
-					}
-				}
-			}
-			for (pixelOffsetLocal -= 8; onXCoord < 161; ++onXCoord) {
-				currentColumn = this.OAMAddresses[onXCoord];
-				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length; ++spriteCount) {
-					OAMAddress = currentColumn[spriteCount];
-					if (OAMAddress < lowestSpriteAddress) {
-						yoffset = lineAdjusted - this.memory[OAMAddress];
-						if ((yoffset & 0xF) == yoffset) {
-							attrCode = this.memory[OAMAddress | 0x3];
-							palette = (attrCode & 0x10) >> 2;
-							if ((attrCode & 0x40) == (0x40 & (yoffset << 3))) {
-								tile = this.tileCache[((attrCode & 0x60) << 4) | (this.memory[OAMAddress | 0x2] & 0xFE)];
-							}
-							else {
-								tile = this.tileCache[((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2] | 1];
-							}
-							yoffset = (yoffset & 0x7) << 3;
-							for (xcoord = 0, currentPixel = pixelOffsetLocal + onXCoord; xcoord < 8; ++xcoord, ++currentPixel) {
-								if (this.frameBuffer[currentPixel] >= 0x2000000) {
-									data = tile[yoffset | xcoord];
-									if (data > 0) {
-										this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
-									}
-								}
-								else if (this.frameBuffer[currentPixel] < 0x1000000) {
-									data = tile[yoffset | xcoord];
-									if (data > 0 && attrCode < 0x80) {
-										this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
-									}
-								}
-							}
-						}
-					}
-				}
-			}
-			for (pixelOffsetLocal += 167; onXCoord < 168; ++onXCoord) {
-				currentColumn = this.OAMAddresses[onXCoord];
-				length = currentColumn.length;
-				for (spriteCount = 0; spriteCount < length; ++spriteCount) {
-					OAMAddress = currentColumn[spriteCount];
-					if (OAMAddress < lowestSpriteAddress) {
-						yoffset = lineAdjusted - this.memory[OAMAddress];
-						if ((yoffset & 0xF) == yoffset) {
-							attrCode = this.memory[OAMAddress | 0x3];
-							palette = (attrCode & 0x10) >> 2;
-							if ((attrCode & 0x40) == (0x40 & (yoffset << 3))) {
-								tile = this.tileCache[((attrCode & 0x60) << 4) | (this.memory[OAMAddress | 0x2] & 0xFE)];
-							}
-							else {
-								tile = this.tileCache[((attrCode & 0x60) << 4) | this.memory[OAMAddress | 0x2] | 1];
-							}
-							yoffset = (yoffset & 0x7) << 3;
-							for (xcoord = 167 - onXCoord, currentPixel = pixelOffsetLocal; xcoord > -1; --xcoord, --currentPixel) {
-								if (this.frameBuffer[currentPixel] >= 0x2000000) {
-									data = tile[yoffset | xcoord];
-									if (data > 0) {
-										this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
-									}
-								}
-								else if (this.frameBuffer[currentPixel] < 0x1000000) {
-									data = tile[yoffset | xcoord];
-									if (data > 0 && attrCode < 0x80) {
-										this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
-									}
-								}
+						else if (this.frameBuffer[currentPixel] < 0x1000000) {
+							data = tile[yoffset | xcoord];
+							if (data > 0 && attrCode < 0x80) {
+								this.frameBuffer[currentPixel] = this.OBJPalette[palette | data];
+								this.sortBuffer[linePixel] = xCoordStart;
 							}
 						}
 					}
@@ -7072,16 +6939,15 @@ GameBoyCore.prototype.SpriteGBLayerRender = function (scanlineToRender) {
 GameBoyCore.prototype.findLowestSpriteDrawable = function (scanlineToRender, drawableRange) {
 	var address = 0xFE00;
 	var spriteCount = 0;
-	var line = scanlineToRender + 0x10;
 	var diff = 0;
 	while (address < 0xFEA0 && spriteCount < 10) {
-		diff = line - this.memory[address];
+		diff = scanlineToRender - this.memory[address];
 		if ((diff & drawableRange) == diff) {
-			++spriteCount;
+			this.OAMAddressCache[spriteCount++] = address;
 		}
 		address += 4;
 	}
-	return address;
+	return spriteCount;
 }
 GameBoyCore.prototype.SpriteGBCLayerRender = function (scanlineToRender) {
 	if (this.gfxSpriteShow) {										//Are sprites enabled?
@@ -8023,7 +7889,7 @@ GameBoyCore.prototype.memoryWriteJumpCompile = function () {
 			}
 		}
 		else if (index <= 0xFEA0) {
-			this.memoryWriter[index] = (this.cGBC || (index & 3) != 0x1) ? this.memoryWriteGBCOAMRAM : this.memoryWriteGBOAMRAM;
+			this.memoryWriter[index] = this.memoryWriteOAMRAM;
 		}
 		else if (index < 0xFF00) {
 			if (this.cGBC) {											//Only GBC has access to this RAM.
@@ -8195,62 +8061,7 @@ GameBoyCore.prototype.memoryWriteMBC3RAM = function (parentObj, address, data) {
 GameBoyCore.prototype.memoryWriteGBCRAM = function (parentObj, address, data) {
 	parentObj.GBCMemory[address + parentObj.gbcRamBankPosition] = data;
 }
-GameBoyCore.prototype.memoryWriteGBOAMRAMUnsafe = function (address, data) {
-	var oldData = this.memory[address];
-	this.memory[address--] = data;
-	if (oldData > 0 && oldData < 168) {
-		//Remove the old position:
-		var length = this.OAMAddresses[oldData].length;
-		while (length > 0) {
-			if (this.OAMAddresses[oldData][--length] == address) {
-				this.OAMAddresses[oldData].splice(length, 1);
-				break;
-			}
-		}
-	}
-	if (data > 0 && data < 168) {
-		//Make sure the stacking is correct if multiple sprites are at the same x-coord:
-		var length = this.OAMAddresses[data].length;
-		while (length > 0) {
-			if (this.OAMAddresses[data][--length] > address) {
-				this.OAMAddresses[data].splice(length, 0, address);
-				return;
-			}
-		}
-		this.OAMAddresses[data].push(address);
-	}
-}
-GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) {
-	if (parentObj.modeSTAT < 2) {		//OAM RAM cannot be written to in mode 2 & 3
-		var oldData = parentObj.memory[address];
-		if (oldData != data) {
-			parentObj.graphicsJIT();
-			parentObj.memory[address--] = data;
-			if (oldData > 0 && oldData < 168) {
-				//Remove the old position:
-				var length = parentObj.OAMAddresses[oldData].length;
-				while (length > 0) {
-					if (parentObj.OAMAddresses[oldData][--length] == address) {
-						parentObj.OAMAddresses[oldData].splice(length, 1);
-						break;
-					}
-				}
-			}
-			if (data > 0 && data < 168) {
-				//Make sure the stacking is correct if multiple sprites are at the same x-coord:
-				var length = parentObj.OAMAddresses[data].length;
-				while (length > 0) {
-					if (parentObj.OAMAddresses[data][--length] > address) {
-						parentObj.OAMAddresses[data].splice(length, 0, address);
-						return;
-					}
-				}
-				parentObj.OAMAddresses[data].push(address);
-			}
-		}
-	}
-}
-GameBoyCore.prototype.memoryWriteGBCOAMRAM = function (parentObj, address, data) {
+GameBoyCore.prototype.memoryWriteOAMRAM = function (parentObj, address, data) {
 	if (parentObj.modeSTAT < 2) {		//OAM RAM cannot be written to in mode 2 & 3
 		if (parentObj.memory[address] != data) {
 			parentObj.graphicsJIT();
@@ -9123,6 +8934,9 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 				if (address < 0xFEA0) {
 					do {
 						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
 					} while (address < 0xFEA0);
 				}
 				parentObj.modeSTAT = stat;
@@ -9302,23 +9116,16 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 						parentObj.modeSTAT = stat;
 						parentObj.graphicsJIT();
 						parentObj.modeSTAT = 0;
-						if ((address & 0x3) != 0x1) {
-							parentObj.memory[address++] = newData;
-						}
-						else {
-							parentObj.memoryWriteGBOAMRAMUnsafe(address++, newData);
-						}
+						parentObj.memory[address++] = newData;
 						break;
 					}
 				} while (++address < 0xFEA0);
 				if (address < 0xFEA0) {
 					do {
-						if ((address & 0x3) != 0x1) {
-							parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
-						}
-						else {
-							parentObj.memoryWriteGBOAMRAMUnsafe(address++, parentObj.memoryReader[data](parentObj, data++));
-						}
+						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
 					} while (address < 0xFEA0);
 				}
 				parentObj.modeSTAT = stat;
@@ -9469,38 +9276,6 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 		while (index < length) {
 			arrayHandle[index++] = defaultValue;
 		}
-	}
-	return arrayHandle;
-}
-GameBoyCore.prototype.ArrayPad = function (length, defaultValue) {
-	var arrayHandle = [];
-	var index = 0;
-	while (index < length) {
-		arrayHandle[index++] = defaultValue;
-	}
-	return arrayHandle;
-}
-GameBoyCore.prototype.resetOAMXCache = function () {
-	for (var index = 0; index < 168; ++index) {
-		this.OAMAddresses[index] = [];
-	}
-}
-GameBoyCore.prototype.returnOAMXCacheCopy = function (array) {
-	var arrayHandle = this.ArrayPad(168, null);
-	for (var subindex = 0; subindex < 168; subindex++) {
-		arrayHandle[subindex] = [];
-	}
-	if (array.length) {
-		var index = 0;
-		var length = 0;
-		while (index < length) {
-			length = array[index].length;
-			for (subindex = 0; subindex < length; subindex++) {
-				arrayHandle[index][subindex] = array[index][subindex];
-			}
-			++index;
-		}
-		cout("OAM sprite cached preserved.", 0);
 	}
 	return arrayHandle;
 }
