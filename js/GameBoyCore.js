@@ -215,7 +215,6 @@ function GameBoyCore(canvas, ROMImage) {
 	this.tileCache = null;
 	//Palettes:
 	this.colors = [0xEFFFDE, 0xADD794, 0x529273, 0x183442];			//"Classic" GameBoy palette colors.
-	this.objColors = [0x1EFFFDE, 0x1ADD794, 0x1529273, 0x1183442];	//"Classic" GameBoy sprite palette colors.
 	this.OBJPalette = null;
 	this.BGPalette = null;
 	this.gbcOBJRawPalette = null;
@@ -6182,7 +6181,7 @@ GameBoyCore.prototype.initializeModeSpecificArrays = function () {
 		this.tileCache = this.generateCacheArray(0xF80);
 	}
 	else {
-		this.gbOBJPalette = this.getTypedArray(8, 0x1000000, "int32");
+		this.gbOBJPalette = this.getTypedArray(8, 0, "int32");
 		this.gbBGPalette = this.getTypedArray(4, 0, "int32");
 		this.BGPalette = this.gbBGPalette;
 		this.OBJPalette = this.gbOBJPalette;
@@ -6207,7 +6206,7 @@ GameBoyCore.prototype.GBCtoGBModeAdjust = function () {
 		this.getGBCColor();
 	}
 	else {
-		this.gbOBJPalette = this.getTypedArray(8, 0x1000000, "int32");
+		this.gbOBJPalette = this.getTypedArray(8, 0, "int32");
 		this.gbBGPalette = this.getTypedArray(4, 0, "int32");
 		this.BGPalette = this.gbBGPalette;
 		this.OBJPalette = this.gbOBJPalette;
@@ -6287,12 +6286,12 @@ GameBoyCore.prototype.getGBCColor = function () {
 		//BG
 		this.cachedBGPaletteConversion[counter] = this.RGBTint((this.gbcBGRawPalette[adjustedIndex | 1] << 8) | this.gbcBGRawPalette[adjustedIndex]);
 		//OBJ 1
-		this.cachedOBJPaletteConversion[counter] = 0x1000000 | this.RGBTint((this.gbcOBJRawPalette[adjustedIndex | 1] << 8) | this.gbcOBJRawPalette[adjustedIndex]);
+		this.cachedOBJPaletteConversion[counter] = this.RGBTint((this.gbcOBJRawPalette[adjustedIndex | 1] << 8) | this.gbcOBJRawPalette[adjustedIndex]);
 	}
 	//OBJ 2
 	for (counter = 4; counter < 8; counter++) {
 		adjustedIndex = counter << 1;
-		this.cachedOBJPaletteConversion[counter] = 0x1000000 | this.RGBTint((this.gbcOBJRawPalette[adjustedIndex | 1] << 8) | this.gbcOBJRawPalette[adjustedIndex]);
+		this.cachedOBJPaletteConversion[counter] = this.RGBTint((this.gbcOBJRawPalette[adjustedIndex | 1] << 8) | this.gbcOBJRawPalette[adjustedIndex]);
 	}
 	//Update the palette entries:
 	this.updateGBBGPalette = this.updateGBColorizedBGPalette;
@@ -6316,9 +6315,9 @@ GameBoyCore.prototype.updateGBColorizedBGPalette = function (data) {
 	this.gbBGColorizedPalette[3] = this.cachedBGPaletteConversion[data >> 6];
 }
 GameBoyCore.prototype.updateGBRegularOBJPalette = function (index, data) {
-	this.gbOBJPalette[index | 1] = this.objColors[(data >> 2) & 0x03];
-	this.gbOBJPalette[index | 2] = this.objColors[(data >> 4) & 0x03];
-	this.gbOBJPalette[index | 3] = this.objColors[data >> 6];
+	this.gbOBJPalette[index | 1] = this.colors[(data >> 2) & 0x03];
+	this.gbOBJPalette[index | 2] = this.colors[(data >> 4) & 0x03];
+	this.gbOBJPalette[index | 3] = this.colors[data >> 6];
 }
 GameBoyCore.prototype.updateGBColorizedOBJPalette = function (index, data) {
 	//GB colorization:
