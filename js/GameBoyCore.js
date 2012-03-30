@@ -7993,7 +7993,7 @@ GameBoyCore.prototype.memoryWriteJumpCompile = function () {
 			}
 		}
 		else if (index <= 0xFEA0) {
-			this.memoryWriter[index] = (this.cGBC || (index & 3) != 0x1) ? this.memoryWriteGBCOAMRAM : this.memoryWriteGBOAMRAM;
+			this.memoryWriter[index] = this.memoryWriteOAMRAM;
 		}
 		else if (index < 0xFF00) {
 			if (this.cGBC) {											//Only GBC has access to this RAM.
@@ -8165,16 +8165,7 @@ GameBoyCore.prototype.memoryWriteMBC3RAM = function (parentObj, address, data) {
 GameBoyCore.prototype.memoryWriteGBCRAM = function (parentObj, address, data) {
 	parentObj.GBCMemory[address + parentObj.gbcRamBankPosition] = data;
 }
-GameBoyCore.prototype.memoryWriteGBOAMRAM = function (parentObj, address, data) {
-	if (parentObj.modeSTAT < 2) {		//OAM RAM cannot be written to in mode 2 & 3
-		var oldData = parentObj.memory[address];
-		if (oldData != data) {
-			parentObj.graphicsJIT();
-			parentObj.memory[address--] = data;
-		}
-	}
-}
-GameBoyCore.prototype.memoryWriteGBCOAMRAM = function (parentObj, address, data) {
+GameBoyCore.prototype.memoryWriteOAMRAM = function (parentObj, address, data) {
 	if (parentObj.modeSTAT < 2) {		//OAM RAM cannot be written to in mode 2 & 3
 		if (parentObj.memory[address] != data) {
 			parentObj.graphicsJIT();
@@ -9106,6 +9097,9 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 				if (address < 0xFEA0) {
 					do {
 						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
 					} while (address < 0xFEA0);
 				}
 				parentObj.modeSTAT = stat;
@@ -9291,6 +9285,9 @@ GameBoyCore.prototype.recompileModelSpecificIOWriteHandling = function () {
 				} while (++address < 0xFEA0);
 				if (address < 0xFEA0) {
 					do {
+						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
+						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
 						parentObj.memory[address++] = parentObj.memoryReader[data](parentObj, data++);
 					} while (address < 0xFEA0);
 				}
