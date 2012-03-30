@@ -6291,7 +6291,7 @@ GameBoyCore.prototype.initializeModeSpecificArrays = function () {
 		this.BGPalette = this.gbBGPalette;
 		this.OBJPalette = this.gbOBJPalette;
 		this.tileCache = this.generateCacheArray(0x700);
-		this.sortBuffer = this.getTypedArray(0xFF, 0, "uint8");
+		this.sortBuffer = this.getTypedArray(0x100, 0, "uint8");
 		this.OAMAddressCache = this.getTypedArray(10, 0, "int32");
 	}
 	this.renderPathBuild();
@@ -6316,7 +6316,7 @@ GameBoyCore.prototype.GBCtoGBModeAdjust = function () {
 		this.BGPalette = this.gbBGPalette;
 		this.OBJPalette = this.gbOBJPalette;
 	}
-	this.sortBuffer = this.getTypedArray(0xFF, 0, "uint8");
+	this.sortBuffer = this.getTypedArray(0x100, 0, "uint8");
 	this.OAMAddressCache = this.getTypedArray(10, 0, "int32");
 	this.renderPathBuild();
 	this.memoryReadJumpCompile();
