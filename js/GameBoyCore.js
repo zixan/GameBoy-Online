@@ -143,6 +143,7 @@ function GameBoyCore(canvas, ROMImage) {
 	//Pre-multipliers to cache some calculations:
 	this.initializeTiming();
 	this.samplesOut = 0;				//Premultiplier for audio samples per instruction.
+	this.machineOut = 0;				//Clocks per sample.
 	//Audio generation counters:
 	this.audioTicks = 0;				//Used to sample the audio system every x CPU instructions.
 	this.audioIndex = 0;				//Used to keep alignment on audio generation.
@@ -5113,6 +5114,7 @@ GameBoyCore.prototype.initSound = function () {
 	cout("...Samples per interpreter loop iteration (Per Channel): " + this.sampleSize, 0);
 	this.samplesOut = this.sampleSize / this.CPUCyclesPerIteration;
 	cout("...Samples per clock cycle (Per Channel): " + this.samplesOut, 0);
+	this.machineOut = 1 / this.samplesOut;	//Clocks per sample.
 	if (settings[0]) {
 		this.soundChannelsAllocated = (!settings[1]) ? 2 : 1;
 		this.soundFrameShifter = this.soundChannelsAllocated - 1;
@@ -5211,7 +5213,7 @@ GameBoyCore.prototype.audioUnderrunAdjustment = function () {
 	if (settings[0]) {
 		var underrunAmount = this.bufferContainAmount - this.audioHandle.remainingBuffer();
 		if (underrunAmount > 0) {
-			this.CPUCyclesTotalCurrent += (underrunAmount >> this.soundFrameShifter) * this.samplesOut;
+			this.CPUCyclesTotalCurrent += (underrunAmount >> this.soundFrameShifter) * this.machineOut;
 			this.recalculateIterationClockLimit();
 		}
 	}
