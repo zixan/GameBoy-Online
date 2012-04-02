@@ -1,7 +1,6 @@
 "use strict";
 var gameboy = null;						//GameBoyCore object.
 var gbRunInterval = null;				//GameBoyCore Timer
-var vblankQueueClear = true;			//Vblank Queue Detection Flag
 var settings = [						//Some settings.
 	true, 								//Turn on sound.
 	false,								//Force Mono sound.
@@ -9,9 +8,9 @@ var settings = [						//Some settings.
 	[39, 37, 38, 40, 88, 90, 16, 13],	//Keyboard button map.
 	true,								//Colorize GB mode?
 	false,								//Disallow typed arrays?
-	16,									//Interval for the emulator loop.
-	4,									//Audio buffer span amount over x interpreter iterations.
-	10,									//Audio buffer size.
+	4,									//Interval for the emulator loop.
+	8,									//Audio buffer span amount over x interpreter iterations.
+	20,									//Audio buffer size.
 	false,								//Override to allow for MBC1 instead of ROM only (compatibility for broken 3rd-party cartridges).
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
 	false,								//Vertical blank event availability.
@@ -390,35 +389,6 @@ function GameBoyGyroSignalHandler(e) {
 			e.preventDefault();
 		}
 		catch (error) { }
-	}
-}
-function VBlankSyncHandler() {
-	if (settings[11] && GameBoyEmulatorInitialized() && GameBoyEmulatorPlaying()) {
-		//Draw out our graphics now:
-		gameboy.dispatchDraw();
-	}
-	vblankQueueClear = true;
-}
-function requestVBlank(canvasHandle) {
-	if (vblankQueueClear) {
-		settings[11] = true;
-		try {
-			window.webkitRequestAnimationFrame(VBlankSyncHandler, canvasHandle);
-		}
-		catch (e) {
-			try {
-				window.msRequestAnimationFrame(VBlankSyncHandler);
-			}
-			catch (e) {
-				try {
-					window.requestAnimationFrame(VBlankSyncHandler);
-				}
-				catch (e) {
-					settings[11] = false;
-				}
-			}
-		}
-		vblankQueueClear = false;
 	}
 }
 //The emulator will call this to sort out the canvas properties for (re)initialization.

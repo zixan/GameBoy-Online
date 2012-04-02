@@ -6027,32 +6027,23 @@ GameBoyCore.prototype.prepareFrame = function () {
 	this.drewFrame = true;
 }
 GameBoyCore.prototype.requestDraw = function () {
-	if (!settings[11]) {
-		//If we have not detected v-blank timing support, then we'll just blit now:
+	if (this.drewFrame) {
 		this.dispatchDraw();
 	}
-	//Request a v-blank event to occur:
-	requestVBlank(this.canvas);
 }
 GameBoyCore.prototype.dispatchDraw = function () {
 	var canvasRGBALength = this.rgbCount;
 	if (canvasRGBALength > 0) {
-		if (this.drewFrame) {
-			//We actually updated the graphics internally, so copy out:
-			var frameBuffer = (canvasRGBALength == 92160) ? this.swizzledFrame : this.resizeFrameBuffer();
-			var canvasData = this.canvasBuffer.data;
-			var bufferIndex = 0;
-			for (var canvasIndex = 0; canvasIndex < canvasRGBALength; ++canvasIndex) {
-				canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
-				canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
-				canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
-			}
-			this.drawContext.putImageData(this.canvasBuffer, 0, 0);
+		//We actually updated the graphics internally, so copy out:
+		var frameBuffer = (canvasRGBALength == 92160) ? this.swizzledFrame : this.resizeFrameBuffer();
+		var canvasData = this.canvasBuffer.data;
+		var bufferIndex = 0;
+		for (var canvasIndex = 0; canvasIndex < canvasRGBALength; ++canvasIndex) {
+			canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
+			canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
+			canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
 		}
-		else if (settings[11]) {
-			//Create a dummy putImageData call for browsers that require a canvas call for proper timing:
-			this.drawContext.putImageData(this.canvasBuffer, 0, 0);
-		}
+		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
 	}
 }
 GameBoyCore.prototype.swizzleFrameBuffer = function () {
