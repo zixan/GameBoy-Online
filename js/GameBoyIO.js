@@ -13,11 +13,10 @@ var settings = [						//Some settings.
 	25,									//Audio buffer size.
 	false,								//Override to allow for MBC1 instead of ROM only (compatibility for broken 3rd-party cartridges).
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
-	false,								//Vertical blank event availability.
+	true,								//Use the GBC BIOS?
 	false,								//Scale the canvas in JS, or let the browser scale the canvas?
 	false,								//Use the GameBoy boot ROM instead of the GameBoy Color boot ROM.
-	0x40000,							//Sample Rate
-	true								//Use the GBC BIOS?
+	0x40000								//Sample Rate
 ];
 function start(canvas, ROM) {
 	clearLastEmulation();
