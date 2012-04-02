@@ -5118,7 +5118,7 @@ GameBoyCore.prototype.initSound = function () {
 		this.soundFrameShifter = this.soundChannelsAllocated - 1;
 		try {
 			var parentObj = this;
-			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], 0, Math.max(this.sampleSize * settings[18], 8192) << this.soundFrameShifter, function (sampleCount) {
+			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], 0, Math.max(this.sampleSize * settings[8], 8192) << this.soundFrameShifter, function (sampleCount) {
 				return [];
 			}, -1);
 			cout("...Audio Channels: " + this.soundChannelsAllocated, 0);
