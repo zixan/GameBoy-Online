@@ -9,9 +9,9 @@ var settings = [						//Some settings.
 	[39, 37, 38, 40, 88, 90, 16, 13],	//Keyboard button map.
 	true,								//Colorize GB mode?
 	false,								//Disallow typed arrays?
-	10,									//Interval for the emulator loop.
+	16,									//Interval for the emulator loop.
 	4,									//Audio buffer span amount over x interpreter iterations.
-	20,									//Audio buffer size.
+	10,									//Audio buffer size.
 	false,								//Override to allow for MBC1 instead of ROM only (compatibility for broken 3rd-party cartridges).
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
 	false,								//Vertical blank event availability.
