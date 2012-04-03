@@ -17,7 +17,8 @@ var settings = [						//Some settings.
 	false,								//Vertical blank event availability.
 	false,								//Scale the canvas in JS, or let the browser scale the canvas?
 	false,								//Use the GameBoy boot ROM instead of the GameBoy Color boot ROM.
-	0x10								//Internal audio buffer pre-interpolation factor.
+	0x10,								//Internal audio buffer pre-interpolation factor.
+	1									//Volume level set.
 ];
 function start(canvas, ROM) {
 	clearLastEmulation();

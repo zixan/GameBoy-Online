@@ -5087,9 +5087,7 @@ GameBoyCore.prototype.initSound = function () {
 	if (settings[0]) {
 		try {
 			var parentObj = this;
-			this.audioHandle = new XAudioServer(2, 0x400000 / settings[14], 0, Math.max(this.sampleSize * settings[8] / settings[14], 8192) << 1, function (sampleCount) {
-				return [];
-			}, -1);
+			this.audioHandle = new XAudioServer(2, 0x400000 / settings[14], 0, Math.max(this.sampleSize * settings[8] / settings[14], 8192) << 1, null, settings[15]);
 			this.initAudioBuffer();
 		}
 		catch (error) {
@@ -5098,11 +5096,17 @@ GameBoyCore.prototype.initSound = function () {
 		}
 	}
 	else if (this.audioHandle) {
-		//Neutralize the audio output:
+		//Mute the audio output, as it has an immediate silencing effect:
 		try {
-			this.audioHandle = new XAudioServer(1, 1000, 5000, 20000, function (sampleCount) {
-				return [];
-			}, 0);
+			this.audioHandle.changeVolume(0);
+		}
+		catch (error) { }
+	}
+}
+GameBoyCore.prototype.changeVolume = function () {
+	if (settings[0] && this.audioHandle) {
+		try {
+			this.audioHandle.changeVolume(settings[15]);
 		}
 		catch (error) { }
 	}
