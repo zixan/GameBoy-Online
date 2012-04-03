@@ -5120,9 +5120,7 @@ GameBoyCore.prototype.initSound = function () {
 		this.soundFrameShifter = this.soundChannelsAllocated - 1;
 		try {
 			var parentObj = this;
-			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], 0, Math.max(this.sampleSize * settings[8], 8192) << this.soundFrameShifter, function (sampleCount) {
-				return [];
-			}, -1);
+			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], 0, Math.max(this.sampleSize * settings[8], 8192) << this.soundFrameShifter, null, 0);
 			cout("...Audio Channels: " + this.soundChannelsAllocated, 0);
 			cout("...Sample Rate: " + settings[14], 0);
 			this.initAudioBuffer();
@@ -5133,11 +5131,9 @@ GameBoyCore.prototype.initSound = function () {
 		}
 	}
 	else if (this.audioHandle) {
-		//Neutralize the audio output:
+		//Mute the audio output, as it has an immediate silencing effect:
 		try {
-			this.audioHandle = new XAudioServer(1, 1000, 5000, 20000, function (sampleCount) {
-				return [];
-			}, 0);
+			this.audioHandle.changeVolume(0);
 		}
 		catch (error) { }
 	}
