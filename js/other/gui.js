@@ -139,6 +139,14 @@ function registerGUIEvents() {
 			}
 		}
 	});
+	addEvent("click", document.getElementById("set_volume"), function () {
+		if (GameBoyEmulatorInitialized()) {
+			var volume = prompt("Set the volume here:", "1.0");
+			if (volume != null && volume.length > 0) {
+				gameboy.changeVolume(Math.min(Math.max(parseFloat(volume), 0), 1));
+			}
+		}
+	});
 	addEvent("click", document.getElementById("internal_file_clicker"), function () {
 		var file_opener = document.getElementById("local_file_open");
 		windowStacks[4].show();
