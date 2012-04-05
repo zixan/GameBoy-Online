@@ -394,26 +394,20 @@ function GameBoyGyroSignalHandler(e) {
 //The emulator will call this to sort out the canvas properties for (re)initialization.
 function initNewCanvas() {
 	if (GameBoyEmulatorInitialized()) {
-		if (!settings[12]) {
-			gameboy.canvas.width = 160;
-			gameboy.canvas.height = 144;
-		}
-		else {
-			gameboy.canvas.width = gameboy.canvas.clientWidth;
-			gameboy.canvas.height = gameboy.canvas.clientHeight;
-		}
+		gameboy.canvas.width = gameboy.canvas.clientWidth;
+		gameboy.canvas.height = gameboy.canvas.clientHeight;
 	}
 }
 //Call this when resizing the canvas:
 function initNewCanvasSize() {
 	if (GameBoyEmulatorInitialized()) {
 		if (!settings[12]) {
-			if (gameboy.width != 160 || gameboy.height != 144) {
+			if (gameboy.onscreenWidth != 160 || gameboy.onscreenHeight != 144) {
 				gameboy.initLCD();
 			}
 		}
 		else {
-			if (gameboy.width != gameboy.canvas.clientWidth || gameboy.height != gameboy.canvas.clientHeight) {
+			if (gameboy.onscreenWidth != gameboy.canvas.clientWidth || gameboy.onscreenHeight != gameboy.canvas.clientHeight) {
 				gameboy.initLCD();
 			}
 		}

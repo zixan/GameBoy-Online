@@ -240,9 +240,9 @@ function GameBoyCore(canvas, ROMImage) {
 	this.canvasBuffer = null;			//imageData handle
 	this.pixelStart = 0;				//Temp variable for holding the current working framebuffer offset.
 	//Variables used for scaling in JS:
-	this.width = 160;
-	this.height = 144;
-	this.rgbCount = this.width * this.height * 4;
+	this.onscreenWidth = this.offscreenWidth = 160;
+	this.onscreenHeight = this.offScreenheight = 144;
+	this.offscreenRGBCount = this.onscreenWidth * this.onscreenHeight * 4;
 	//Initialize the white noise cache tables ahead of time:
 	this.intializeWhiteNoise();
 }
@@ -5040,13 +5040,24 @@ GameBoyCore.prototype.MBCRAMUtilized = function () {
 GameBoyCore.prototype.recomputeDimension = function () {
 	initNewCanvas();
 	//Cache some dimension info:
-	this.width = this.canvas.width;
-	this.height = this.canvas.height;
-	this.rgbCount = this.width * this.height * 4;
+	this.onscreenWidth = this.canvas.width;
+	this.onscreenHeight = this.canvas.height;
+	if (window && window.mozRequestAnimationFrame) {
+		//Firefox slowness hack:
+		this.canvas.width = this.onscreenWidth = (!settings[12]) ? 160 : this.canvas.width;
+		this.canvas.height = this.onscreenHeight = (!settings[12]) ? 144 : this.canvas.height;
+	}
+	else {
+		this.onscreenWidth = this.canvas.width;
+		this.onscreenHeight = this.canvas.height;
+	}
+	this.offscreenWidth = (!settings[12]) ? 160 : this.canvas.width;
+	this.offscreenHeight = (!settings[12]) ? 144 : this.canvas.height;
+	this.offscreenRGBCount = this.offscreenWidth * this.offscreenHeight * 4;
 }
 GameBoyCore.prototype.initLCD = function () {
 	this.recomputeDimension();
-	if (this.rgbCount != 92160) {
+	if (this.offscreenRGBCount != 92160) {
 		//Only create the resizer handle if we need it:
 		this.compileResizeFrameBufferFunction();
 	}
@@ -5055,23 +5066,27 @@ GameBoyCore.prototype.initLCD = function () {
 		this.resizer = null;
 	}
 	try {
-		this.drawContext = this.canvas.getContext("2d");
+		this.canvasOffscreen = document.createElement("canvas");
+		this.canvasOffscreen.width = this.offscreenWidth;
+		this.canvasOffscreen.height = this.offscreenHeight;
+		this.drawContextOffscreen = this.canvasOffscreen.getContext("2d");
+		this.drawContextOnscreen = this.canvas.getContext("2d");
 		//Get a CanvasPixelArray buffer:
 		try {
-			this.canvasBuffer = this.drawContext.createImageData(this.width, this.height);
+			this.canvasBuffer = this.drawContextOffscreen.createImageData(this.offscreenWidth, this.offscreenHeight);
 		}
 		catch (error) {
 			cout("Falling back to the getImageData initialization (Error \"" + error.message + "\").", 1);
-			this.canvasBuffer = this.drawContext.getImageData(0, 0, this.width, this.height);
+			this.canvasBuffer = this.drawContextOffscreen.getImageData(0, 0, this.offscreenWidth, this.offscreenHeight);
 		}
-		var index = this.rgbCount;
+		var index = this.offscreenRGBCount;
 		while (index > 0) {
 			this.canvasBuffer.data[index -= 4] = 0xF8;
 			this.canvasBuffer.data[index + 1] = 0xF8;
 			this.canvasBuffer.data[index + 2] = 0xF8;
 			this.canvasBuffer.data[index + 3] = 0xFF;
 		}
-		this.drawContext.putImageData(this.canvasBuffer, 0, 0);		//Throws any browser that won't support this later on.
+		this.graphicsBlit();
 		this.canvas.style.visibility = "visible";
 		settings[11] = false;										//Reset our v-blank support to force an immediate buffer draw.
 		if (this.swizzledFrame == null) {
@@ -5083,6 +5098,15 @@ GameBoyCore.prototype.initLCD = function () {
 	}
 	catch (error) {
 		throw(new Error("HTML5 Canvas support required: " + error.message + "file: " + error.fileName + ", line: " + error.lineNumber));
+	}
+}
+GameBoyCore.prototype.graphicsBlit = function () {
+	if (this.offscreenWidth == this.onscreenWidth && this.offscreenHeight == this.onscreenHeight) {
+		this.drawContextOnscreen.putImageData(this.canvasBuffer, 0, 0);
+	}
+	else {
+		this.drawContextOffscreen.putImageData(this.canvasBuffer, 0, 0);
+		this.drawContextOnscreen.drawImage(this.canvasOffscreen, 0, 0, this.onscreenWidth, this.onscreenHeight);
 	}
 }
 GameBoyCore.prototype.JoyPadEvent = function (key, down) {
@@ -6036,7 +6060,7 @@ GameBoyCore.prototype.requestDraw = function () {
 	}
 }
 GameBoyCore.prototype.dispatchDraw = function () {
-	var canvasRGBALength = this.rgbCount;
+	var canvasRGBALength = this.offscreenRGBCount;
 	if (canvasRGBALength > 0) {
 		//We actually updated the graphics internally, so copy out:
 		var frameBuffer = (canvasRGBALength == 92160) ? this.swizzledFrame : this.resizeFrameBuffer();
@@ -6047,7 +6071,7 @@ GameBoyCore.prototype.dispatchDraw = function () {
 			canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
 			canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
 		}
-		this.drawContext.putImageData(this.canvasBuffer, 0, 0);
+		this.graphicsBlit();
 	}
 }
 GameBoyCore.prototype.swizzleFrameBuffer = function () {
@@ -6082,8 +6106,8 @@ GameBoyCore.prototype.resizeFrameBuffer = function () {
 	return this.resizer.resize(this.swizzledFrame);
 }
 GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
-	if (this.rgbCount > 0) {
-		this.resizer = new Resize(160, 144, this.width, this.height, false);
+	if (this.offscreenRGBCount > 0) {
+		this.resizer = new Resize(160, 144, this.offscreenWidth, this.offscreenHeight, false);
 	}
 }
 GameBoyCore.prototype.renderScanLine = function (scanlineToRender) {
