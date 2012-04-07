@@ -5088,7 +5088,6 @@ GameBoyCore.prototype.initLCD = function () {
 		}
 		this.graphicsBlit();
 		this.canvas.style.visibility = "visible";
-		settings[11] = false;										//Reset our v-blank support to force an immediate buffer draw.
 		if (this.swizzledFrame == null) {
 			this.swizzledFrame = this.getTypedArray(69120, 0xFF, "uint8");
 		}
@@ -5143,7 +5142,6 @@ GameBoyCore.prototype.initSound = function () {
 		this.soundChannelsAllocated = (!settings[1]) ? 2 : 1;
 		this.soundFrameShifter = this.soundChannelsAllocated - 1;
 		try {
-			var parentObj = this;
 			this.audioHandle = new XAudioServer(this.soundChannelsAllocated, settings[14], 0, Math.max(this.sampleSize * settings[8], 8192) << this.soundFrameShifter, null, settings[15]);
 			cout("...Audio Channels: " + this.soundChannelsAllocated, 0);
 			cout("...Sample Rate: " + settings[14], 0);
@@ -5174,7 +5172,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioIndex = 0;
 	this.bufferContainAmount = Math.max(this.sampleSize * settings[7], 4096) << this.soundFrameShifter;
 	this.numSamplesTotal = this.sampleSize << this.soundFrameShifter;
-	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, -1, "float32");
+	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, 0, "float32");
 }
 GameBoyCore.prototype.intializeWhiteNoise = function () {
 	//Noise Sample Tables:

@@ -9,8 +9,8 @@ var settings = [						//Some settings.
 	true,								//Colorize GB mode?
 	false,								//Disallow typed arrays?
 	4,									//Interval for the emulator loop.
-	10,									//Audio buffer span amount over x interpreter iterations.
-	25,									//Audio buffer size.
+	10,									//Audio buffer minimum span amount over x interpreter iterations.
+	25,									//Audio buffer maximum span amount over x interpreter iterations.
 	false,								//Override to allow for MBC1 instead of ROM only (compatibility for broken 3rd-party cartridges).
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
 	true,								//Use the GBC BIOS?
