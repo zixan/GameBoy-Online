@@ -48,7 +48,7 @@ function windowingInitialize() {
 	document.getElementById("disable_colors").checked = settings[2];
 	document.getElementById("rom_only_override").checked = settings[9];
 	document.getElementById("mbc_enable_override").checked = settings[10];
-	document.getElementById("enable_gbc_bios").checked = settings[15];
+	document.getElementById("enable_gbc_bios").checked = settings[11];
 	document.getElementById("enable_colorization").checked = settings[4];
 	document.getElementById("do_minimal").checked = showAsMinimal;
 	document.getElementById("software_resizing").checked = settings[12];
@@ -314,7 +314,7 @@ function registerGUIEvents() {
 		settings[10] = document.getElementById("mbc_enable_override").checked;
 	});
 	addEvent("click", document.getElementById("enable_gbc_bios"), function () {
-		settings[15] = document.getElementById("enable_gbc_bios").checked;
+		settings[11] = document.getElementById("enable_gbc_bios").checked;
 	});
 	addEvent("click", document.getElementById("enable_colorization"), function () {
 		settings[4] = document.getElementById("enable_colorization").checked;
