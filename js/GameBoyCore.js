@@ -4587,6 +4587,7 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.channel4volumeEnvTime = 0;
 	this.channel4volumeEnvTimeLast = 0;
 	this.noiseTableLength = 0x8000;
+	this.noiseSampleTable = this.LSFR15Table;
 	this.channel4VolumeShifter = 15;
 	this.channel1lastSampleLookup = 0.7169351111064097;
 	this.channel2lastSampleLookup = 0;
