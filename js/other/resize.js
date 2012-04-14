@@ -269,7 +269,7 @@ Resize.prototype.generateFloatBuffer = function (bufferLength) {
 Resize.prototype.generateUint8Buffer = function (bufferLength) {
 	//Generate a uint8 typed array buffer:
 	try {
-		return new Uint8Array(this.checkForOperaMathBug(bufferLength));
+		return this.checkForOperaMathBug(new Uint8Array(bufferLength));
 	}
 	catch (error) {
 		return [];
