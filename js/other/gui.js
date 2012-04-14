@@ -133,7 +133,8 @@ function registerGUIEvents() {
 		if (GameBoyEmulatorInitialized()) {
 			var volume = prompt("Set the volume here:", "1.0");
 			if (volume != null && volume.length > 0) {
-				gameboy.changeVolume(Math.min(Math.max(parseFloat(volume), 0), 1));
+				settings[15] = Math.min(Math.max(parseFloat(volume), 0), 1);
+				gameboy.changeVolume();
 			}
 		}
 	});
