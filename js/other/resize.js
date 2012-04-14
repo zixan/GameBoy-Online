@@ -277,8 +277,8 @@ Resize.prototype.generateUint8Buffer = function (bufferLength) {
 }
 Resize.prototype.checkForOperaMathBug = function (typedArray) {
 	typedArray[0] = -1;
-	testTypedArray[0] >>= 0;
-	if (testTypedArray[0] != 0xFF) {
+	typedArray[0] >>= 0;
+	if (typedArray[0] != 0xFF) {
 		return [];
 	}
 	else {
