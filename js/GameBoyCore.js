@@ -9240,7 +9240,7 @@ GameBoyCore.prototype.recompileBootIOWriteHandling = function () {
 //Helper Functions
 GameBoyCore.prototype.toTypedArray = function (baseArray, memtype) {
 	try {
-		if (settings[5]) {
+		if (settings[5] || (memtype != "float32" && window.opera && this.checkForOperaMathBug())) {
 			return baseArray;
 		}
 		if (!baseArray || !baseArray.length) {
@@ -9250,6 +9250,9 @@ GameBoyCore.prototype.toTypedArray = function (baseArray, memtype) {
 		switch (memtype) {
 			case "uint8":
 				var typedArrayTemp = new Uint8Array(length);
+				break;
+			case "int8":
+				var typedArrayTemp = new Int8Array(length);
 				break;
 			case "int32":
 				var typedArrayTemp = new Int32Array(length);
@@ -9288,9 +9291,19 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 		if (settings[5]) {
 			throw(new Error(""));
 		}
+		if (numberType != "float32" && window.opera && this.checkForOperaMathBug()) {
+			//Caught Opera breaking typed array math:
+			throw(new Error(""));
+		}
 		switch (numberType) {
+			case "int8":
+				var arrayHandle = new Int8Array(length);
+				break;
 			case "uint8":
 				var arrayHandle = new Uint8Array(length);
+				break;
+			case "int16":
+				var arrayHandle = new Int16Array(length);
 				break;
 			case "int32":
 				var arrayHandle = new Int32Array(length);
@@ -9298,7 +9311,7 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 			case "float32":
 				var arrayHandle = new Float32Array(length);
 		}
-		if (defaultValue > 0) {
+		if (defaultValue != 0) {
 			var index = 0;
 			while (index < length) {
 				arrayHandle[index++] = defaultValue;
@@ -9314,4 +9327,16 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 		}
 	}
 	return arrayHandle;
+}
+GameBoyCore.prototype.checkForOperaMathBug = function () {
+	var testTypedArray = new Uint8Array(1);
+	testTypedArray[0] = -1;
+	testTypedArray[0] >>= 0;
+	if (testTypedArray[0] != 0xFF) {
+		cout("Detected faulty math by your browser.", 2);
+		return true;
+	}
+	else {
+		return false;
+	}
 }
