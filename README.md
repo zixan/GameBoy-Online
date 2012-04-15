@@ -1,5 +1,5 @@
-<p style="margin: 0.0px 0.0px 0.0px 0.0px; font: 15.0px Helvetica"><b>JavaScript GameBoy Color Emulator</b></p>
-<p style="margin: 0.0px 0.0px 0.0px 0.0px; font: 13.0px Helvetica">Copyright (C) 2010 - 2012 Grant Galitz</p>
+<h3><b>JavaScript GameBoy Color Emulator</b></h3>
+<h4>Copyright (C) 2010 - 2012 Grant Galitz</h4>
 <p style="margin: 0.0px 0.0px 0.0px 0.0px; font: 13.0px Helvetica; min-height: 16.0px"><br></p>
 <p style="margin: 0.0px 0.0px 0.0px 0.0px; font: 13.0px Helvetica">A GameBoy Color emulator that utilizes HTML5 canvas and JavaScript audio APIs to provide a full emulation of the console.</p>
 <p style="margin: 0.0px 0.0px 0.0px 0.0px; font: 13.0px Helvetica; min-height: 16.0px"><br></p>
@@ -23,3 +23,4 @@
 <p style="margin: 0.0px 0.0px 0.0px 0.0px; font: 11.0px Helvetica"><i>This program is distributed in the hope that it will be useful,</i></p>
 <p style="margin: 0.0px 0.0px 0.0px 0.0px; font: 11.0px Helvetica"><i>but WITHOUT ANY WARRANTY; without even the implied warranty of</i></p>
 <p style="margin: 0.0px 0.0px 0.0px 0.0px; font: 11.0px Helvetica"><i>MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the</i></p>
+<p style="margin: 0.0px 0.0px 0.0px 0.0px; font: 11.0px Helvetica"><i>GNU General Public License for more details.</i></p>
