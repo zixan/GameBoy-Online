@@ -6139,8 +6139,8 @@ GameBoyCore.prototype.resizeFrameBuffer = function () {
 	return this.resizer.resize(this.swizzledFrame);
 }
 GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
-	if (this.rgbCount > 0) {
-		this.resizer = new Resize(160, 144, this.width, this.height, false);
+	if (this.offscreenRGBCount > 0) {
+		this.resizer = new Resize(160, 144, this.offscreenWidth, this.offscreenHeight, false);
 	}
 }
 GameBoyCore.prototype.renderScanLine = function (scanlineToRender) {
