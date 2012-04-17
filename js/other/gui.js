@@ -52,7 +52,7 @@ function windowingInitialize() {
 	document.getElementById("do_minimal").checked = showAsMinimal;
 	document.getElementById("software_resizing").checked = settings[12];
 	document.getElementById("typed_arrays_disallow").checked = settings[5];
-	document.getElementById("gb_boot_rom_utilized").checked = settings[13];
+	document.getElementById("gb_boot_rom_utilized").checked = settings[11];
 }
 function registerGUIEvents() {
 	cout("In registerGUIEvents() : Registering GUI Events.", -1);
@@ -133,7 +133,7 @@ function registerGUIEvents() {
 		if (GameBoyEmulatorInitialized()) {
 			var volume = prompt("Set the volume here:", "1.0");
 			if (volume != null && volume.length > 0) {
-				settings[15] = Math.min(Math.max(parseFloat(volume), 0), 1);
+				settings[14] = Math.min(Math.max(parseFloat(volume), 0), 1);
 				gameboy.changeVolume();
 			}
 		}
@@ -317,7 +317,7 @@ function registerGUIEvents() {
 		settings[5] = document.getElementById("typed_arrays_disallow").checked;
 	});
 	addEvent("click", document.getElementById("gb_boot_rom_utilized"), function () {
-		settings[13] = document.getElementById("gb_boot_rom_utilized").checked;
+		settings[11] = document.getElementById("gb_boot_rom_utilized").checked;
 	});
 	addEvent("click", document.getElementById("view_fullscreen"), fullscreenPlayer);
 	new popupMenu(document.getElementById("GameBoy_view_menu"), document.getElementById("GameBoy_view_popup"));

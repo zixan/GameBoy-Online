@@ -1,22 +1,20 @@
 "use strict";
 var gameboy = null;						//GameBoyCore object.
 var gbRunInterval = null;				//GameBoyCore Timer
-var vblankQueueClear = true;			//Vblank Queue Detection Flag
 var settings = [						//Some settings.
 	true, 								//Turn on sound.
-	true,								//Use the GBC BIOS?
+	true,								//Boot with boot ROM first?
 	false,								//Give priority to GameBoy mode
 	[39, 37, 38, 40, 88, 90, 16, 13],	//Keyboard button map.
 	true,								//Colorize GB mode?
 	false,								//Disallow typed arrays?
-	16,									//Interval for the emulator loop.
-	5,									//Audio buffer span amount over x interpreter iterations.
-	20,									//Audio buffer size.
+	4,									//Interval for the emulator loop.
+	15,									//Audio buffer minimum span amount over x interpreter iterations.
+	30,									//Audio buffer maximum span amount over x interpreter iterations.
 	false,								//Override to allow for MBC1 instead of ROM only (compatibility for broken 3rd-party cartridges).
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
-	false,								//Vertical blank event availability.
-	false,								//Scale the canvas in JS, or let the browser scale the canvas?
 	false,								//Use the GameBoy boot ROM instead of the GameBoy Color boot ROM.
+	false,								//Scale the canvas in JS, or let the browser scale the canvas?
 	0x10,								//Internal audio buffer pre-interpolation factor.
 	1									//Volume level set.
 ];
@@ -392,58 +390,23 @@ function GameBoyGyroSignalHandler(e) {
 		catch (error) { }
 	}
 }
-function VBlankSyncHandler() {
-	if (settings[11] && GameBoyEmulatorInitialized() && GameBoyEmulatorPlaying()) {
-		//Draw out our graphics now:
-		gameboy.dispatchDraw();
-	}
-	vblankQueueClear = true;
-}
-function requestVBlank(canvasHandle) {
-	if (vblankQueueClear) {
-		settings[11] = true;
-		try {
-			window.webkitRequestAnimationFrame(VBlankSyncHandler, canvasHandle);
-		}
-		catch (e) {
-			try {
-				window.msRequestAnimationFrame(VBlankSyncHandler);
-			}
-			catch (e) {
-				try {
-					window.requestAnimationFrame(VBlankSyncHandler);
-				}
-				catch (e) {
-					settings[11] = false;
-				}
-			}
-		}
-		vblankQueueClear = false;
-	}
-}
 //The emulator will call this to sort out the canvas properties for (re)initialization.
 function initNewCanvas() {
 	if (GameBoyEmulatorInitialized()) {
-		if (!settings[12]) {
-			gameboy.canvas.width = 160;
-			gameboy.canvas.height = 144;
-		}
-		else {
-			gameboy.canvas.width = gameboy.canvas.clientWidth;
-			gameboy.canvas.height = gameboy.canvas.clientHeight;
-		}
+		gameboy.canvas.width = gameboy.canvas.clientWidth;
+		gameboy.canvas.height = gameboy.canvas.clientHeight;
 	}
 }
 //Call this when resizing the canvas:
 function initNewCanvasSize() {
 	if (GameBoyEmulatorInitialized()) {
 		if (!settings[12]) {
-			if (gameboy.width != 160 || gameboy.height != 144) {
+			if (gameboy.onscreenWidth != 160 || gameboy.onscreenHeight != 144) {
 				gameboy.initLCD();
 			}
 		}
 		else {
-			if (gameboy.width != gameboy.canvas.clientWidth || gameboy.height != gameboy.canvas.clientHeight) {
+			if (gameboy.onscreenWidth != gameboy.canvas.clientWidth || gameboy.onscreenHeight != gameboy.canvas.clientHeight) {
 				gameboy.initLCD();
 			}
 		}
