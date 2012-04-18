@@ -1,10 +1,10 @@
 /*Initialize here first:
 	Example:
-		Stereo audio with a sample rate of 70 khz, a minimum buffer of 15000 samples total, a maximum buffer of 25000 samples total and a neutral amplitude value of -1.
+		Stereo audio with a sample rate of 70 khz, a minimum buffer of 15000 samples total, a maximum buffer of 25000 samples total and a starting volume level of 1.
 			var parentObj = this;
 			this.audioHandle = new XAudioServer(2, 70000, 15000, 25000, function (sampleCount) {
 				return parentObj.audioUnderRun(sampleCount);
-			}, -1);
+			}, 1);
 	
 	The callback is passed the number of samples requested, while it can return any number of samples it wants back.
 */
