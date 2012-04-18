@@ -136,7 +136,7 @@ Resampler.prototype.bufferSlice = function (sliceAmount) {
 		}
 	}
 }
-Resampler.prototype.initializeBuffers = function (generateTailCache) {
+Resampler.prototype.initializeBuffers = function () {
 	//Initialize the internal buffer:
 	try {
 		this.outputBuffer = new Float32Array(this.outputBufferSize);
