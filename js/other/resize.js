@@ -1,10 +1,11 @@
 //JavaScript Image Resizer (c) 2012 - Grant Galitz
-function Resize(widthOriginal, heightOriginal, targetWidth, targetHeight, blendAlpha) {
-	this.widthOriginal = widthOriginal >>> 0;
-	this.heightOriginal = heightOriginal >>> 0;
-	this.targetWidth = targetWidth >>> 0;
-	this.targetHeight = targetHeight >>> 0;
+function Resize(widthOriginal, heightOriginal, targetWidth, targetHeight, blendAlpha, interpolationPass) {
+	this.widthOriginal = Math.abs(parseInt(widthOriginal) || 0);
+	this.heightOriginal = Math.abs(parseInt(heightOriginal) || 0);
+	this.targetWidth = Math.abs(parseInt(targetWidth) || 0);
+	this.targetHeight = Math.abs(parseInt(targetHeight) || 0);
 	this.colorChannels = (!!blendAlpha) ? 4 : 3;
+	this.interpolationPass = !!interpolationPass;
 	this.targetWidthMultipliedByChannels = this.targetWidth * this.colorChannels;
 	this.originalWidthMultipliedByChannels = this.widthOriginal * this.colorChannels;
 	this.originalHeightMultipliedByChannels = this.heightOriginal * this.colorChannels;
@@ -23,7 +24,7 @@ Resize.prototype.initialize = function () {
 			//Setup the width resizer pass:
 			this.ratioWeightWidthPass = this.widthOriginal / this.targetWidth;
 			this.initializeFirstPassBuffers();
-			this.resizeWidth = (this.colorChannels == 4) ? this.resizeWidthRGBA : this.resizeWidthRGB;
+			this.resizeWidth = (this.ratioWeightWidthPass < 1 && this.interpolationPass) ? ((this.colorChannels == 4) ? this.resizeWidthInterpolatedRGBA : this.resizeWidthInterpolatedRGB) : ((this.colorChannels == 4) ? this.resizeWidthRGBA : this.resizeWidthRGB);
 		}
 		if (this.heightOriginal == this.targetHeight) {
 			//Bypass the height resizer pass:
@@ -33,7 +34,7 @@ Resize.prototype.initialize = function () {
 			//Setup the height resizer pass:
 			this.ratioWeightHeightPass = this.heightOriginal / this.targetHeight;
 			this.initializeSecondPassBuffers();
-			this.resizeHeight = (this.colorChannels == 4) ? this.resizeHeightRGBA : this.resizeHeightRGB;
+			this.resizeHeight = (this.ratioWeightHeightPass < 1 && this.interpolationPass) ? this.resizeHeightInterpolated : ((this.colorChannels == 4) ? this.resizeHeightRGBA : this.resizeHeightRGB);
 		}
 	}
 	else {
@@ -90,6 +91,25 @@ Resize.prototype.resizeWidthRGB = function (buffer) {
 	} while (outputOffset < this.targetWidthMultipliedByChannels);
 	return outputBuffer;
 }
+Resize.prototype.resizeWidthInterpolatedRGB = function (buffer) {
+	var ratioWeight = (this.widthOriginal - 1) / this.targetWidth;
+	var weight = 0;
+	var finalOffset = 0;
+	var pixelOffset = 0;
+	var outputBuffer = this.widthBuffer;
+	for (var targetPosition = 0; targetPosition < this.targetWidthMultipliedByChannels; targetPosition += 3, weight += ratioWeight) {
+		//Calculate weightings:
+		secondWeight = weight % 1;
+		firstWeight = 1 - secondWeight;
+		//Interpolate:
+		for (finalOffset = targetPosition, pixelOffset = Math.floor(weight) * 3; finalOffset < this.widthPassResultSize; pixelOffset += this.originalWidthMultipliedByChannels, finalOffset += this.targetWidthMultipliedByChannels) {
+			outputBuffer[finalOffset] = (buffer[pixelOffset] * firstWeight) + (buffer[pixelOffset + 3] * secondWeight);
+			outputBuffer[finalOffset + 1] = (buffer[pixelOffset + 1] * firstWeight) + (buffer[pixelOffset + 4] * secondWeight);
+			outputBuffer[finalOffset + 2] = (buffer[pixelOffset + 2] * firstWeight) + (buffer[pixelOffset + 5] * secondWeight);
+		}
+	}
+	return outputBuffer;
+}
 Resize.prototype.resizeWidthRGBA = function (buffer) {
 	var ratioWeight = this.ratioWeightWidthPass;
 	var weight = 0;
@@ -144,6 +164,26 @@ Resize.prototype.resizeWidthRGBA = function (buffer) {
 	} while (outputOffset < this.targetWidthMultipliedByChannels);
 	return outputBuffer;
 }
+Resize.prototype.resizeWidthInterpolatedRGBA = function (buffer) {
+	var ratioWeight = (this.widthOriginal - 1) / this.targetWidth;
+	var weight = 0;
+	var finalOffset = 0;
+	var pixelOffset = 0;
+	var outputBuffer = this.widthBuffer;
+	for (var targetPosition = 0; targetPosition < this.targetWidthMultipliedByChannels; targetPosition += 4, weight += ratioWeight) {
+		//Calculate weightings:
+		secondWeight = weight % 1;
+		firstWeight = 1 - secondWeight;
+		//Interpolate:
+		for (finalOffset = targetPosition, pixelOffset = Math.floor(weight) * 4; finalOffset < this.widthPassResultSize; pixelOffset += this.originalWidthMultipliedByChannels, finalOffset += this.targetWidthMultipliedByChannels) {
+			outputBuffer[finalOffset] = (buffer[pixelOffset] * firstWeight) + (buffer[pixelOffset + 4] * secondWeight);
+			outputBuffer[finalOffset + 1] = (buffer[pixelOffset + 1] * firstWeight) + (buffer[pixelOffset + 5] * secondWeight);
+			outputBuffer[finalOffset + 2] = (buffer[pixelOffset + 2] * firstWeight) + (buffer[pixelOffset + 6] * secondWeight);
+			outputBuffer[finalOffset + 3] = (buffer[pixelOffset + 3] * firstWeight) + (buffer[pixelOffset + 7] * secondWeight);
+		}
+	}
+	return outputBuffer;
+}
 Resize.prototype.resizeHeightRGB = function (buffer) {
 	var ratioWeight = this.ratioWeightHeightPass;
 	var weight = 0;
@@ -188,6 +228,28 @@ Resize.prototype.resizeHeightRGB = function (buffer) {
 			outputBuffer[outputOffset++] = Math.round(output[pixelOffset++] / ratioWeight);
 		}
 	} while (outputOffset < this.finalResultSize);
+	return outputBuffer;
+}
+Resize.prototype.resizeHeightInterpolated = function (buffer) {
+	var ratioWeight = (this.heightOriginal - 1) / this.targetHeight;
+	var weight = 0;
+	var finalOffset = 0;
+	var pixelOffset = 0;
+	var pixelOffsetAccumulated = 0;
+	var pixelOffsetAccumulated2 = 0;
+	var outputBuffer = this.heightBuffer;
+	do {
+		//Calculate weightings:
+		secondWeight = weight % 1;
+		firstWeight = 1 - secondWeight;
+		//Interpolate:
+		pixelOffsetAccumulated = Math.floor(weight) * this.targetWidthMultipliedByChannels;
+		pixelOffsetAccumulated2 = pixelOffsetAccumulated + this.targetWidthMultipliedByChannels;
+		for (pixelOffset = 0; pixelOffset < this.targetWidthMultipliedByChannels; ++pixelOffset) {
+			outputBuffer[finalOffset++] = (buffer[pixelOffsetAccumulated + pixelOffset] * firstWeight) + (buffer[pixelOffsetAccumulated2 + pixelOffset] * secondWeight);
+		}
+		weight += ratioWeight;
+	} while (finalOffset < this.finalResultSize);
 	return outputBuffer;
 }
 Resize.prototype.resizeHeightRGBA = function (buffer) {
@@ -238,6 +300,27 @@ Resize.prototype.resizeHeightRGBA = function (buffer) {
 			outputBuffer[outputOffset++] = Math.round(output[pixelOffset++] / ratioWeight);
 		}
 	} while (outputOffset < this.finalResultSize);
+	return outputBuffer;
+}
+Resize.prototype.resizeHeightInterpolatedRGBA = function (buffer) {
+	var ratioWeight = (this.heightOriginal - 1) / this.targetHeight;
+	var weight = 0;
+	var finalOffset = 0;
+	var pixelOffset = 0;
+	var outputBuffer = this.heightBuffer;
+	while (pixelOffset < this.finalResultSize) {
+		//Calculate weightings:
+		secondWeight = weight % 1;
+		firstWeight = 1 - secondWeight;
+		//Interpolate:
+		for (pixelOffset = Math.floor(weight) * 4; pixelOffset < this.targetWidthMultipliedByChannels; pixelOffset += 4) {
+			outputBuffer[finalOffset++] = (buffer[pixelOffset] * firstWeight) + (buffer[pixelOffset + 4] * secondWeight);
+			outputBuffer[finalOffset++] = (buffer[pixelOffset + 1] * firstWeight) + (buffer[pixelOffset + 5] * secondWeight);
+			outputBuffer[finalOffset++] = (buffer[pixelOffset + 2] * firstWeight) + (buffer[pixelOffset + 6] * secondWeight);
+			outputBuffer[finalOffset++] = (buffer[pixelOffset + 3] * firstWeight) + (buffer[pixelOffset + 7] * secondWeight);
+		}
+		weight += ratioWeight;
+	}
 	return outputBuffer;
 }
 Resize.prototype.resize = function (buffer) {
