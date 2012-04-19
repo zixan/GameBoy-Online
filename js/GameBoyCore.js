@@ -6278,6 +6278,7 @@ GameBoyCore.prototype.initializeReferencesFromSaveState = function () {
 		for (tileIndex = 0x9000; tileIndex < 0x9800; tileIndex += 2) {
 			this.generateGBTileLine(tileIndex);
 		}
+		this.sortBuffer = this.getTypedArray(0x100, 0, "uint8");
 	}
 	else {
 		this.BGCHRCurrentBank = (this.currVRAMBank > 0) ? this.BGCHRBank2 : this.BGCHRBank1;
