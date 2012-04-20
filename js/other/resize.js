@@ -23,8 +23,14 @@ Resize.prototype.initialize = function () {
 		else {
 			//Setup the width resizer pass:
 			this.ratioWeightWidthPass = this.widthOriginal / this.targetWidth;
-			this.initializeFirstPassBuffers();
-			this.resizeWidth = (this.ratioWeightWidthPass < 1 && this.interpolationPass) ? ((this.colorChannels == 4) ? this.resizeWidthInterpolatedRGBA : this.resizeWidthInterpolatedRGB) : ((this.colorChannels == 4) ? this.resizeWidthRGBA : this.resizeWidthRGB);
+			if (this.ratioWeightWidthPass < 1 && this.interpolationPass) {
+				this.initializeFirstPassBuffers(true);
+				this.resizeWidth = (this.colorChannels == 4) ? this.resizeWidthInterpolatedRGBA : this.resizeWidthInterpolatedRGB;
+			}
+			else {
+				this.initializeFirstPassBuffers(false);
+				this.resizeWidth = (this.colorChannels == 4) ? this.resizeWidthRGBA : this.resizeWidthRGB;
+			}
 		}
 		if (this.heightOriginal == this.targetHeight) {
 			//Bypass the height resizer pass:
@@ -33,8 +39,14 @@ Resize.prototype.initialize = function () {
 		else {	
 			//Setup the height resizer pass:
 			this.ratioWeightHeightPass = this.heightOriginal / this.targetHeight;
-			this.initializeSecondPassBuffers();
-			this.resizeHeight = (this.ratioWeightHeightPass < 1 && this.interpolationPass) ? this.resizeHeightInterpolated : ((this.colorChannels == 4) ? this.resizeHeightRGBA : this.resizeHeightRGB);
+			if (this.ratioWeightHeightPass < 1 && this.interpolationPass) {
+				this.initializeSecondPassBuffers(true);
+				this.resizeHeight = resizeHeightInterpolated;
+			}
+			else {
+				this.initializeSecondPassBuffers(false);
+				this.resizeHeight = (this.colorChannels == 4) ? this.resizeHeightRGBA : this.resizeHeightRGB;
+			}
 		}
 	}
 	else {
@@ -330,15 +342,19 @@ Resize.prototype.bypassResizer = function (buffer) {
 	//Just return the buffer passsed:
 	return buffer;
 }
-Resize.prototype.initializeFirstPassBuffers = function () {
+Resize.prototype.initializeFirstPassBuffers = function (BILINEARAlgo) {
 	//Initialize the internal width pass buffers:
 	this.widthBuffer = this.generateFloatBuffer(this.widthPassResultSize);
-	this.outputWidthWorkBench = this.generateFloatBuffer(this.originalHeightMultipliedByChannels);
+	if (!BILINEARAlgo) {
+		this.outputWidthWorkBench = this.generateFloatBuffer(this.originalHeightMultipliedByChannels);
+	}
 }
-Resize.prototype.initializeSecondPassBuffers = function () {
+Resize.prototype.initializeSecondPassBuffers = function (BILINEARAlgo) {
 	//Initialize the internal height pass buffers:
 	this.heightBuffer = this.generateUint8Buffer(this.finalResultSize);
-	this.outputHeightWorkBench = this.generateFloatBuffer(this.targetWidthMultipliedByChannels);
+	if (!BILINEARAlgo) {
+		this.outputHeightWorkBench = this.generateFloatBuffer(this.targetWidthMultipliedByChannels);
+	}
 }
 Resize.prototype.generateFloatBuffer = function (bufferLength) {
 	//Generate a float32 typed array buffer:
