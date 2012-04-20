@@ -41,7 +41,7 @@ Resize.prototype.initialize = function () {
 			this.ratioWeightHeightPass = this.heightOriginal / this.targetHeight;
 			if (this.ratioWeightHeightPass < 1 && this.interpolationPass) {
 				this.initializeSecondPassBuffers(true);
-				this.resizeHeight = resizeHeightInterpolated;
+				this.resizeHeight = this.resizeHeightInterpolated;
 			}
 			else {
 				this.initializeSecondPassBuffers(false);
