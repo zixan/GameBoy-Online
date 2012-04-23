@@ -5429,6 +5429,7 @@ GameBoyCore.prototype.clockAudioSweep = function () {
 				}
 				else {
 					this.channel1Fault |= 0x2;
+					this.channel1EnableCheck();
 					this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
 				}
 			}
