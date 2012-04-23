@@ -5273,6 +5273,9 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 	this.channel2Enabled = false;
 	this.channel3Enabled = false;
 	this.channel4Enabled = false;
+	this.channel1canPlay = false;
+	this.channel2canPlay = false;
+	this.channel4canPlay = false;
 }
 GameBoyCore.prototype.outputAudio = function () {
 	var index2 = 0;
@@ -5571,16 +5574,28 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 	}
 }
 GameBoyCore.prototype.channel1EnableCheck = function () {
-	this.channel1Enabled = ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1Fault == 0 && this.memory[0xFF12] > 7);
+	this.channel1Enabled = ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1Fault == 0 && this.channel1canPlay);
+}
+GameBoyCore.prototype.channel1VolumeEnableCheck = function () {
+	this.channel1canPlay = (this.memory[0xFF12] > 7);
+	this.channel1Enabled = (this.channel1canPlay) ? this.channel1Enabled : false;
 }
 GameBoyCore.prototype.channel2EnableCheck = function () {
-	this.channel2Enabled = ((this.channel2consecutive || this.channel2totalLength > 0) && this.memory[0xFF17] > 7);
+	this.channel2Enabled = ((this.channel2consecutive || this.channel2totalLength > 0) && this.channel2canPlay);
+}
+GameBoyCore.prototype.channel2VolumeEnableCheck = function () {
+	this.channel2canPlay = (this.memory[0xFF17] > 7);
+	this.channel2Enabled = (this.channel2canPlay) ? this.channel2Enabled : false;
 }
 GameBoyCore.prototype.channel3EnableCheck = function () {
 	this.channel3Enabled = (this.channel3canPlay && (this.channel3consecutive || this.channel3totalLength > 0));
 }
 GameBoyCore.prototype.channel4EnableCheck = function () {
-	this.channel4Enabled = ((this.channel4consecutive || this.channel4totalLength > 0) && this.memory[0xFF21] > 7);
+	this.channel4Enabled = ((this.channel4consecutive || this.channel4totalLength > 0) && this.channel4canPlay);
+}
+GameBoyCore.prototype.channel4VolumeEnableCheck = function () {
+	this.channel4canPlay = (this.memory[0xFF21] > 7);
+	this.channel4Enabled = (this.channel4canPlay) ? this.channel4Enabled : false;
 }
 GameBoyCore.prototype.channel3UpdateCache = function () {
 	this.cachedChannel3Sample = this.channel3PCM[this.channel3lastSampleLookup] >> this.channel3patternType;
@@ -8365,7 +8380,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			}
 			parentObj.channel1envelopeType = ((data & 0x08) == 0x08);
 			parentObj.memory[0xFF12] = data;
-			parentObj.channel1EnableCheck();
+			parentObj.channel1VolumeEnableCheck();
 		}
 	}
 	this.memoryHighWriter[0x13] = this.memoryWriter[0xFF13] = function (parentObj, address, data) {
@@ -8457,7 +8472,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			}
 			parentObj.channel2envelopeType = ((data & 0x08) == 0x08);
 			parentObj.memory[0xFF17] = data;
-			parentObj.channel2EnableCheck();
+			parentObj.channel2VolumeEnableCheck();
 		}
 	}
 	this.memoryHighWriter[0x18] = this.memoryWriter[0xFF18] = function (parentObj, address, data) {
@@ -8588,7 +8603,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.channel4envelopeType = ((data & 0x08) == 0x08);
 			parentObj.memory[0xFF21] = data;
 			parentObj.channel4UpdateCache();
-			parentObj.channel4EnableCheck();
+			parentObj.channel4VolumeEnableCheck();
 		}
 	}
 	this.memoryHighWriter[0x22] = this.memoryWriter[0xFF22] = function (parentObj, address, data) {
