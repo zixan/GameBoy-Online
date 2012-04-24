@@ -5532,38 +5532,32 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 	}
 }
 GameBoyCore.prototype.computeAudioChannels = function () {
+	//Channel 3 and 4 add in one pass:
+	this.currentSampleLeft = this.channel3currentSampleLeftSecondary + this.channel4currentSampleLeftSecondary;
+	this.currentSampleRight = this.channel3currentSampleRightSecondary + this.channel4currentSampleRightSecondary;
 	//Channel 1:
-	if (this.channel1lastSampleLookup < this.channel1adjustedDuty) {
-		this.currentSampleLeft = this.channel1currentSampleLeftSecondary;
-		this.currentSampleRight = this.channel1currentSampleRightSecondary;
+	if (--this.channel1lastSampleLookup < this.channel1adjustedDuty) {
 		if (this.channel1lastSampleLookup == 0) {
 			this.channel1lastSampleLookup = this.channel1adjustedFrequencyPrep;
 		}
+		this.currentSampleLeft += this.channel1currentSampleLeftSecondary;
+		this.currentSampleRight += this.channel1currentSampleRightSecondary;
 	}
-	else {
-		this.currentSampleRight = this.currentSampleLeft = 0;
-	}
-	--this.channel1lastSampleLookup;
 	//Channel 2:
-	if (this.channel2lastSampleLookup < this.channel2adjustedDuty) {
-		this.currentSampleLeft += this.channel2currentSampleLeftSecondary;
-		this.currentSampleRight += this.channel2currentSampleRightSecondary;
+	if (--this.channel2lastSampleLookup < this.channel2adjustedDuty) {
 		if (this.channel2lastSampleLookup == 0) {
 			this.channel2lastSampleLookup = this.channel2adjustedFrequencyPrep;
 		}
+		this.currentSampleLeft += this.channel2currentSampleLeftSecondary;
+		this.currentSampleRight += this.channel2currentSampleRightSecondary;
 	}
-	--this.channel2lastSampleLookup;
-	//Channel 3:
-	this.currentSampleLeft += this.channel3currentSampleLeftSecondary;
-	this.currentSampleRight += this.channel3currentSampleRightSecondary;
+	//Channel 3 counter:
 	if (--this.channel3Tracker == 0) {
 		this.channel3lastSampleLookup = (this.channel3lastSampleLookup + 1) & 0x1F;
 		this.channel3Tracker = this.channel3FrequencyPeriod;
 		this.channel3UpdateCache();
 	}
-	//Channel 4:
-	this.currentSampleLeft += this.channel4currentSampleLeftSecondary;
-	this.currentSampleRight += this.channel4currentSampleRightSecondary;
+	//Channel 4 counter:
 	if (--this.channel4Tracker == 0) {
 		this.channel4lastSampleLookup = (this.channel4lastSampleLookup + 1) & this.channel4BitRange;
 		this.channel4Tracker = this.channel4FrequencyPeriod;
