@@ -157,6 +157,8 @@ function GameBoyCore(canvas, ROMImage) {
 	this.channel1currentSampleRightTrimary = 0;
 	this.channel2currentSampleLeftTrimary = 0;
 	this.channel2currentSampleRightTrimary = 0;
+	this.mixerOutputCacheLeft = 0;
+	this.mixerOutputCacheRight = 0;
 	//Pre-multipliers to cache some calculations:
 	this.initializeTiming();
 	this.machineOut = 0;				//Premultiplier for audio samples per instruction.
@@ -5320,8 +5322,8 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			this.sequencerClocks -= samplesToGenerate;
 			numSamples -= samplesToGenerate;
 			while (--samplesToGenerate > -1) {
-				this.currentBuffer[this.audioIndex++] = (this.channel1currentSampleLeftTrimary + this.channel2currentSampleLeftTrimary + this.channel3currentSampleLeftSecondary + this.channel4currentSampleLeftSecondary) * this.VinLeftChannelMasterVolume;
-				this.currentBuffer[this.audioIndex++] = (this.channel1currentSampleRightTrimary + this.channel2currentSampleRightTrimary + this.channel3currentSampleRightSecondary + this.channel4currentSampleRightSecondary) * this.VinRightChannelMasterVolume;
+				this.currentBuffer[this.audioIndex++] = this.mixerOutputCacheLeft;
+				this.currentBuffer[this.audioIndex++] = this.mixerOutputCacheRight;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
 					this.outputAudio();
@@ -5607,6 +5609,7 @@ GameBoyCore.prototype.channel1OutputLevelTrimaryCache = function () {
 		this.channel1currentSampleLeftTrimary = 0;
 		this.channel1currentSampleRightTrimary = 0;
 	}
+	this.mixerOutputLevelCache();
 }
 GameBoyCore.prototype.channel2EnableCheck = function () {
 	this.channel2Enabled = ((this.channel2consecutive || this.channel2totalLength > 0) && this.channel2canPlay);
@@ -5642,6 +5645,7 @@ GameBoyCore.prototype.channel2OutputLevelTrimaryCache = function () {
 		this.channel2currentSampleLeftTrimary = 0;
 		this.channel2currentSampleRightTrimary = 0;
 	}
+	this.mixerOutputLevelCache();
 }
 GameBoyCore.prototype.channel3EnableCheck = function () {
 	this.channel3Enabled = (this.channel3canPlay && (this.channel3consecutive || this.channel3totalLength > 0));
@@ -5661,6 +5665,7 @@ GameBoyCore.prototype.channel3OutputLevelSecondaryCache = function () {
 		this.channel3currentSampleLeftSecondary = 0;
 		this.channel3currentSampleRightSecondary = 0;
 	}
+	this.mixerOutputLevelCache();
 }
 GameBoyCore.prototype.channel4EnableCheck = function () {
 	this.channel4Enabled = ((this.channel4consecutive || this.channel4totalLength > 0) && this.channel4canPlay);
@@ -5685,6 +5690,11 @@ GameBoyCore.prototype.channel4OutputLevelSecondaryCache = function () {
 		this.channel4currentSampleLeftSecondary = 0;
 		this.channel4currentSampleRightSecondary = 0;
 	}
+	this.mixerOutputLevelCache();
+}
+GameBoyCore.prototype.mixerOutputLevelCache = function () {
+	this.mixerOutputCacheLeft = (this.channel1currentSampleLeftTrimary + this.channel2currentSampleLeftTrimary + this.channel3currentSampleLeftSecondary + this.channel4currentSampleLeftSecondary) * this.VinLeftChannelMasterVolume;
+	this.mixerOutputCacheRight = (this.channel1currentSampleRightTrimary + this.channel2currentSampleRightTrimary + this.channel3currentSampleRightSecondary + this.channel4currentSampleRightSecondary) * this.VinRightChannelMasterVolume;
 }
 GameBoyCore.prototype.channel3UpdateCache = function () {
 	this.cachedChannel3Sample = this.channel3PCM[this.channel3lastSampleLookup] >> this.channel3patternType;
@@ -8743,6 +8753,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.memory[0xFF24] = data;
 			parentObj.VinLeftChannelMasterVolume = ((data >> 4) & 0x07) + 1;
 			parentObj.VinRightChannelMasterVolume = (data & 0x07) + 1;
+			parentObj.mixerOutputLevelCache();
 		}
 	}
 	this.memoryHighWriter[0x25] = this.memoryWriter[0xFF25] = function (parentObj, address, data) {
