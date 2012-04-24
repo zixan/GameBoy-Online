@@ -8414,7 +8414,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 					parentObj.memory[0xFF26] |= 0x1;
 				}
 				else {
-					parentObj.memory[0xFF26] &= 0x1;
+					parentObj.memory[0xFF26] &= 0xFE;
 				}
 				if ((data & 0x40) == 0x40) {
 					parentObj.memory[0xFF26] |= 0x1;
@@ -8667,14 +8667,12 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	}
 	this.memoryHighWriter[0x26] = this.memoryWriter[0xFF26] = function (parentObj, address, data) {
 		parentObj.audioJIT();
-		var soundEnabled = (data & 0x80);
-		parentObj.memory[0xFF26] = soundEnabled | (parentObj.memory[0xFF26] & 0xF);
-		if (!parentObj.soundMasterEnabled && (soundEnabled == 0x80)) {
-			parentObj.memory[0xFF26] = 0;
+		if (!parentObj.soundMasterEnabled && data > 0x7F) {
+			parentObj.memory[0xFF26] = 0x80;
 			parentObj.soundMasterEnabled = true;
 			parentObj.initializeAudioStartState();
 		}
-		else if (parentObj.soundMasterEnabled && (soundEnabled == 0)) {
+		else if (parentObj.soundMasterEnabled && data < 0x80) {
 			parentObj.memory[0xFF26] = 0;
 			parentObj.soundMasterEnabled = false;
 			//GBDev wiki says the registers are written with zeros on power off:
