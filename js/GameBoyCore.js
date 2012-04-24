@@ -5231,7 +5231,7 @@ GameBoyCore.prototype.audioUnderrunAdjustment = function () {
 		}
 	}
 }
-GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
+GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel1adjustedFrequencyPrep = 0x10000;
 	this.channel1adjustedDuty = 0x7FFF;
 	this.channel1CachedDuty = 4;
@@ -5296,6 +5296,10 @@ GameBoyCore.prototype.initializeAudioStartState = function (resetType) {
 	this.channel1canPlay = false;
 	this.channel2canPlay = false;
 	this.channel4canPlay = false;
+	this.channel1OutputLevelCache();
+	this.channel2OutputLevelCache();
+	this.channel3OutputLevelCache();
+	this.channel4OutputLevelCache();
 }
 GameBoyCore.prototype.outputAudio = function () {
 	var index2 = 0;
