@@ -5543,11 +5543,13 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 		if (this.channel1lastSampleLookup == this.channel1adjustedDuty) {
 			this.channel1currentSampleLeftTrimary = this.channel1currentSampleLeftSecondary;
 			this.channel1currentSampleRightTrimary = this.channel1currentSampleRightSecondary;
+			this.mixerOutputLevelCache();
 		}
 		else if (this.channel1lastSampleLookup == 0) {
 			this.channel1lastSampleLookup = this.channel1adjustedFrequencyPrep;
 			this.channel1currentSampleLeftTrimary = 0;
 			this.channel1currentSampleRightTrimary = 0;
+			this.mixerOutputLevelCache();
 		}
 	}
 	//Channel 2 counter:
@@ -5555,11 +5557,13 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 		if (this.channel2lastSampleLookup == this.channel2adjustedDuty) {
 			this.channel2currentSampleLeftTrimary = this.channel2currentSampleLeftSecondary;
 			this.channel2currentSampleRightTrimary = this.channel2currentSampleRightSecondary;
+			this.mixerOutputLevelCache();
 		}
 		else if (this.channel2lastSampleLookup == 0) {
 			this.channel2lastSampleLookup = this.channel2adjustedFrequencyPrep;
 			this.channel2currentSampleLeftTrimary = 0;
 			this.channel2currentSampleRightTrimary = 0;
+			this.mixerOutputLevelCache();
 		}
 	}
 	//Channel 3 counter:
