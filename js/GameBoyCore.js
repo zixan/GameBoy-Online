@@ -136,9 +136,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.rightChannel2 = false;
 	this.rightChannel3 = false;
 	this.rightChannel4 = false;
-	//Current Samples Being Computed:
-	this.currentSampleLeft = 0;
-	this.currentSampleRight = 0;
+	//Channel output level caches:
 	this.channel1currentSampleLeft = 0;
 	this.channel1currentSampleRight = 0;
 	this.channel2currentSampleLeft = 0;
@@ -155,6 +153,10 @@ function GameBoyCore(canvas, ROMImage) {
 	this.channel3currentSampleRightSecondary = 0;
 	this.channel4currentSampleLeftSecondary = 0;
 	this.channel4currentSampleRightSecondary = 0;
+	this.channel1currentSampleLeftTrimary = 0;
+	this.channel1currentSampleRightTrimary = 0;
+	this.channel2currentSampleLeftTrimary = 0;
+	this.channel2currentSampleRightTrimary = 0;
 	//Pre-multipliers to cache some calculations:
 	this.initializeTiming();
 	this.machineOut = 0;				//Premultiplier for audio samples per instruction.
@@ -5318,13 +5320,13 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			this.sequencerClocks -= samplesToGenerate;
 			numSamples -= samplesToGenerate;
 			while (--samplesToGenerate > -1) {
-				this.computeAudioChannels();
-				this.currentBuffer[this.audioIndex++] = this.currentSampleLeft * this.VinLeftChannelMasterVolume;
-				this.currentBuffer[this.audioIndex++] = this.currentSampleRight * this.VinRightChannelMasterVolume;
+				this.currentBuffer[this.audioIndex++] = (this.channel1currentSampleLeftTrimary + this.channel2currentSampleLeftTrimary + this.channel3currentSampleLeftSecondary + this.channel4currentSampleLeftSecondary) * this.VinLeftChannelMasterVolume;
+				this.currentBuffer[this.audioIndex++] = (this.channel1currentSampleRightTrimary + this.channel2currentSampleRightTrimary + this.channel3currentSampleRightSecondary + this.channel4currentSampleRightSecondary) * this.VinRightChannelMasterVolume;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
 					this.outputAudio();
 				}
+				this.computeAudioChannels();
 			}
 			if (this.sequencerClocks == 0) {
 				this.audioComputeSequencer();
@@ -5532,24 +5534,29 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 	}
 }
 GameBoyCore.prototype.computeAudioChannels = function () {
-	//Channel 3 and 4 add in one pass:
-	this.currentSampleLeft = this.channel3currentSampleLeftSecondary + this.channel4currentSampleLeftSecondary;
-	this.currentSampleRight = this.channel3currentSampleRightSecondary + this.channel4currentSampleRightSecondary;
-	//Channel 1:
-	if (--this.channel1lastSampleLookup < this.channel1adjustedDuty) {
-		if (this.channel1lastSampleLookup == 0) {
+	//Channel 1 counter:
+	if (--this.channel1lastSampleLookup <= this.channel1adjustedDuty) {
+		if (this.channel1lastSampleLookup == this.channel1adjustedDuty) {
+			this.channel1currentSampleLeftTrimary = this.channel1currentSampleLeftSecondary;
+			this.channel1currentSampleRightTrimary = this.channel1currentSampleRightSecondary;
+		}
+		else if (this.channel1lastSampleLookup == 0) {
 			this.channel1lastSampleLookup = this.channel1adjustedFrequencyPrep;
+			this.channel1currentSampleLeftTrimary = 0;
+			this.channel1currentSampleRightTrimary = 0;
 		}
-		this.currentSampleLeft += this.channel1currentSampleLeftSecondary;
-		this.currentSampleRight += this.channel1currentSampleRightSecondary;
 	}
-	//Channel 2:
-	if (--this.channel2lastSampleLookup < this.channel2adjustedDuty) {
-		if (this.channel2lastSampleLookup == 0) {
-			this.channel2lastSampleLookup = this.channel2adjustedFrequencyPrep;
+	//Channel 2 counter:
+	if (--this.channel2lastSampleLookup <= this.channel2adjustedDuty) {
+		if (this.channel2lastSampleLookup == this.channel2adjustedDuty) {
+			this.channel2currentSampleLeftTrimary = this.channel2currentSampleLeftSecondary;
+			this.channel2currentSampleRightTrimary = this.channel2currentSampleRightSecondary;
 		}
-		this.currentSampleLeft += this.channel2currentSampleLeftSecondary;
-		this.currentSampleRight += this.channel2currentSampleRightSecondary;
+		else if (this.channel2lastSampleLookup == 0) {
+			this.channel2lastSampleLookup = this.channel2adjustedFrequencyPrep;
+			this.channel2currentSampleLeftTrimary = 0;
+			this.channel2currentSampleRightTrimary = 0;
+		}
 	}
 	//Channel 3 counter:
 	if (--this.channel3Tracker == 0) {
