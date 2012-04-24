@@ -5599,7 +5599,7 @@ GameBoyCore.prototype.channel1OutputLevelSecondaryCache = function () {
 	this.channel1OutputLevelTrimaryCache();
 }
 GameBoyCore.prototype.channel1OutputLevelTrimaryCache = function () {
-	if (this.channel1lastSampleLookup == this.channel1adjustedDuty) {
+	if (this.channel1lastSampleLookup < this.channel1adjustedDuty) {
 		this.channel1currentSampleLeftTrimary = this.channel1currentSampleLeftSecondary;
 		this.channel1currentSampleRightTrimary = this.channel1currentSampleRightSecondary;
 	}
@@ -5634,7 +5634,7 @@ GameBoyCore.prototype.channel2OutputLevelSecondaryCache = function () {
 	this.channel2OutputLevelTrimaryCache();
 }
 GameBoyCore.prototype.channel2OutputLevelTrimaryCache = function () {
-	if (this.channel2lastSampleLookup == this.channel2adjustedDuty) {
+	if (this.channel2lastSampleLookup < this.channel2adjustedDuty) {
 		this.channel2currentSampleLeftTrimary = this.channel2currentSampleLeftSecondary;
 		this.channel2currentSampleRightTrimary = this.channel2currentSampleRightSecondary;
 	}
