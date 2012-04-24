@@ -5492,6 +5492,7 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 				if (this.channel2envelopeVolume > 0) {
 					--this.channel2envelopeVolume;
 					this.channel2envelopeSweeps = this.channel2envelopeSweepsLast;
+					this.channel2OutputLevelCache();
 				}
 				else {
 					this.channel2envelopeSweepsLast = -1;
@@ -5500,6 +5501,7 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 			else if (this.channel2envelopeVolume < 0xF) {
 				++this.channel2envelopeVolume;
 				this.channel2envelopeSweeps = this.channel2envelopeSweepsLast;
+				this.channel2OutputLevelCache();
 			}
 			else {
 				this.channel2envelopeSweepsLast = -1;
@@ -5594,6 +5596,17 @@ GameBoyCore.prototype.channel1OutputLevelSecondaryCache = function () {
 		this.channel1currentSampleLeftSecondary = 0;
 		this.channel1currentSampleRightSecondary = 0;
 	}
+	this.channel1OutputLevelTrimaryCache();
+}
+GameBoyCore.prototype.channel1OutputLevelTrimaryCache = function () {
+	if (this.channel1lastSampleLookup == this.channel1adjustedDuty) {
+		this.channel1currentSampleLeftTrimary = this.channel1currentSampleLeftSecondary;
+		this.channel1currentSampleRightTrimary = this.channel1currentSampleRightSecondary;
+	}
+	else {
+		this.channel1currentSampleLeftTrimary = 0;
+		this.channel1currentSampleRightTrimary = 0;
+	}
 }
 GameBoyCore.prototype.channel2EnableCheck = function () {
 	this.channel2Enabled = ((this.channel2consecutive || this.channel2totalLength > 0) && this.channel2canPlay);
@@ -5617,6 +5630,17 @@ GameBoyCore.prototype.channel2OutputLevelSecondaryCache = function () {
 	else {
 		this.channel2currentSampleLeftSecondary = 0;
 		this.channel2currentSampleRightSecondary = 0;
+	}
+	this.channel2OutputLevelTrimaryCache();
+}
+GameBoyCore.prototype.channel2OutputLevelTrimaryCache = function () {
+	if (this.channel2lastSampleLookup == this.channel2adjustedDuty) {
+		this.channel2currentSampleLeftTrimary = this.channel2currentSampleLeftSecondary;
+		this.channel2currentSampleRightTrimary = this.channel2currentSampleRightSecondary;
+	}
+	else {
+		this.channel2currentSampleLeftTrimary = 0;
+		this.channel2currentSampleRightTrimary = 0;
 	}
 }
 GameBoyCore.prototype.channel3EnableCheck = function () {
