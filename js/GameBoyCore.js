@@ -139,6 +139,14 @@ function GameBoyCore(canvas, ROMImage) {
 	//Current Samples Being Computed:
 	this.currentSampleLeft = 0;
 	this.currentSampleRight = 0;
+	this.channel1currentSampleLeft = 0;
+	this.channel1currentSampleRight = 0;
+	this.channel2currentSampleLeft = 0;
+	this.channel2currentSampleRight = 0;
+	this.channel3currentSampleLeft = 0;
+	this.channel3currentSampleRight = 0;
+	this.channel4currentSampleLeft = 0;
+	this.channel4currentSampleRight = 0;
 	//Pre-multipliers to cache some calculations:
 	this.initializeTiming();
 	this.machineOut = 0;				//Premultiplier for audio samples per instruction.
@@ -5448,6 +5456,7 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 				if (this.channel1envelopeVolume > 0) {
 					--this.channel1envelopeVolume;
 					this.channel1envelopeSweeps = this.channel1envelopeSweepsLast;
+					this.channel1OutputLevelCache();
 				}
 				else {
 					this.channel1envelopeSweepsLast = -1;
@@ -5456,6 +5465,7 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 			else if (this.channel1envelopeVolume < 0xF) {
 				++this.channel1envelopeVolume;
 				this.channel1envelopeSweeps = this.channel1envelopeSweepsLast;
+				this.channel1OutputLevelCache();
 			}
 			else {
 				this.channel1envelopeSweepsLast = -1;
@@ -5518,12 +5528,8 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 	//Channel 1:
 	if (this.channel1Enabled) {
 		if (this.channel1lastSampleLookup < this.channel1adjustedDuty) {	//Seems the top three freq bits drive the duty.
-			if (this.leftChannel1) {
-				this.currentSampleLeft = this.channel1envelopeVolume;
-			}
-			if (this.rightChannel1) {
-				this.currentSampleRight = this.channel1envelopeVolume;
-			}
+			this.currentSampleLeft += this.channel1currentSampleLeft;
+			this.currentSampleRight += this.channel1currentSampleRight;
 			if (this.channel1lastSampleLookup == 0) {
 				this.channel1lastSampleLookup = this.channel1adjustedFrequencyPrep;
 			}
@@ -5533,12 +5539,8 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 	//Channel 2:
 	if (this.channel2Enabled) {
 		if (this.channel2lastSampleLookup < this.channel2adjustedDuty) {
-			if (this.leftChannel2) {
-				this.currentSampleLeft += this.channel2envelopeVolume;
-			}
-			if (this.rightChannel2) {
-				this.currentSampleRight += this.channel2envelopeVolume;
-			}
+			this.currentSampleLeft += this.channel2currentSampleLeft;
+			this.currentSampleRight += this.channel2currentSampleRight;
 			if (this.channel2lastSampleLookup == 0) {
 				this.channel2lastSampleLookup = this.channel2adjustedFrequencyPrep;
 			}
@@ -5547,12 +5549,8 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 	}
 	//Channel 3:
 	if (this.channel3Enabled) {
-		if (this.leftChannel3) {
-			this.currentSampleLeft += this.cachedChannel3Sample;
-		}
-		if (this.rightChannel3) {
-			this.currentSampleRight += this.cachedChannel3Sample;
-		}
+		this.currentSampleLeft += this.channel3currentSampleLeft;
+		this.currentSampleRight += this.channel3currentSampleRight;
 		if (--this.channel3Tracker == 0) {
 			this.channel3lastSampleLookup = (this.channel3lastSampleLookup + 1) & 0x1F;
 			this.channel3Tracker = this.channel3FrequencyPeriod;
@@ -5561,12 +5559,8 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 	}
 	//Channel 4:
 	if (this.channel4Enabled) {
-		if (this.leftChannel4) {
-			this.currentSampleLeft += this.cachedChannel4Sample;
-		}
-		if (this.rightChannel4) {
-			this.currentSampleRight += this.cachedChannel4Sample;
-		}
+		this.currentSampleLeft += this.channel4currentSampleLeft;
+		this.currentSampleRight += this.channel4currentSampleRight;
 		if (--this.channel4Tracker == 0) {
 			this.channel4lastSampleLookup = (this.channel4lastSampleLookup + 1) & this.channel4BitRange;
 			this.channel4Tracker = this.channel4FrequencyPeriod;
@@ -5581,6 +5575,14 @@ GameBoyCore.prototype.channel1VolumeEnableCheck = function () {
 	this.channel1canPlay = (this.memory[0xFF12] > 7);
 	this.channel1Enabled = (this.channel1canPlay) ? this.channel1Enabled : false;
 }
+GameBoyCore.prototype.channel1OutputLevelCache = function () {
+	if (this.leftChannel1) {
+		this.channel1currentSampleLeft = this.channel1envelopeVolume;
+	}
+	if (this.rightChannel1) {
+		this.channel1currentSampleRight = this.channel1envelopeVolume;
+	}
+}
 GameBoyCore.prototype.channel2EnableCheck = function () {
 	this.channel2Enabled = ((this.channel2consecutive || this.channel2totalLength > 0) && this.channel2canPlay);
 }
@@ -5588,8 +5590,24 @@ GameBoyCore.prototype.channel2VolumeEnableCheck = function () {
 	this.channel2canPlay = (this.memory[0xFF17] > 7);
 	this.channel2Enabled = (this.channel2canPlay) ? this.channel2Enabled : false;
 }
+GameBoyCore.prototype.channel2OutputLevelCache = function () {
+	if (this.leftChannel2) {
+		this.channel2currentSampleLeft = this.channel2envelopeVolume;
+	}
+	if (this.rightChannel2) {
+		this.channel2currentSampleRight = this.channel2envelopeVolume;
+	}
+}
 GameBoyCore.prototype.channel3EnableCheck = function () {
 	this.channel3Enabled = (this.channel3canPlay && (this.channel3consecutive || this.channel3totalLength > 0));
+}
+GameBoyCore.prototype.channel3OutputLevelCache = function () {
+	if (this.leftChannel3) {
+		this.channel3currentSampleLeft = this.cachedChannel3Sample;
+	}
+	if (this.rightChannel3) {
+		this.channel3currentSampleRight = this.cachedChannel3Sample;
+	}
 }
 GameBoyCore.prototype.channel4EnableCheck = function () {
 	this.channel4Enabled = ((this.channel4consecutive || this.channel4totalLength > 0) && this.channel4canPlay);
@@ -5598,11 +5616,21 @@ GameBoyCore.prototype.channel4VolumeEnableCheck = function () {
 	this.channel4canPlay = (this.memory[0xFF21] > 7);
 	this.channel4Enabled = (this.channel4canPlay) ? this.channel4Enabled : false;
 }
+GameBoyCore.prototype.channel4OutputLevelCache = function () {
+	if (this.leftChannel4) {
+		this.channel4currentSampleLeft = this.cachedChannel4Sample;
+	}
+	if (this.rightChannel4) {
+		this.channel4currentSampleRight = this.cachedChannel4Sample;
+	}
+}
 GameBoyCore.prototype.channel3UpdateCache = function () {
 	this.cachedChannel3Sample = this.channel3PCM[this.channel3lastSampleLookup] >> this.channel3patternType;
+	this.channel3OutputLevelCache();
 }
 GameBoyCore.prototype.channel4UpdateCache = function () {
 	this.cachedChannel4Sample = this.noiseSampleTable[this.channel4currentVolume | this.channel4lastSampleLookup];
+	this.channel4OutputLevelCache();
 }
 GameBoyCore.prototype.run = function () {
 	//The preprocessing before the actual iteration loop:
@@ -8378,6 +8406,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				else if ((parentObj.memory[0xFF12] & 0xF) == 0x8) {
 					parentObj.channel1envelopeVolume = (1 + parentObj.channel1envelopeVolume) & 0xF;
 				}
+				parentObj.channel1OutputLevelCache();
 			}
 			parentObj.channel1envelopeType = ((data & 0x08) == 0x08);
 			parentObj.memory[0xFF12] = data;
@@ -8406,6 +8435,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				//Reload 0xFF12:
 				var nr12 = parentObj.memory[0xFF12];
 				parentObj.channel1envelopeVolume = nr12 >> 4;
+				parentObj.channel1OutputLevelCache();
 				parentObj.channel1envelopeSweepsLast = (nr12 & 0x7) - 1;
 				if (parentObj.channel1totalLength == 0) {
 					parentObj.channel1totalLength = 0x40;
@@ -8470,6 +8500,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				else if ((parentObj.memory[0xFF17] & 0xF) == 0x8) {
 					parentObj.channel2envelopeVolume = (1 + parentObj.channel2envelopeVolume) & 0xF;
 				}
+				parentObj.channel2OutputLevelCache();
 			}
 			parentObj.channel2envelopeType = ((data & 0x08) == 0x08);
 			parentObj.memory[0xFF17] = data;
@@ -8493,6 +8524,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				//Reload 0xFF17:
 				var nr22 = parentObj.memory[0xFF17];
 				parentObj.channel2envelopeVolume = nr22 >> 4;
+				parentObj.channel2OutputLevelCache();
 				parentObj.channel2envelopeSweepsLast = (nr22 & 0x7) - 1;
 				if (parentObj.channel2totalLength == 0) {
 					parentObj.channel2totalLength = 0x40;
@@ -8663,6 +8695,10 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.leftChannel2 = ((data & 0x20) == 0x20);
 			parentObj.leftChannel3 = ((data & 0x40) == 0x40);
 			parentObj.leftChannel4 = (data > 0x7F);
+			parentObj.channel1OutputLevelCache();
+			parentObj.channel2OutputLevelCache();
+			parentObj.channel3OutputLevelCache();
+			parentObj.channel4OutputLevelCache();
 		}
 	}
 	this.memoryHighWriter[0x26] = this.memoryWriter[0xFF26] = function (parentObj, address, data) {
