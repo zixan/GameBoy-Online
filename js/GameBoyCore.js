@@ -147,6 +147,14 @@ function GameBoyCore(canvas, ROMImage) {
 	this.channel3currentSampleRight = 0;
 	this.channel4currentSampleLeft = 0;
 	this.channel4currentSampleRight = 0;
+	this.channel1currentSampleLeftSecondary = 0;
+	this.channel1currentSampleRightSecondary = 0;
+	this.channel2currentSampleLeftSecondary = 0;
+	this.channel2currentSampleRightSecondary = 0;
+	this.channel3currentSampleLeftSecondary = 0;
+	this.channel3currentSampleRightSecondary = 0;
+	this.channel4currentSampleLeftSecondary = 0;
+	this.channel4currentSampleRightSecondary = 0;
 	//Pre-multipliers to cache some calculations:
 	this.initializeTiming();
 	this.machineOut = 0;				//Premultiplier for audio samples per instruction.
