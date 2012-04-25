@@ -5549,7 +5549,7 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 			this.channel1currentSampleRightTrimary = this.channel1currentSampleRightSecondary;
 			this.mixerOutputLevelCache();
 		}
-		else if (this.channel1lastSampleLookup == 0) {
+		else if (this.channel1lastSampleLookup <= 0) {
 			this.channel1lastSampleLookup = this.channel1adjustedFrequencyPrep;
 			this.channel1currentSampleLeftTrimary = 0;
 			this.channel1currentSampleRightTrimary = 0;
@@ -5563,7 +5563,7 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 			this.channel2currentSampleRightTrimary = this.channel2currentSampleRightSecondary;
 			this.mixerOutputLevelCache();
 		}
-		else if (this.channel2lastSampleLookup == 0) {
+		else if (this.channel2lastSampleLookup <= 0) {
 			this.channel2lastSampleLookup = this.channel2adjustedFrequencyPrep;
 			this.channel2currentSampleLeftTrimary = 0;
 			this.channel2currentSampleRightTrimary = 0;
@@ -5589,7 +5589,7 @@ GameBoyCore.prototype.channel1EnableCheck = function () {
 }
 GameBoyCore.prototype.channel1VolumeEnableCheck = function () {
 	this.channel1canPlay = (this.memory[0xFF12] > 7);
-	this.channel1Enabled = (this.channel1canPlay) ? this.channel1Enabled : false;
+	this.channel1EnableCheck();
 	this.channel1OutputLevelSecondaryCache();
 }
 GameBoyCore.prototype.channel1OutputLevelCache = function () {
@@ -5625,7 +5625,7 @@ GameBoyCore.prototype.channel2EnableCheck = function () {
 }
 GameBoyCore.prototype.channel2VolumeEnableCheck = function () {
 	this.channel2canPlay = (this.memory[0xFF17] > 7);
-	this.channel2Enabled = (this.channel2canPlay) ? this.channel2Enabled : false;
+	this.channel2EnableCheck();
 	this.channel2OutputLevelSecondaryCache();
 }
 GameBoyCore.prototype.channel2OutputLevelCache = function () {
@@ -5681,7 +5681,7 @@ GameBoyCore.prototype.channel4EnableCheck = function () {
 }
 GameBoyCore.prototype.channel4VolumeEnableCheck = function () {
 	this.channel4canPlay = (this.memory[0xFF21] > 7);
-	this.channel4Enabled = (this.channel4canPlay) ? this.channel4Enabled : false;
+	this.channel4EnableCheck();
 	this.channel4OutputLevelSecondaryCache();
 }
 GameBoyCore.prototype.channel4OutputLevelCache = function () {
