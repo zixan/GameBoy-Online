@@ -4561,7 +4561,7 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.channel1frequency = 1985;
 	this.channel1Fault = 0;
 	this.channel1ShadowFrequency = 1985;
-	this.channel1timeSweep = 0;
+	this.channel1timeSweep = 1;
 	this.channel1lastTimeSweep = 0;
 	this.channel1numSweep = 0;
 	this.channel1frequencySweepDivider = 0;
@@ -5244,7 +5244,7 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel1frequency = 0;
 	this.channel1Fault = 0x2;
 	this.channel1ShadowFrequency = 0;
-	this.channel1timeSweep = 0;
+	this.channel1timeSweep = 1;
 	this.channel1lastTimeSweep = 0;
 	this.channel1numSweep = 0;
 	this.channel1frequencySweepDivider = 0;
@@ -5436,33 +5436,37 @@ GameBoyCore.prototype.clockAudioLength = function () {
 }
 GameBoyCore.prototype.clockAudioSweep = function () {
 	//Channel 1:
+	if (--this.channel1timeSweep == 0) {
+		this.runAudioSweep();
+		this.channel1timeSweep = this.channel1lastTimeSweep;
+	}
+}
+GameBoyCore.prototype.runAudioSweep = function () {
+	//Channel 1:
 	if (this.channel1numSweep > 0) {
-		if (--this.channel1timeSweep == 0) {
-			--this.channel1numSweep;
-			if (this.channel1decreaseSweep) {
-				this.channel1ShadowFrequency -= this.channel1ShadowFrequency >> this.channel1frequencySweepDivider;
-				this.channel1frequency = this.channel1ShadowFrequency;
+		--this.channel1numSweep;
+		if (this.channel1decreaseSweep) {
+			this.channel1ShadowFrequency -= this.channel1ShadowFrequency >> this.channel1frequencySweepDivider;
+			this.channel1frequency = this.channel1ShadowFrequency;
+			this.channel1FrequencyTracker = (0x800 - this.channel1frequency) << 2;
+		}
+		else {
+			this.channel1ShadowFrequency += this.channel1ShadowFrequency >> this.channel1frequencySweepDivider;
+			this.channel1frequency = this.channel1ShadowFrequency;
+			if (this.channel1ShadowFrequency <= 0x7FF) {
 				this.channel1FrequencyTracker = (0x800 - this.channel1frequency) << 2;
-			}
-			else {
-				this.channel1ShadowFrequency += this.channel1ShadowFrequency >> this.channel1frequencySweepDivider;
-				this.channel1frequency = this.channel1ShadowFrequency;
-				if (this.channel1ShadowFrequency <= 0x7FF) {
-					this.channel1FrequencyTracker = (0x800 - this.channel1frequency) << 2;
-					//Run overflow check twice:
-					if ((this.channel1ShadowFrequency + (this.channel1ShadowFrequency >> this.channel1frequencySweepDivider)) > 0x7FF) {
-						this.channel1Fault |= 0x2;
-						this.channel1EnableCheck();
-						this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
-					}
-				}
-				else {
+				//Run overflow check twice:
+				if ((this.channel1ShadowFrequency + (this.channel1ShadowFrequency >> this.channel1frequencySweepDivider)) > 0x7FF) {
 					this.channel1Fault |= 0x2;
 					this.channel1EnableCheck();
 					this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
 				}
 			}
-			this.channel1timeSweep = this.channel1lastTimeSweep;
+			else {
+				this.channel1Fault |= 0x2;
+				this.channel1EnableCheck();
+				this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
+			}
 		}
 	}
 }
@@ -8524,6 +8528,10 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			}
 			else {
 				parentObj.channel1Fault &= 0x1;
+				if (data > 0x7F) {
+					//Supposed to run immediately:
+					parentObj.runAudioSweep();
+				}
 			}
 			parentObj.channel1FrequencyTracker = (0x800 - parentObj.channel1frequency) << 2;
 			parentObj.channel1EnableCheck();
