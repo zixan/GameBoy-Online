@@ -48,6 +48,10 @@ function windowingInitialize() {
 	document.getElementById("disable_colors").checked = settings[2];
 	document.getElementById("rom_only_override").checked = settings[9];
 	document.getElementById("mbc_enable_override").checked = settings[10];
+<<<<<<< HEAD
+=======
+	document.getElementById("enable_gbc_bios").checked = settings[11];
+>>>>>>> master
 	document.getElementById("enable_colorization").checked = settings[4];
 	document.getElementById("do_minimal").checked = showAsMinimal;
 	document.getElementById("software_resizing").checked = settings[12];
@@ -134,6 +138,15 @@ function registerGUIEvents() {
 			var volume = prompt("Set the volume here:", "1.0");
 			if (volume != null && volume.length > 0) {
 				settings[14] = Math.min(Math.max(parseFloat(volume), 0), 1);
+				gameboy.changeVolume();
+			}
+		}
+	});
+	addEvent("click", document.getElementById("set_volume"), function () {
+		if (GameBoyEmulatorInitialized()) {
+			var volume = prompt("Set the volume here:", "1.0");
+			if (volume != null && volume.length > 0) {
+				settings[15] = Math.min(Math.max(parseFloat(volume), 0), 1);
 				gameboy.changeVolume();
 			}
 		}
@@ -298,7 +311,11 @@ function registerGUIEvents() {
 		settings[10] = document.getElementById("mbc_enable_override").checked;
 	});
 	addEvent("click", document.getElementById("enable_gbc_bios"), function () {
+<<<<<<< HEAD
 		settings[1] = document.getElementById("enable_gbc_bios").checked;
+=======
+		settings[11] = document.getElementById("enable_gbc_bios").checked;
+>>>>>>> master
 	});
 	addEvent("click", document.getElementById("enable_colorization"), function () {
 		settings[4] = document.getElementById("enable_colorization").checked;

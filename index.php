@@ -397,6 +397,10 @@ catch (error) {
 		$this->text('Set Volume');
 		$this->endElement();
 		$this->startElement('li');
+		$this->writeAttribute('id', 'set_volume');
+		$this->text('Set Volume');
+		$this->endElement();
+		$this->startElement('li');
 		$this->writeAttribute('id', 'restart_cpu_clicker');
 		$this->text('Restart');
 		$this->endElement();
