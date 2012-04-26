@@ -8693,7 +8693,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 	this.memoryHighWriter[0x22] = this.memoryWriter[0xFF22] = function (parentObj, address, data) {
 		if (parentObj.soundMasterEnabled) {
 			parentObj.audioJIT();
-			parentObj.channel4FrequencyPeriod = Math.max(data & 0x7, 0.5) * Math.pow(2, (data >> 4) + 4);
+			parentObj.channel4FrequencyPeriod = Math.max((data & 0x7) << 4, 8) << (data >> 4);
 			var bitWidth = (data & 0x8);
 			if ((bitWidth == 0x8 && parentObj.channel4BitRange == 0x7FFF) || (bitWidth == 0 && parentObj.channel4BitRange == 0x7F)) {
 				parentObj.channel4lastSampleLookup = 0;
