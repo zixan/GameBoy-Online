@@ -5706,7 +5706,7 @@ GameBoyCore.prototype.channel3UpdateCache = function () {
 GameBoyCore.prototype.channel3WriteRAM = function (address, data) {
 	if (this.channel3canPlay) {
 		this.audioJIT();
-		address = this.channel3lastSampleLookup >> 1;
+		//address = this.channel3lastSampleLookup >> 1;
 	}
 	this.memory[0xFF30 | address] = data;
 	address <<= 1;
