@@ -4581,7 +4581,7 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.channel3patternType = 4;
 	this.channel3frequency = 0;
 	this.channel3consecutive = true;
-	this.channel3Tracker = 0x418;
+	this.channel3Counter = 0x418;
 	this.channel4FrequencyPeriod = 8;
 	this.channel4totalLength = 0;
 	this.channel4envelopeVolume = 0;
@@ -4594,7 +4594,7 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.channel4VolumeShifter = 15;
 	this.channel1FrequencyCounter = 0x200;
 	this.channel2FrequencyCounter = 0x200;
-	this.channel3Tracker = 0x800;
+	this.channel3Counter = 0x800;
 	this.channel3FrequencyPeriod = 0x800;
 	this.channel3lastSampleLookup = 0;
 	this.channel4lastSampleLookup = 0;
@@ -5264,7 +5264,7 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel3patternType = 4;
 	this.channel3frequency = 0;
 	this.channel3consecutive = true;
-	this.channel3Tracker = 0x800;
+	this.channel3Counter = 0x800;
 	this.channel4FrequencyPeriod = 8;
 	this.channel4totalLength = 0;
 	this.channel4envelopeVolume = 0;
@@ -5278,7 +5278,7 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel4VolumeShifter = 15;
 	this.channel1FrequencyCounter = 0x2000;
 	this.channel2FrequencyCounter = 0x2000;
-	this.channel3Tracker = 0x800;
+	this.channel3Counter = 0x800;
 	this.channel3FrequencyPeriod = 0x800;
 	this.channel3lastSampleLookup = 0;
 	this.channel4lastSampleLookup = 0;
@@ -5287,7 +5287,7 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.sequencerClocks = 0x2000;
 	this.sequencePosition = 0;
 	this.channel4FrequencyPeriod = 8;
-	this.channel4Tracker = 8;
+	this.channel4Counter = 8;
 	this.cachedChannel3Sample = 0;
 	this.cachedChannel4Sample = 0;
 	this.channel1Enabled = false;
@@ -5327,13 +5327,13 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			this.sequencerClocks -= samplesToGenerate;
 			numSamples -= samplesToGenerate;
 			while (--samplesToGenerate > -1) {
+				this.computeAudioChannels();
 				this.currentBuffer[this.audioIndex++] = this.mixerOutputCacheLeft;
 				this.currentBuffer[this.audioIndex++] = this.mixerOutputCacheRight;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
 					this.outputAudio();
 				}
-				this.computeAudioChannels();
 			}
 			if (this.sequencerClocks == 0) {
 				this.audioComputeSequencer();
@@ -5552,15 +5552,15 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 		this.channel2OutputLevelTrimaryCache();
 	}
 	//Channel 3 counter:
-	if (--this.channel3Tracker == 0) {
+	if (--this.channel3Counter == 0) {
 		this.channel3lastSampleLookup = (this.channel3lastSampleLookup + 1) & 0x1F;
-		this.channel3Tracker = this.channel3FrequencyPeriod;
+		this.channel3Counter = this.channel3FrequencyPeriod;
 		this.channel3UpdateCache();
 	}
 	//Channel 4 counter:
-	if (--this.channel4Tracker == 0) {
+	if (--this.channel4Counter == 0) {
 		this.channel4lastSampleLookup = (this.channel4lastSampleLookup + 1) & this.channel4BitRange;
-		this.channel4Tracker = this.channel4FrequencyPeriod;
+		this.channel4Counter = this.channel4FrequencyPeriod;
 		this.channel4UpdateCache();
 	}
 }
