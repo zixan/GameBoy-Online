@@ -115,7 +115,12 @@ function GameBoyCore(canvas, ROMImage) {
 	this.audioHandle = null;						//XAudioJS handle
 	this.numSamplesTotal = 0;						//Length of the sound buffers.
 	this.sampleSize = 0;							//Length of the sound buffer for one channel.
-	this.dutyLookup = [1, 2, 4, 6];					//Map the duty values given to ones we can work with.
+	this.dutyLookup = [								//Map the duty values given to ones we can work with.
+		[false, false, false, false, false, false, false, true],
+		[true, false, false, false, false, false, false, true],
+		[true, false, false, false, false, true, true, true],
+		[false, true, true, true, true, true, true, false]
+	];
 	this.currentBuffer = [];						//The audio buffer we're working on.
 	this.bufferContainAmount = 0;					//Buffer maintenance metric.
 	this.LSFR15Table = null;
@@ -4161,9 +4166,8 @@ GameBoyCore.prototype.saveState = function () {
 		this.fromTypedArray(this.frameBuffer),
 		this.bgEnabled,
 		this.BGPriorityEnabled,
-		this.channel1adjustedFrequencyPrep,
+		this.channel1FrequencyTracker,
 		this.channel1lastSampleLookup,
-		this.channel1adjustedDuty,
 		this.channel1totalLength,
 		this.channel1envelopeVolume,
 		this.channel1envelopeType,
@@ -4178,9 +4182,8 @@ GameBoyCore.prototype.saveState = function () {
 		this.channel1numSweep,
 		this.channel1frequencySweepDivider,
 		this.channel1decreaseSweep,
-		this.channel2adjustedFrequencyPrep,
+		this.channel2FrequencyTracker,
 		this.channel2lastSampleLookup,
-		this.channel2adjustedDuty,
 		this.channel2totalLength,
 		this.channel2envelopeVolume,
 		this.channel2envelopeType,
@@ -4194,7 +4197,6 @@ GameBoyCore.prototype.saveState = function () {
 		this.channel3frequency,
 		this.channel3consecutive,
 		this.fromTypedArray(this.channel3PCM),
-		this.channel3adjustedFrequencyPrep,
 		this.channel4FrequencyPeriod,
 		this.channel4lastSampleLookup,
 		this.channel4totalLength,
@@ -4337,9 +4339,8 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.frameBuffer = this.toTypedArray(state[index++], "int32");
 	this.bgEnabled = state[index++];
 	this.BGPriorityEnabled = state[index++];
-	this.channel1adjustedFrequencyPrep = state[index++];
+	this.channel1FrequencyTracker = state[index++];
 	this.channel1lastSampleLookup = state[index++];
-	this.channel1adjustedDuty = state[index++];
 	this.channel1totalLength = state[index++];
 	this.channel1envelopeVolume = state[index++];
 	this.channel1envelopeType = state[index++];
@@ -4354,9 +4355,8 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel1numSweep = state[index++];
 	this.channel1frequencySweepDivider = state[index++];
 	this.channel1decreaseSweep = state[index++];
-	this.channel2adjustedFrequencyPrep = state[index++];
+	this.channel2FrequencyTracker = state[index++];
 	this.channel2lastSampleLookup = state[index++];
-	this.channel2adjustedDuty = state[index++];
 	this.channel2totalLength = state[index++];
 	this.channel2envelopeVolume = state[index++];
 	this.channel2envelopeType = state[index++];
@@ -4370,7 +4370,6 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel3frequency = state[index++];
 	this.channel3consecutive = state[index++];
 	this.channel3PCM = this.toTypedArray(state[index++], "int8");
-	this.channel3adjustedFrequencyPrep = state[index++];
 	this.channel4FrequencyPeriod = state[index++];
 	this.channel4lastSampleLookup = state[index++];
 	this.channel4totalLength = state[index++];
@@ -4550,9 +4549,9 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.mode1TriggerSTAT = false;
 	this.mode0TriggerSTAT = false;
 	this.LCDisOn = true;
-	this.channel1adjustedFrequencyPrep = 0x10000;
-	this.channel1adjustedDuty = 0x7FFF;
-	this.channel1CachedDuty = 4;
+	this.channel1FrequencyTracker = 0x2000;
+	this.channel1DutyTracker = 0;
+	this.channel1CachedDuty = this.dutyLookup[2];
 	this.channel1totalLength = 0;
 	this.channel1envelopeVolume = 0;
 	this.channel1envelopeType = false;
@@ -4567,8 +4566,9 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.channel1numSweep = 0;
 	this.channel1frequencySweepDivider = 0;
 	this.channel1decreaseSweep = false;
-	this.channel2adjustedFrequencyPrep = 0x10000;
-	this.channel2adjustedDuty = 0x3FF;
+	this.channel2FrequencyTracker = 0x2000;
+	this.channel2DutyTracker = 0;
+	this.channel2CachedDuty = this.dutyLookup[2];
 	this.channel2totalLength = 0;
 	this.channel2envelopeVolume = 0;
 	this.channel2envelopeType = false;
@@ -5232,9 +5232,9 @@ GameBoyCore.prototype.audioUnderrunAdjustment = function () {
 	}
 }
 GameBoyCore.prototype.initializeAudioStartState = function () {
-	this.channel1adjustedFrequencyPrep = 0x10000;
-	this.channel1adjustedDuty = 0x7FFF;
-	this.channel1CachedDuty = 4;
+	this.channel1FrequencyTracker = 0x2000;
+	this.channel1DutyTracker = 0;
+	this.channel1CachedDuty = this.dutyLookup[2];
 	this.channel1totalLength = 0;
 	this.channel1envelopeVolume = 0;
 	this.channel1envelopeType = false;
@@ -5249,8 +5249,9 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel1numSweep = 0;
 	this.channel1frequencySweepDivider = 0;
 	this.channel1decreaseSweep = false;
-	this.channel2adjustedFrequencyPrep = 0x10000;
-	this.channel2adjustedDuty = 0x7FFF;
+	this.channel2FrequencyTracker = 0x2000;
+	this.channel2DutyTracker = 0;
+	this.channel2CachedDuty = this.dutyLookup[2];
 	this.channel2totalLength = 0;
 	this.channel2envelopeVolume = 0;
 	this.channel2envelopeType = false;
@@ -5440,16 +5441,12 @@ GameBoyCore.prototype.clockAudioSweep = function () {
 			--this.channel1numSweep;
 			if (this.channel1decreaseSweep) {
 				this.channel1ShadowFrequency -= this.channel1ShadowFrequency >> this.channel1frequencySweepDivider;
-				//Pre-calculate the frequency computation outside the waveform generator for speed:
-				this.channel1adjustedFrequencyPrep = (0x800 - this.channel1ShadowFrequency) << 5;
-				this.channel1adjustedDuty = (this.channel1adjustedFrequencyPrep >> 3) * this.channel1CachedDuty - 1;
+				this.channel1FrequencyTracker = (0x800 - this.channel1ShadowFrequency) << 2;
 			}
 			else {
 				this.channel1ShadowFrequency += this.channel1ShadowFrequency >> this.channel1frequencySweepDivider;
 				if (this.channel1ShadowFrequency <= 0x7FF) {
-					//Pre-calculate the frequency computation outside the waveform generator for speed:
-					this.channel1adjustedFrequencyPrep = (0x800 - this.channel1ShadowFrequency) << 5;
-					this.channel1adjustedDuty = (this.channel1adjustedFrequencyPrep >> 3) * this.channel1CachedDuty - 1;
+					this.channel1FrequencyTracker = (0x800 - this.channel1ShadowFrequency) << 2;
 				}
 				else {
 					this.channel1Fault |= 0x2;
@@ -5543,32 +5540,16 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 }
 GameBoyCore.prototype.computeAudioChannels = function () {
 	//Channel 1 counter:
-	if (--this.channel1lastSampleLookup <= this.channel1adjustedDuty) {
-		if (this.channel1lastSampleLookup == this.channel1adjustedDuty) {
-			this.channel1currentSampleLeftTrimary = this.channel1currentSampleLeftSecondary;
-			this.channel1currentSampleRightTrimary = this.channel1currentSampleRightSecondary;
-			this.mixerOutputLevelCache();
-		}
-		else if (this.channel1lastSampleLookup <= 0) {
-			this.channel1lastSampleLookup = this.channel1adjustedFrequencyPrep;
-			this.channel1currentSampleLeftTrimary = 0;
-			this.channel1currentSampleRightTrimary = 0;
-			this.mixerOutputLevelCache();
-		}
+	if (--this.channel1lastSampleLookup == 0) {
+		this.channel1lastSampleLookup = this.channel1FrequencyTracker;
+		this.channel1DutyTracker = (this.channel1DutyTracker + 1) & 0x7;
+		this.channel1OutputLevelTrimaryCache();
 	}
 	//Channel 2 counter:
-	if (--this.channel2lastSampleLookup <= this.channel2adjustedDuty) {
-		if (this.channel2lastSampleLookup == this.channel2adjustedDuty) {
-			this.channel2currentSampleLeftTrimary = this.channel2currentSampleLeftSecondary;
-			this.channel2currentSampleRightTrimary = this.channel2currentSampleRightSecondary;
-			this.mixerOutputLevelCache();
-		}
-		else if (this.channel2lastSampleLookup <= 0) {
-			this.channel2lastSampleLookup = this.channel2adjustedFrequencyPrep;
-			this.channel2currentSampleLeftTrimary = 0;
-			this.channel2currentSampleRightTrimary = 0;
-			this.mixerOutputLevelCache();
-		}
+	if (--this.channel2lastSampleLookup == 0) {
+		this.channel2lastSampleLookup = this.channel2FrequencyTracker;
+		this.channel2DutyTracker = (this.channel2DutyTracker + 1) & 0x7;
+		this.channel2OutputLevelTrimaryCache();
 	}
 	//Channel 3 counter:
 	if (--this.channel3Tracker == 0) {
@@ -5609,7 +5590,7 @@ GameBoyCore.prototype.channel1OutputLevelSecondaryCache = function () {
 	this.channel1OutputLevelTrimaryCache();
 }
 GameBoyCore.prototype.channel1OutputLevelTrimaryCache = function () {
-	if (this.channel1lastSampleLookup < this.channel1adjustedDuty) {
+	if (this.channel1CachedDuty[this.channel1DutyTracker]) {
 		this.channel1currentSampleLeftTrimary = this.channel1currentSampleLeftSecondary;
 		this.channel1currentSampleRightTrimary = this.channel1currentSampleRightSecondary;
 	}
@@ -5645,7 +5626,7 @@ GameBoyCore.prototype.channel2OutputLevelSecondaryCache = function () {
 	this.channel2OutputLevelTrimaryCache();
 }
 GameBoyCore.prototype.channel2OutputLevelTrimaryCache = function () {
-	if (this.channel2lastSampleLookup < this.channel2adjustedDuty) {
+	if (this.channel2CachedDuty[this.channel2DutyTracker]) {
 		this.channel2currentSampleLeftTrimary = this.channel2currentSampleLeftSecondary;
 		this.channel2currentSampleRightTrimary = this.channel2currentSampleRightSecondary;
 	}
@@ -8461,7 +8442,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				data &= 0x3F;
 			}
 			parentObj.channel1CachedDuty = parentObj.dutyLookup[data >> 6];
-			parentObj.channel1adjustedDuty = (parentObj.channel1adjustedFrequencyPrep >> 3) * parentObj.channel1CachedDuty - 1;
 			parentObj.channel1totalLength = 0x40 - (data & 0x3F);
 			parentObj.memory[0xFF11] = data & 0xC0;
 			parentObj.channel1EnableCheck();
@@ -8497,9 +8477,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if (parentObj.soundMasterEnabled) {
 			parentObj.audioJIT();
 			parentObj.channel1frequency = (parentObj.channel1frequency & 0x700) | data;
-			//Pre-calculate the frequency computation outside the waveform generator for speed:
-			parentObj.channel1adjustedFrequencyPrep = (0x800 - parentObj.channel1frequency) << 5;
-			parentObj.channel1adjustedDuty = (parentObj.channel1adjustedFrequencyPrep >> 3) * parentObj.channel1CachedDuty - 1;
+			parentObj.channel1FrequencyTracker = (0x800 - parentObj.channel1frequency) << 2;
 			parentObj.memory[0xFF13] = data;
 		}
 	}
@@ -8539,9 +8517,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			else {
 				parentObj.channel1Fault &= 0x1;
 			}
-			//Pre-calculate the frequency computation outside the waveform generator for speed:
-			parentObj.channel1adjustedFrequencyPrep = (0x800 - parentObj.channel1frequency) << 5;
-			parentObj.channel1adjustedDuty = (parentObj.channel1adjustedFrequencyPrep >> 3) * parentObj.channel1CachedDuty - 1;
+			parentObj.channel1FrequencyTracker = (0x800 - parentObj.channel1frequency) << 2;
 			parentObj.channel1EnableCheck();
 			parentObj.memory[0xFF14] = data & 0x40;
 		}
@@ -8555,7 +8531,6 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				data &= 0x3F;
 			}
 			parentObj.channel2CachedDuty = parentObj.dutyLookup[data >> 6];
-			parentObj.channel2adjustedDuty = (parentObj.channel2adjustedFrequencyPrep >> 3) * parentObj.channel2CachedDuty - 1;
 			parentObj.channel2totalLength = 0x40 - (data & 0x3F);
 			parentObj.memory[0xFF16] = data & 0xC0;
 			parentObj.channel2EnableCheck();
@@ -8591,9 +8566,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 		if (parentObj.soundMasterEnabled) {
 			parentObj.audioJIT();
 			parentObj.channel2frequency = (parentObj.channel2frequency & 0x700) | data;
-			//Pre-calculate the frequency computation outside the waveform generator for speed:
-			parentObj.channel2adjustedFrequencyPrep = (0x800 - parentObj.channel2frequency) << 5;
-			parentObj.channel2adjustedDuty = (parentObj.channel2adjustedFrequencyPrep >> 3) * parentObj.channel2CachedDuty - 1;
+			parentObj.channel2FrequencyTracker = (0x800 - parentObj.channel2frequency) << 2;
 			parentObj.memory[0xFF18] = data;
 		}
 	}
@@ -8615,9 +8588,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			}
 			parentObj.channel2consecutive = ((data & 0x40) == 0x0);
 			parentObj.channel2frequency = ((data & 0x7) << 8) | (parentObj.channel2frequency & 0xFF);
-			//Pre-calculate the frequency computation outside the waveform generator for speed:
-			parentObj.channel2adjustedFrequencyPrep = (0x800 - parentObj.channel2frequency) << 5;
-			parentObj.channel2adjustedDuty = (parentObj.channel2adjustedFrequencyPrep >> 3) * parentObj.channel2CachedDuty - 1;
+			parentObj.channel2FrequencyTracker = (0x800 - parentObj.channel2frequency) << 2;
 			parentObj.memory[0xFF19] = data & 0x40;
 			parentObj.channel2EnableCheck();
 		}
