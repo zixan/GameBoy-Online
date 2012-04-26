@@ -4167,7 +4167,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.bgEnabled,
 		this.BGPriorityEnabled,
 		this.channel1FrequencyTracker,
-		this.channel1lastSampleLookup,
+		this.channel1FrequencyCounter,
 		this.channel1totalLength,
 		this.channel1envelopeVolume,
 		this.channel1envelopeType,
@@ -4183,7 +4183,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.channel1frequencySweepDivider,
 		this.channel1decreaseSweep,
 		this.channel2FrequencyTracker,
-		this.channel2lastSampleLookup,
+		this.channel2FrequencyCounter,
 		this.channel2totalLength,
 		this.channel2envelopeVolume,
 		this.channel2envelopeType,
@@ -4340,7 +4340,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.bgEnabled = state[index++];
 	this.BGPriorityEnabled = state[index++];
 	this.channel1FrequencyTracker = state[index++];
-	this.channel1lastSampleLookup = state[index++];
+	this.channel1FrequencyCounter = state[index++];
 	this.channel1totalLength = state[index++];
 	this.channel1envelopeVolume = state[index++];
 	this.channel1envelopeType = state[index++];
@@ -4356,7 +4356,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel1frequencySweepDivider = state[index++];
 	this.channel1decreaseSweep = state[index++];
 	this.channel2FrequencyTracker = state[index++];
-	this.channel2lastSampleLookup = state[index++];
+	this.channel2FrequencyCounter = state[index++];
 	this.channel2totalLength = state[index++];
 	this.channel2envelopeVolume = state[index++];
 	this.channel2envelopeType = state[index++];
@@ -4592,8 +4592,8 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.channel4consecutive = true;
 	this.channel4BitRange = 0x7FFF;
 	this.channel4VolumeShifter = 15;
-	this.channel1lastSampleLookup = 0x7FF;
-	this.channel2lastSampleLookup = 0x7FF;
+	this.channel1FrequencyCounter = 0x200;
+	this.channel2FrequencyCounter = 0x200;
 	this.channel3Tracker = 0x800;
 	this.channel3FrequencyPeriod = 0x800;
 	this.channel3lastSampleLookup = 0;
@@ -5276,8 +5276,8 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel4BitRange = 0x7FFF;
 	this.noiseSampleTable = this.LSFR15Table;
 	this.channel4VolumeShifter = 15;
-	this.channel1lastSampleLookup = 0xFFFF;
-	this.channel2lastSampleLookup = 0xFFFF;
+	this.channel1FrequencyCounter = 0x2000;
+	this.channel2FrequencyCounter = 0x2000;
 	this.channel3Tracker = 0x800;
 	this.channel3FrequencyPeriod = 0x800;
 	this.channel3lastSampleLookup = 0;
@@ -5540,14 +5540,14 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 }
 GameBoyCore.prototype.computeAudioChannels = function () {
 	//Channel 1 counter:
-	if (--this.channel1lastSampleLookup == 0) {
-		this.channel1lastSampleLookup = this.channel1FrequencyTracker;
+	if (--this.channel1FrequencyCounter == 0) {
+		this.channel1FrequencyCounter = this.channel1FrequencyTracker;
 		this.channel1DutyTracker = (this.channel1DutyTracker + 1) & 0x7;
 		this.channel1OutputLevelTrimaryCache();
 	}
 	//Channel 2 counter:
-	if (--this.channel2lastSampleLookup == 0) {
-		this.channel2lastSampleLookup = this.channel2FrequencyTracker;
+	if (--this.channel2FrequencyCounter == 0) {
+		this.channel2FrequencyCounter = this.channel2FrequencyTracker;
 		this.channel2DutyTracker = (this.channel2DutyTracker + 1) & 0x7;
 		this.channel2OutputLevelTrimaryCache();
 	}
