@@ -5441,12 +5441,20 @@ GameBoyCore.prototype.clockAudioSweep = function () {
 			--this.channel1numSweep;
 			if (this.channel1decreaseSweep) {
 				this.channel1ShadowFrequency -= this.channel1ShadowFrequency >> this.channel1frequencySweepDivider;
+				this.channel1frequency = this.channel1ShadowFrequency;
 				this.channel1FrequencyTracker = (0x800 - this.channel1ShadowFrequency) << 2;
 			}
 			else {
 				this.channel1ShadowFrequency += this.channel1ShadowFrequency >> this.channel1frequencySweepDivider;
+				this.channel1frequency = this.channel1ShadowFrequency;
 				if (this.channel1ShadowFrequency <= 0x7FF) {
 					this.channel1FrequencyTracker = (0x800 - this.channel1ShadowFrequency) << 2;
+					//Run overflow check twice:
+					if ((this.channel1ShadowFrequency + (this.channel1ShadowFrequency >> this.channel1frequencySweepDivider)) > 0x7FF) {
+						this.channel1Fault |= 0x2;
+						this.channel1EnableCheck();
+						this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
+					}
 				}
 				else {
 					this.channel1Fault |= 0x2;
