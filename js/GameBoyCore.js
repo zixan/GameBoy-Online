@@ -5158,8 +5158,8 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioIndex = 0;
 	this.bufferContainAmount = Math.max(this.sampleSize * settings[7] / settings[13], 4096) << 1;
 	this.numSamplesTotal = (this.sampleSize - (this.sampleSize % settings[13])) << 1;
-	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, -1, "int16");
-	this.secondaryBuffer = this.getTypedArray(this.numSamplesTotal / settings[13], -1, "float32");
+	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, 0, "int16");
+	this.secondaryBuffer = this.getTypedArray(this.numSamplesTotal / settings[13], 0, "float32");
 }
 GameBoyCore.prototype.intializeWhiteNoise = function () {
 	//Noise Sample Tables:
