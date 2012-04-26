@@ -13,16 +13,9 @@ var settings = [						//Some settings.
 	30,									//Audio buffer maximum span amount over x interpreter iterations.
 	false,								//Override to allow for MBC1 instead of ROM only (compatibility for broken 3rd-party cartridges).
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
-<<<<<<< HEAD
 	false,								//Use the GameBoy boot ROM instead of the GameBoy Color boot ROM.
 	false,								//Scale the canvas in JS, or let the browser scale the canvas?
 	0x10,								//Internal audio buffer pre-interpolation factor.
-=======
-	true,								//Use the GBC BIOS?
-	false,								//Scale the canvas in JS, or let the browser scale the canvas?
-	false,								//Use the GameBoy boot ROM instead of the GameBoy Color boot ROM.
-	0x40000,							//Sample Rate
->>>>>>> master
 	1									//Volume level set.
 ];
 function start(canvas, ROM) {
