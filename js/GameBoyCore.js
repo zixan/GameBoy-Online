@@ -4218,6 +4218,42 @@ GameBoyCore.prototype.saveState = function () {
 		this.rightChannel2,
 		this.rightChannel3,
 		this.rightChannel4,
+		this.channel1currentSampleLeft,
+		this.channel1currentSampleRight,
+		this.channel2currentSampleLeft,
+		this.channel2currentSampleRight,
+		this.channel3currentSampleLeft,
+		this.channel3currentSampleRight,
+		this.channel4currentSampleLeft,
+		this.channel4currentSampleRight,
+		this.channel1currentSampleLeftSecondary,
+		this.channel1currentSampleRightSecondary,
+		this.channel2currentSampleLeftSecondary,
+		this.channel2currentSampleRightSecondary,
+		this.channel3currentSampleLeftSecondary,
+		this.channel3currentSampleRightSecondary,
+		this.channel4currentSampleLeftSecondary,
+		this.channel4currentSampleRightSecondary,
+		this.channel1currentSampleLeftTrimary,
+		this.channel1currentSampleRightTrimary,
+		this.channel2currentSampleLeftTrimary,
+		this.channel2currentSampleRightTrimary,
+		this.mixerOutputCacheLeft,
+		this.mixerOutputCacheRight,
+		this.channel1DutyTracker,
+		this.channel1CachedDuty,
+		this.channel2DutyTracker,
+		this.channel2CachedDuty,
+		this.channel1Enabled,
+		this.channel2Enabled,
+		this.channel3Enabled,
+		this.channel4Enabled,
+		this.sequencerClocks,
+		this.sequencePosition,
+		this.channel3Counter,
+		this.channel4Counter,
+		this.cachedChannel3Sample,
+		this.cachedChannel4Sample,
 		this.actualScanLine,
 		this.lastUnrenderedLine,
 		this.queuedScanLines,
@@ -4391,6 +4427,42 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.rightChannel2 = state[index++];
 	this.rightChannel3 = state[index++];
 	this.rightChannel4 = state[index++];
+	this.channel1currentSampleLeft = state[index++];
+	this.channel1currentSampleRight = state[index++];
+	this.channel2currentSampleLeft = state[index++];
+	this.channel2currentSampleRight = state[index++];
+	this.channel3currentSampleLeft = state[index++];
+	this.channel3currentSampleRight = state[index++];
+	this.channel4currentSampleLeft = state[index++];
+	this.channel4currentSampleRight = state[index++];
+	this.channel1currentSampleLeftSecondary = state[index++];
+	this.channel1currentSampleRightSecondary = state[index++];
+	this.channel2currentSampleLeftSecondary = state[index++];
+	this.channel2currentSampleRightSecondary = state[index++];
+	this.channel3currentSampleLeftSecondary = state[index++];
+	this.channel3currentSampleRightSecondary = state[index++];
+	this.channel4currentSampleLeftSecondary = state[index++];
+	this.channel4currentSampleRightSecondary = state[index++];
+	this.channel1currentSampleLeftTrimary = state[index++];
+	this.channel1currentSampleRightTrimary = state[index++];
+	this.channel2currentSampleLeftTrimary = state[index++];
+	this.channel2currentSampleRightTrimary = state[index++];
+	this.mixerOutputCacheLeft = state[index++];
+	this.mixerOutputCacheRight = state[index++];
+	this.channel1DutyTracker = state[index++];
+	this.channel1CachedDuty = state[index++];
+	this.channel2DutyTracker = state[index++];
+	this.channel2CachedDuty = state[index++];
+	this.channel1Enabled = state[index++];
+	this.channel2Enabled = state[index++];
+	this.channel3Enabled = state[index++];
+	this.channel4Enabled = state[index++];
+	this.sequencerClocks = state[index++];
+	this.sequencePosition = state[index++];
+	this.channel3Counter = state[index++];
+	this.channel4Counter = state[index++];
+	this.cachedChannel3Sample = state[index++];
+	this.cachedChannel4Sample = state[index++];
 	this.actualScanLine = state[index++];
 	this.lastUnrenderedLine = state[index++];
 	this.queuedScanLines = state[index++];
@@ -6408,6 +6480,7 @@ GameBoyCore.prototype.initializeReferencesFromSaveState = function () {
 			this.generateGBTileLine(tileIndex);
 		}
 		this.sortBuffer = this.getTypedArray(0x100, 0, "uint8");
+		this.OAMAddressCache = this.getTypedArray(10, 0, "int32");
 	}
 	else {
 		this.BGCHRCurrentBank = (this.currVRAMBank > 0) ? this.BGCHRBank2 : this.BGCHRBank1;
