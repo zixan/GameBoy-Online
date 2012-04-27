@@ -5535,6 +5535,7 @@ GameBoyCore.prototype.runAudioSweep = function () {
 				}
 			}
 			else {
+				this.channel1frequency &= 0x7FF;
 				this.channel1Fault |= 0x2;
 				this.channel1EnableCheck();
 				this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
