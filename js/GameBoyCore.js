@@ -4254,6 +4254,8 @@ GameBoyCore.prototype.saveState = function () {
 		this.channel4Counter,
 		this.cachedChannel3Sample,
 		this.cachedChannel4Sample,
+		this.channel3FrequencyPeriod,
+		this.channel3lastSampleLookup,
 		this.actualScanLine,
 		this.lastUnrenderedLine,
 		this.queuedScanLines,
@@ -4463,6 +4465,8 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel4Counter = state[index++];
 	this.cachedChannel3Sample = state[index++];
 	this.cachedChannel4Sample = state[index++];
+	this.channel3FrequencyPeriod = state[index++];
+	this.channel3lastSampleLookup = state[index++];
 	this.actualScanLine = state[index++];
 	this.lastUnrenderedLine = state[index++];
 	this.queuedScanLines = state[index++];
