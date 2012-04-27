@@ -4635,7 +4635,7 @@ GameBoyCore.prototype.initSkipBootstrap = function () {
 	this.channel1envelopeSweepsLast = 0;
 	this.channel1consecutive = true;
 	this.channel1frequency = 1985;
-	this.channel1Fault = 0;
+	this.channel1Fault = true;
 	this.channel1ShadowFrequency = 1985;
 	this.channel1timeSweep = 1;
 	this.channel1lastTimeSweep = 0;
@@ -5318,7 +5318,7 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel1envelopeSweepsLast = 0;
 	this.channel1consecutive = true;
 	this.channel1frequency = 0;
-	this.channel1Fault = 0x2;
+	this.channel1Fault = false;
 	this.channel1ShadowFrequency = 0;
 	this.channel1timeSweep = 1;
 	this.channel1lastTimeSweep = 0;
@@ -5520,30 +5520,37 @@ GameBoyCore.prototype.clockAudioSweep = function () {
 GameBoyCore.prototype.runAudioSweep = function () {
 	//Channel 1:
 	if (this.channel1numSweep > 0) {
-		--this.channel1numSweep;
-		if (this.channel1decreaseSweep) {
-			this.channel1ShadowFrequency -= this.channel1ShadowFrequency >> this.channel1frequencySweepDivider;
-			this.channel1frequency = this.channel1ShadowFrequency & 0x7FF;
-			this.channel1FrequencyTracker = (0x800 - this.channel1frequency) << 2;
-		}
-		else {
-			this.channel1ShadowFrequency += this.channel1ShadowFrequency >> this.channel1frequencySweepDivider;
-			this.channel1frequency = this.channel1ShadowFrequency;
-			if (this.channel1ShadowFrequency <= 0x7FF) {
+		if (this.channel1frequencySweepDivider > 0) {
+			--this.channel1numSweep;
+			if (this.channel1decreaseSweep) {
+				this.channel1ShadowFrequency -= this.channel1ShadowFrequency >> this.channel1frequencySweepDivider;
+				this.channel1frequency = this.channel1ShadowFrequency & 0x7FF;
 				this.channel1FrequencyTracker = (0x800 - this.channel1frequency) << 2;
-				//Run overflow check twice:
-				if ((this.channel1ShadowFrequency + (this.channel1ShadowFrequency >> this.channel1frequencySweepDivider)) > 0x7FF) {
-					this.channel1Fault |= 0x2;
+			}
+			else {
+				this.channel1ShadowFrequency += this.channel1ShadowFrequency >> this.channel1frequencySweepDivider;
+				this.channel1frequency = this.channel1ShadowFrequency;
+				if (this.channel1ShadowFrequency <= 0x7FF) {
+					this.channel1FrequencyTracker = (0x800 - this.channel1frequency) << 2;
+					//Run overflow check twice:
+					if ((this.channel1ShadowFrequency + (this.channel1ShadowFrequency >> this.channel1frequencySweepDivider)) > 0x7FF) {
+						this.channel1Fault = true;
+						this.channel1EnableCheck();
+						this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
+					}
+				}
+				else {
+					this.channel1frequency &= 0x7FF;
+					this.channel1Fault = true;
 					this.channel1EnableCheck();
 					this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
 				}
 			}
-			else {
-				this.channel1frequency &= 0x7FF;
-				this.channel1Fault |= 0x2;
-				this.channel1EnableCheck();
-				this.memory[0xFF26] &= 0xFE;	//Channel #1 On Flag Off
-			}
+		}
+		else {
+			//Channel has sweep disabled and timer becomes a length counter:
+			this.channel1Fault = true;
+			this.channel1EnableCheck();
 		}
 	}
 }
@@ -5656,7 +5663,7 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 	}
 }
 GameBoyCore.prototype.channel1EnableCheck = function () {
-	this.channel1Enabled = ((this.channel1consecutive || this.channel1totalLength > 0) && this.channel1Fault == 0 && this.channel1canPlay);
+	this.channel1Enabled = ((this.channel1consecutive || this.channel1totalLength > 0) && !this.channel1Fault && this.channel1canPlay);
 	this.channel1OutputLevelSecondaryCache();
 }
 GameBoyCore.prototype.channel1VolumeEnableCheck = function () {
@@ -8518,19 +8525,12 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.audioJIT();
 			if (parentObj.channel1decreaseSweep && (data & 0x08) == 0) {
 				if (parentObj.channel1numSweep != parentObj.channel1frequencySweepDivider) {
-					parentObj.channel1Fault |= 0x2;
+					parentObj.channel1Fault = true;
 				}
 			}
-			parentObj.channel1lastTimeSweep = parentObj.channel1timeSweep = (data & 0x70) >> 4;
+			parentObj.channel1lastTimeSweep = parentObj.channel1timeSweep = ((data & 0x70) >> 4) + 1;
 			parentObj.channel1frequencySweepDivider = parentObj.channel1numSweep = data & 0x07;
 			parentObj.channel1decreaseSweep = ((data & 0x08) == 0x08);
-			//GB manual says that the audio won't play if this condition happens:
-			if (parentObj.channel1numSweep == 0 && parentObj.channel1lastTimeSweep > 0 && parentObj.channel1decreaseSweep) {
-				parentObj.channel1Fault |= 0x1;
-			}
-			else {
-				parentObj.channel1Fault &= 0x1;
-			}
 			parentObj.memory[0xFF10] = data;
 			parentObj.channel1EnableCheck();
 		}
@@ -8588,6 +8588,7 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 			parentObj.audioJIT();
 			parentObj.channel1consecutive = ((data & 0x40) == 0x0);
 			parentObj.channel1frequency = ((data & 0x7) << 8) | (parentObj.channel1frequency & 0xFF);
+			parentObj.channel1FrequencyTracker = (0x800 - parentObj.channel1frequency) << 2;
 			if (data > 0x7F) {
 				//Reload 0xFF10:
 				parentObj.channel1timeSweep = parentObj.channel1lastTimeSweep;
@@ -8611,19 +8612,10 @@ GameBoyCore.prototype.registerWriteJumpCompile = function () {
 				}
 				parentObj.channel1ShadowFrequency = parentObj.channel1frequency;
 				//Reset frequency overflow check + frequency sweep type check:
-				parentObj.channel1Fault &= 0x2;
+				parentObj.channel1Fault = false;
+				//Supposed to run immediately:
+				parentObj.runAudioSweep();
 			}
-			if (parentObj.channel1numSweep == 0 && parentObj.channel1lastTimeSweep > 0 && parentObj.channel1decreaseSweep) {
-				parentObj.channel1Fault |= 0x1;
-			}
-			else {
-				parentObj.channel1Fault &= 0x1;
-				if (data > 0x7F) {
-					//Supposed to run immediately:
-					parentObj.runAudioSweep();
-				}
-			}
-			parentObj.channel1FrequencyTracker = (0x800 - parentObj.channel1frequency) << 2;
 			parentObj.channel1EnableCheck();
 			parentObj.memory[0xFF14] = data & 0x40;
 		}
