@@ -5519,7 +5519,7 @@ GameBoyCore.prototype.runAudioSweep = function () {
 		--this.channel1numSweep;
 		if (this.channel1decreaseSweep) {
 			this.channel1ShadowFrequency -= this.channel1ShadowFrequency >> this.channel1frequencySweepDivider;
-			this.channel1frequency = this.channel1ShadowFrequency;
+			this.channel1frequency = this.channel1ShadowFrequency & 0x7FF;
 			this.channel1FrequencyTracker = (0x800 - this.channel1frequency) << 2;
 		}
 		else {
