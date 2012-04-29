@@ -23,13 +23,13 @@ Browsers that suck at performance or fail to run the code correctly:
 * Firefox 1-3.6 (Slow)
 * ALL VERSIONS OF MOBILE SAFARI AND OPERA (Stop pestering me, iOS just **CAN'T** run this well.)
 
-CPU instruction set accuracy test results:
+CPU instruction set accuracy test results (Blargg's cpu_instrs.gb test ROM):
 -----------------------------------------------------
 
-* [Passes](http://i.imgur.com/ivs7F.png "GameBoy Online (This emulator)")
-* [Fails](http://i.imgur.com/NYnYu.png "Visual Boy Advance 1.7")
-* [Fails](http://i.imgur.com/eYHDH.png "KiGB")
-* [Passes](http://i.imgur.com/vGHFz.png "Gambatte")
+* [GameBoy Online (This emulator)](http://i.imgur.com/ivs7F.png "Passes")
+* [Visual Boy Advance 1.7](http://i.imgur.com/NYnYu.png "Fails")
+* [KiGB](http://i.imgur.com/eYHDH.png "Fails")
+* [Gambatte](http://i.imgur.com/vGHFz.png "Passes")
 
 *This program is free software; you can redistribute it and/or
 modify it under the terms of the GNU General Public License
