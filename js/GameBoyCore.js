@@ -566,6 +566,14 @@ GameBoyCore.prototype.OPCODE = [
 				}
 				parentObj.memory[0xFF4D] &= 0xFE;					//Reset the request bit.
 			}
+			else {
+				parentObj.CPUStopped = true;						//Stop CPU until joypad input changes.
+				parentObj.stopEmulator |= 0x4;
+			}
+		}
+		else {
+			parentObj.CPUStopped = true;							//Stop CPU until joypad input changes.
+			parentObj.stopEmulator |= 0x4;
 		}
 	},
 	//LD DE, nn
@@ -5189,6 +5197,7 @@ GameBoyCore.prototype.JoyPadEvent = function (key, down) {
 		this.JoyPad |= (1 << key);
 	}
 	this.memory[0xFF00] = (this.memory[0xFF00] & 0x30) + ((((this.memory[0xFF00] & 0x20) == 0) ? (this.JoyPad >> 4) : 0xF) & (((this.memory[0xFF00] & 0x10) == 0) ? (this.JoyPad & 0xF) : 0xF));
+	this.CPUStopped = false;
 }
 GameBoyCore.prototype.GyroEvent = function (x, y) {
 	x *= -100;
@@ -5397,7 +5406,7 @@ GameBoyCore.prototype.outputAudio = function () {
 }
 //Below are the audio generation functions timed against the CPU:
 GameBoyCore.prototype.generateAudio = function (numSamples) {
-	if (this.soundMasterEnabled) {
+	if (this.soundMasterEnabled && !this.CPUStopped) {
 		for (var samplesToGenerate = 0; numSamples > 0;) {
 			samplesToGenerate = (numSamples < this.sequencerClocks) ? numSamples : this.sequencerClocks;
 			this.sequencerClocks -= samplesToGenerate;
@@ -5431,7 +5440,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 }
 //Generate audio, but don't actually output it (Used for when sound is disabled by user/browser):
 GameBoyCore.prototype.generateAudioFake = function (numSamples) {
-	if (this.soundMasterEnabled) {
+	if (this.soundMasterEnabled && !this.CPUStopped) {
 		while (--numSamples > -1) {
 			this.computeAudioChannels();
 			if (--this.sequencerClocks == 0) {
@@ -5809,25 +5818,33 @@ GameBoyCore.prototype.run = function () {
 	//The preprocessing before the actual iteration loop:
 	if ((this.stopEmulator & 2) == 0) {
 		if ((this.stopEmulator & 1) == 1) {
-			this.stopEmulator = 0;
-			this.drewFrame = false;
-			this.audioUnderrunAdjustment();
-			this.clockUpdate();			//Frame skip and RTC code.
-			if (!this.halt) {
-				this.executeIteration();
-			}
-			else {						//Finish the HALT rundown execution.
-				this.CPUTicks = 0;
-				this.calculateHALTPeriod();
-				if (this.halt) {
-					this.updateCoreFull();
-				}
-				else {
+			if (!this.CPUStopped) {
+				this.stopEmulator = 0;
+				this.drewFrame = false;
+				this.audioUnderrunAdjustment();
+				this.clockUpdate();			//RTC clocking.
+				if (!this.halt) {
 					this.executeIteration();
 				}
+				else {						//Finish the HALT rundown execution.
+					this.CPUTicks = 0;
+					this.calculateHALTPeriod();
+					if (this.halt) {
+						this.updateCoreFull();
+					}
+					else {
+						this.executeIteration();
+					}
+				}
+				//Request the graphics target to be updated:
+				this.requestDraw();
 			}
-			//Request the graphics target to be updated:
-			this.requestDraw();
+			else {
+				this.audioUnderrunAdjustment();
+				this.audioTicks += this.CPUCyclesTotal;
+				this.audioJIT();
+				this.stopEmulator |= 1;			//End current loop.
+			}
 		}
 		else {		//We can only get here if there was an internal error, but the loop was restarted.
 			cout("Iterator restarted a faulted core.", 2);
