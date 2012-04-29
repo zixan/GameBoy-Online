@@ -38,6 +38,6 @@ CPU instruction set accuracy test results (Blargg's cpu_instrs.gb test ROM):
 -----------------------------------------------------
 
 * [GameBoy Online (This emulator)](http://i.imgur.com/ivs7F.png "Passes")
-* [Visual Boy Advance 1.7](http://i.imgur.com/NYnYu.png "Fails")
+* [Visual Boy Advance 1.7.2](http://i.imgur.com/NYnYu.png "Fails")
 * [KiGB](http://i.imgur.com/eYHDH.png "Fails")
 * [Gambatte](http://i.imgur.com/vGHFz.png "Passes")
