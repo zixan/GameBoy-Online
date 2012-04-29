@@ -53,6 +53,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.CPUTicks = 0;							//The number of clock cycles emulated.
 	this.doubleSpeedShifter = 0;				//GBC double speed clocking shifter.
 	this.JoyPad = 0xFF;							//Joypad State (two four-bit states actually)
+	this.CPUStopped = false;					//CPU STOP status.
 	//Main RAM, MBC RAM, GBC Main RAM, VRAM, etc.
 	this.memoryReader = [];						//Array of functions mapped to read back memory
 	this.memoryWriter = [];						//Array of functions mapped to write to memory
@@ -4304,7 +4305,8 @@ GameBoyCore.prototype.saveState = function () {
 		this.remainingClocks,
 		this.colorizedGBPalettes,
 		this.backgroundY,
-		this.backgroundX
+		this.backgroundX,
+		this.CPUStopped
 	];
 }
 GameBoyCore.prototype.returnFromState = function (returnedFrom) {
@@ -4516,7 +4518,8 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.remainingClocks = state[index++];
 	this.colorizedGBPalettes = state[index++];
 	this.backgroundY = state[index++];
-	this.backgroundX = state[index];
+	this.backgroundX = state[index++];
+	this.CPUStopped = state[index];
 	this.fromSaveState = true;
 	this.TICKTable = this.toTypedArray(this.TICKTable, "uint8");
 	this.SecondaryTICKTable = this.toTypedArray(this.SecondaryTICKTable, "uint8");
