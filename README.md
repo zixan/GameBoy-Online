@@ -46,6 +46,6 @@ CPU instruction set accuracy test results (Blargg's cpu_instrs.gb test ROM):
 * **KiGB:**
 
 	![KiGB](http://i.imgur.com/eYHDH.png "Fails")
-* **Gamebatte:**
+* **Gambatte:**
 
 	![Gambatte](http://i.imgur.com/vGHFz.png "Passes")
