@@ -5,6 +5,17 @@ JavaScript GameBoy Color Emulator
 
 A GameBoy Color emulator that utilizes HTML5 canvas and JavaScript audio APIs to provide a full emulation of the console.
 
+**License:**
+
+*This program is free software; you can redistribute it and/or
+modify it under the terms of the GNU General Public License
+version 2 as published by the Free Software Foundation.
+The full license is available at http://www.gnu.org/licenses/gpl.html
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+GNU General Public License for more details.*
+
 Known browsers to work well in:
 -------------------------------
 
@@ -30,12 +41,3 @@ CPU instruction set accuracy test results (Blargg's cpu_instrs.gb test ROM):
 * [Visual Boy Advance 1.7](http://i.imgur.com/NYnYu.png "Fails")
 * [KiGB](http://i.imgur.com/eYHDH.png "Fails")
 * [Gambatte](http://i.imgur.com/vGHFz.png "Passes")
-
-*This program is free software; you can redistribute it and/or
-modify it under the terms of the GNU General Public License
-version 2 as published by the Free Software Foundation.
-The full license is available at http://www.gnu.org/licenses/gpl.html
-This program is distributed in the hope that it will be useful,
-but WITHOUT ANY WARRANTY; without even the implied warranty of
-MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-GNU General Public License for more details.*
