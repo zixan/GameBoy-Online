@@ -163,8 +163,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.channel1currentSampleRightTrimary = 0;
 	this.channel2currentSampleLeftTrimary = 0;
 	this.channel2currentSampleRightTrimary = 0;
-	this.mixerOutputCacheLeft = 0;
-	this.mixerOutputCacheRight = 0;
+	this.mixerOutputCache = 0;
 	//Pre-multipliers to cache some calculations:
 	this.initializeTiming();
 	this.machineOut = 0;				//Premultiplier for audio samples per instruction.
@@ -4247,8 +4246,7 @@ GameBoyCore.prototype.saveState = function () {
 		this.channel1currentSampleRightTrimary,
 		this.channel2currentSampleLeftTrimary,
 		this.channel2currentSampleRightTrimary,
-		this.mixerOutputCacheLeft,
-		this.mixerOutputCacheRight,
+		this.mixerOutputCache,
 		this.channel1DutyTracker,
 		this.channel1CachedDuty,
 		this.channel2DutyTracker,
@@ -4459,8 +4457,7 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.channel1currentSampleRightTrimary = state[index++];
 	this.channel2currentSampleLeftTrimary = state[index++];
 	this.channel2currentSampleRightTrimary = state[index++];
-	this.mixerOutputCacheLeft = state[index++];
-	this.mixerOutputCacheRight = state[index++];
+	this.mixerOutputCache = state[index++];
 	this.channel1DutyTracker = state[index++];
 	this.channel1CachedDuty = state[index++];
 	this.channel2DutyTracker = state[index++];
@@ -5246,7 +5243,7 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioIndex = 0;
 	this.bufferContainAmount = Math.max(this.sampleSize * settings[7] / settings[13], 4096) << 1;
 	this.numSamplesTotal = (this.sampleSize - (this.sampleSize % settings[13])) << 1;
-	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, 0, "int16");
+	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, 0xF0F0, "int32");
 	this.secondaryBuffer = this.getTypedArray(this.numSamplesTotal / settings[13], 0, "float32");
 }
 GameBoyCore.prototype.intializeWhiteNoise = function () {
@@ -5372,6 +5369,7 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel4lastSampleLookup = 0;
 	this.VinLeftChannelMasterVolume = 8;
 	this.VinRightChannelMasterVolume = 8;
+	this.mixerOutputCache = 0;
 	this.sequencerClocks = 0x2000;
 	this.sequencePosition = 0;
 	this.channel4FrequencyPeriod = 8;
@@ -5391,19 +5389,21 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel4OutputLevelCache();
 }
 GameBoyCore.prototype.outputAudio = function () {
-	var index2 = 0;
+	var sampleFactor = 0;
+	var dirtySample = 0;
 	var averageL = 0;
 	var averageR = 0;
-	var index3 = 0;
+	var destinationPosition = 0;
 	var divisor1 = settings[13];
 	var divisor2 = divisor1 * 0xF0;
-	for (var index = 0; index < this.numSamplesTotal;) {
-		for (index2 = averageL = averageR = 0; index2 < divisor1; ++index2) {
-			averageL += this.currentBuffer[index++];
-			averageR += this.currentBuffer[index++];
+	for (var sourcePosition = 0; sourcePosition < this.numSamplesTotal;) {
+		for (sampleFactor = averageL = averageR = 0; sampleFactor < divisor1; ++sampleFactor) {
+			dirtySample = this.currentBuffer[sourcePosition++];
+			averageL += dirtySample >> 9;
+			averageR += dirtySample & 0x1FF;
 		}
-		this.secondaryBuffer[index3++] = averageL / divisor2 - 1;
-		this.secondaryBuffer[index3++] = averageR / divisor2 - 1;
+		this.secondaryBuffer[destinationPosition++] = averageL / divisor2 - 1;
+		this.secondaryBuffer[destinationPosition++] = averageR / divisor2 - 1;
 	}
 	this.audioHandle.writeAudioNoCallback(this.secondaryBuffer);
 }
@@ -5416,8 +5416,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			numSamples -= samplesToGenerate;
 			while (--samplesToGenerate > -1) {
 				this.computeAudioChannels();
-				this.currentBuffer[this.audioIndex++] = this.mixerOutputCacheLeft;
-				this.currentBuffer[this.audioIndex++] = this.mixerOutputCacheRight;
+				this.currentBuffer[this.audioIndex++] = this.mixerOutputCache;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
 					this.outputAudio();
@@ -5432,8 +5431,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 	else {
 		//SILENT OUTPUT:
 		while (--numSamples > -1) {
-			this.currentBuffer[this.audioIndex++] = 0;
-			this.currentBuffer[this.audioIndex++] = 0;
+			this.currentBuffer[this.audioIndex++] = 0xF0F0;
 			if (this.audioIndex == this.numSamplesTotal) {
 				this.audioIndex = 0;
 				this.outputAudio();
@@ -5796,8 +5794,8 @@ GameBoyCore.prototype.channel4OutputLevelSecondaryCache = function () {
 	this.mixerOutputLevelCache();
 }
 GameBoyCore.prototype.mixerOutputLevelCache = function () {
-	this.mixerOutputCacheLeft = (this.channel1currentSampleLeftTrimary + this.channel2currentSampleLeftTrimary + this.channel3currentSampleLeftSecondary + this.channel4currentSampleLeftSecondary) * this.VinLeftChannelMasterVolume;
-	this.mixerOutputCacheRight = (this.channel1currentSampleRightTrimary + this.channel2currentSampleRightTrimary + this.channel3currentSampleRightSecondary + this.channel4currentSampleRightSecondary) * this.VinRightChannelMasterVolume;
+	this.mixerOutputCache = ((((this.channel1currentSampleLeftTrimary + this.channel2currentSampleLeftTrimary + this.channel3currentSampleLeftSecondary + this.channel4currentSampleLeftSecondary) * this.VinLeftChannelMasterVolume) << 9) +
+	((this.channel1currentSampleRightTrimary + this.channel2currentSampleRightTrimary + this.channel3currentSampleRightSecondary + this.channel4currentSampleRightSecondary) * this.VinRightChannelMasterVolume));
 }
 GameBoyCore.prototype.channel3UpdateCache = function () {
 	this.cachedChannel3Sample = this.channel3PCM[this.channel3lastSampleLookup] >> this.channel3patternType;
@@ -9421,9 +9419,6 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 				break;
 			case "uint8":
 				var arrayHandle = new Uint8Array(length);
-				break;
-			case "int16":
-				var arrayHandle = new Int16Array(length);
 				break;
 			case "int32":
 				var arrayHandle = new Int32Array(length);
