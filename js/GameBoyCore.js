@@ -5941,6 +5941,7 @@ GameBoyCore.prototype.handleSTOP = function () {
 	this.iterationEndRoutine();
 	if (this.emulatorTicks < 0) {
 		this.audioTicks -= this.emulatorTicks;
+		this.audioJIT();
 	}
 }
 GameBoyCore.prototype.recalculateIterationClockLimit = function () {
