@@ -5242,9 +5242,9 @@ GameBoyCore.prototype.changeVolume = function () {
 GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioIndex = 0;
 	this.bufferContainAmount = Math.max(this.sampleSize * settings[7] / settings[13], 4096) << 1;
-	this.numSamplesTotal = (this.sampleSize - (this.sampleSize % settings[13])) << 1;
+	this.numSamplesTotal = (this.sampleSize - (this.sampleSize % settings[13])) | 0;
 	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, 0xF0F0, "int32");
-	this.secondaryBuffer = this.getTypedArray(this.numSamplesTotal / settings[13], 0, "float32");
+	this.secondaryBuffer = this.getTypedArray((this.numSamplesTotal << 1) / settings[13], 0, "float32");
 }
 GameBoyCore.prototype.intializeWhiteNoise = function () {
 	//Noise Sample Tables:
