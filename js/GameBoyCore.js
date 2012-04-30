@@ -567,13 +567,11 @@ GameBoyCore.prototype.OPCODE = [
 				parentObj.memory[0xFF4D] &= 0xFE;					//Reset the request bit.
 			}
 			else {
-				parentObj.CPUStopped = true;						//Stop CPU until joypad input changes.
-				parentObj.stopEmulator |= 0x4;
+				parentObj.handleSTOP();
 			}
 		}
 		else {
-			parentObj.CPUStopped = true;							//Stop CPU until joypad input changes.
-			parentObj.stopEmulator |= 0x4;
+			parentObj.handleSTOP();
 		}
 	},
 	//LD DE, nn
@@ -5936,6 +5934,13 @@ GameBoyCore.prototype.iterationEndRoutine = function () {
 		this.emulatorTicks -= this.CPUCyclesTotal;
 		this.CPUCyclesTotalCurrent += this.CPUCyclesTotalRoundoff;
 		this.recalculateIterationClockLimit();
+	}
+}
+GameBoyCore.prototype.handleSTOP = function () {
+	this.CPUStopped = true;						//Stop CPU until joypad input changes.
+	this.iterationEndRoutine();
+	if (this.emulatorTicks < 0) {
+		this.audioTicks -= this.emulatorTicks;
 	}
 }
 GameBoyCore.prototype.recalculateIterationClockLimit = function () {
