@@ -5209,11 +5209,10 @@ GameBoyCore.prototype.GyroEvent = function (x, y) {
 }
 GameBoyCore.prototype.initSound = function () {
 	this.sampleSize = 0x400000 / 1000 * settings[6];
-	this.machineOut = settings[13];
+	this.machineOut = this.audioResamplerFirstPassFactor = Math.floor(0x400000 / 44100);
 	if (settings[0]) {
 		try {
-			var parentObj = this;
-			this.audioHandle = new XAudioServer(2, 0x400000 / settings[13], 0, Math.max(this.sampleSize * settings[8] / settings[13], 8192) << 1, null, settings[14]);
+			this.audioHandle = new XAudioServer(2, 0x400000 / this.audioResamplerFirstPassFactor, 0, Math.max(this.sampleSize * settings[8] / this.audioResamplerFirstPassFactor, 8192) << 1, null, settings[13]);
 			this.initAudioBuffer();
 		}
 		catch (error) {
@@ -5232,17 +5231,17 @@ GameBoyCore.prototype.initSound = function () {
 GameBoyCore.prototype.changeVolume = function () {
 	if (settings[0] && this.audioHandle) {
 		try {
-			this.audioHandle.changeVolume(settings[14]);
+			this.audioHandle.changeVolume(settings[13]);
 		}
 		catch (error) { }
 	}
 }
 GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioIndex = 0;
-	this.bufferContainAmount = Math.max(this.sampleSize * settings[7] / settings[13], 4096) << 1;
-	this.numSamplesTotal = (this.sampleSize - (this.sampleSize % settings[13])) | 0;
+	this.bufferContainAmount = Math.max(this.sampleSize * settings[7] / this.audioResamplerFirstPassFactor, 4096) << 1;
+	this.numSamplesTotal = (this.sampleSize - (this.sampleSize % this.audioResamplerFirstPassFactor)) | 0;
 	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, 0xF0F0, "int32");
-	this.secondaryBuffer = this.getTypedArray((this.numSamplesTotal << 1) / settings[13], 0, "float32");
+	this.secondaryBuffer = this.getTypedArray((this.numSamplesTotal << 1) / this.audioResamplerFirstPassFactor, 0, "float32");
 }
 GameBoyCore.prototype.intializeWhiteNoise = function () {
 	//Noise Sample Tables:
@@ -5392,16 +5391,15 @@ GameBoyCore.prototype.outputAudio = function () {
 	var averageL = 0;
 	var averageR = 0;
 	var destinationPosition = 0;
-	var divisor1 = settings[13];
-	var divisor2 = divisor1 * 0xF0;
+	var divisor = this.audioResamplerFirstPassFactor * 0xF0;
 	for (var sourcePosition = 0; sourcePosition < this.numSamplesTotal;) {
-		for (sampleFactor = averageL = averageR = 0; sampleFactor < divisor1; ++sampleFactor) {
+		for (sampleFactor = averageL = averageR = 0; sampleFactor < this.audioResamplerFirstPassFactor; ++sampleFactor) {
 			dirtySample = this.currentBuffer[sourcePosition++];
 			averageL += dirtySample >> 9;
 			averageR += dirtySample & 0x1FF;
 		}
-		this.secondaryBuffer[destinationPosition++] = averageL / divisor2 - 1;
-		this.secondaryBuffer[destinationPosition++] = averageR / divisor2 - 1;
+		this.secondaryBuffer[destinationPosition++] = averageL / divisor - 1;
+		this.secondaryBuffer[destinationPosition++] = averageR / divisor - 1;
 	}
 	this.audioHandle.writeAudioNoCallback(this.secondaryBuffer);
 }

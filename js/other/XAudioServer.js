@@ -11,9 +11,9 @@
 function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underRunCallback, volume) {
 	this.audioChannels = (channels == 2) ? 2 : 1;
 	webAudioMono = (this.audioChannels == 1);
-	XAudioJSSampleRate = (sampleRate > 0 && sampleRate <= 0xFFFFFF) ? sampleRate : 44100;
-	webAudioMinBufferSize = (minBufferSize >= (samplesPerCallback << 1) && minBufferSize < maxBufferSize) ? (minBufferSize & ((webAudioMono) ? 0xFFFFFFFF : 0xFFFFFFFE)) : (samplesPerCallback << 1);
-	webAudioMaxBufferSize = (Math.floor(maxBufferSize) > webAudioMinBufferSize + this.audioChannels) ? (maxBufferSize & ((webAudioMono) ? 0xFFFFFFFF : 0xFFFFFFFE)) : (minBufferSize << 1);
+	XAudioJSSampleRate = Math.abs(sampleRate);
+	webAudioMinBufferSize = (minBufferSize >= (samplesPerCallback << (this.audioChannels - 1)) && minBufferSize < maxBufferSize) ? (minBufferSize & (-this.audioChannels)) : (samplesPerCallback << (this.audioChannels - 1));
+	webAudioMaxBufferSize = (Math.floor(maxBufferSize) > webAudioMinBufferSize + this.audioChannels) ? (maxBufferSize & (-this.audioChannels)) : (minBufferSize << (this.audioChannels - 1));
 	this.underRunCallback = (typeof underRunCallback == "function") ? underRunCallback : function () {};
 	XAudioJSVolume = (volume >= 0 && volume <= 1) ? volume : 1;
 	this.audioType = -1;
@@ -424,23 +424,20 @@ function getBufferSamples() {
 //Initialize WebKit Audio /Flash Audio Buffer:
 function resetCallbackAPIAudioBuffer(APISampleRate, bufferAlloc) {
 	audioContextSampleBuffer = getFloat32(webAudioMaxBufferSize);
-	audioBufferSize = webAudioMaxBufferSize;
-	resampleBufferStart = 0;
-	resampleBufferEnd = 0;
-	resampleBufferSize = Math.max(webAudioMaxBufferSize * Math.ceil(XAudioJSSampleRate / APISampleRate), samplesPerCallback) << 1;
+	audioBufferSize = resampleBufferEnd = resampleBufferStart = 0;
 	if (webAudioMono) {
 		//MONO Handling:
-		resampled = getFloat32Flat(resampleBufferSize);
+		resampleBufferSize = Math.max(webAudioMaxBufferSize * Math.ceil(APISampleRate / XAudioJSSampleRate) + 1, samplesPerCallback);
 		resampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, 1, resampleBufferSize, true);
 		outputConvert = generateFlashMonoString;
 	}
 	else {
 		//STEREO Handling:
-		resampleBufferSize  <<= 1;
-		resampled = getFloat32Flat(resampleBufferSize);
+		resampleBufferSize = Math.max(webAudioMaxBufferSize * Math.ceil(APISampleRate / XAudioJSSampleRate) + 2, samplesPerCallback << 1);
 		resampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, 2, resampleBufferSize, true);
 		outputConvert = generateFlashStereoString;
 	}
+	resampled = getFloat32Flat(resampleBufferSize);
 }
 //Initialize WebKit Audio:
 (function () {

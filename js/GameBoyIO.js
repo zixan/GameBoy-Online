@@ -15,7 +15,6 @@ var settings = [						//Some settings.
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
 	false,								//Use the GameBoy boot ROM instead of the GameBoy Color boot ROM.
 	false,								//Scale the canvas in JS, or let the browser scale the canvas?
-	0x10,								//Internal audio buffer pre-interpolation factor.
 	1									//Volume level set.
 ];
 function start(canvas, ROM) {
