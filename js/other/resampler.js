@@ -30,7 +30,8 @@ Resampler.prototype.initialize = function () {
 	}
 }
 Resampler.prototype.compileInterpolationFunction = function () {
-	var toCompile = "var bufferLength = Math.min(buffer.length, this.outputBufferSize);\
+	var toCompile = "var bufferLength = buffer.length;\
+	var outLength = this.outputBufferSize;\
 	if ((bufferLength % " + this.channels + ") == 0) {\
 		if (bufferLength > 0) {\
 			var ratioWeight = this.ratioWeight;\
@@ -90,7 +91,7 @@ Resampler.prototype.compileInterpolationFunction = function () {
 	toCompile += "this.tailExists = true;\
 					break;\
 				}\
-			} while (actualPosition < bufferLength);\
+			} while (actualPosition < bufferLength && outputOffset < outLength);\
 			return this.bufferSlice(outputOffset);\
 		}\
 		else {\
