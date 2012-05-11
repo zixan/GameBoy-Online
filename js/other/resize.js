@@ -108,6 +108,8 @@ Resize.prototype.resizeWidthInterpolatedRGB = function (buffer) {
 	var weight = 0;
 	var finalOffset = 0;
 	var pixelOffset = 0;
+	var firstWeight = 0;
+	var secondWeight = 0;
 	var outputBuffer = this.widthBuffer;
 	for (var targetPosition = 0; targetPosition < this.targetWidthMultipliedByChannels; targetPosition += 3, weight += ratioWeight) {
 		//Calculate weightings:
@@ -181,6 +183,8 @@ Resize.prototype.resizeWidthInterpolatedRGBA = function (buffer) {
 	var weight = 0;
 	var finalOffset = 0;
 	var pixelOffset = 0;
+	var firstWeight = 0;
+	var secondWeight = 0;
 	var outputBuffer = this.widthBuffer;
 	for (var targetPosition = 0; targetPosition < this.targetWidthMultipliedByChannels; targetPosition += 4, weight += ratioWeight) {
 		//Calculate weightings:
