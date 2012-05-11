@@ -253,6 +253,8 @@ Resize.prototype.resizeHeightInterpolated = function (buffer) {
 	var pixelOffset = 0;
 	var pixelOffsetAccumulated = 0;
 	var pixelOffsetAccumulated2 = 0;
+	var firstWeight = 0;
+	var secondWeight = 0;
 	var outputBuffer = this.heightBuffer;
 	do {
 		//Calculate weightings:
@@ -323,6 +325,8 @@ Resize.prototype.resizeHeightInterpolatedRGBA = function (buffer) {
 	var weight = 0;
 	var finalOffset = 0;
 	var pixelOffset = 0;
+	var firstWeight = 0;
+	var secondWeight = 0;
 	var outputBuffer = this.heightBuffer;
 	while (pixelOffset < this.finalResultSize) {
 		//Calculate weightings:
