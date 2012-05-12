@@ -104,14 +104,23 @@ Resize.prototype.resizeWidthRGB = function (buffer) {
 	return outputBuffer;
 }
 Resize.prototype.resizeWidthInterpolatedRGB = function (buffer) {
-	var ratioWeight = (this.widthOriginal - 1) / this.targetWidth;
+	var ratioWeight = this.ratioWeightWidthPass;
 	var weight = 0;
 	var finalOffset = 0;
 	var pixelOffset = 0;
 	var firstWeight = 0;
 	var secondWeight = 0;
 	var outputBuffer = this.widthBuffer;
-	for (var targetPosition = 0; targetPosition < this.targetWidthMultipliedByChannels; targetPosition += 3, weight += ratioWeight) {
+	//Handle for only one interpolation input being valid for start calculation:
+	for (var targetPosition = 0; weight < 0.25; targetPosition += 3, weight += ratioWeight) {
+		for (finalOffset = targetPosition, pixelOffset = 0; finalOffset < this.widthPassResultSize; pixelOffset += this.originalWidthMultipliedByChannels, finalOffset += this.targetWidthMultipliedByChannels) {
+			outputBuffer[finalOffset] = buffer[pixelOffset];
+			outputBuffer[finalOffset + 1] = buffer[pixelOffset + 1];
+			outputBuffer[finalOffset + 2] = buffer[pixelOffset + 2];
+		}
+	}
+	weight -= 0.25;
+	for (var interpolationWidthSourceReadStop = this.widthOriginal - 1; weight < interpolationWidthSourceReadStop; targetPosition += 3, weight += ratioWeight) {
 		//Calculate weightings:
 		secondWeight = weight % 1;
 		firstWeight = 1 - secondWeight;
@@ -120,6 +129,14 @@ Resize.prototype.resizeWidthInterpolatedRGB = function (buffer) {
 			outputBuffer[finalOffset] = (buffer[pixelOffset] * firstWeight) + (buffer[pixelOffset + 3] * secondWeight);
 			outputBuffer[finalOffset + 1] = (buffer[pixelOffset + 1] * firstWeight) + (buffer[pixelOffset + 4] * secondWeight);
 			outputBuffer[finalOffset + 2] = (buffer[pixelOffset + 2] * firstWeight) + (buffer[pixelOffset + 5] * secondWeight);
+		}
+	}
+	//Handle for only one interpolation input being valid for end calculation:
+	for (interpolationWidthSourceReadStop = this.originalWidthMultipliedByChannels - 3; targetPosition < this.targetWidthMultipliedByChannels; targetPosition += 3) {
+		for (finalOffset = targetPosition, pixelOffset = interpolationWidthSourceReadStop; finalOffset < this.widthPassResultSize; pixelOffset += this.originalWidthMultipliedByChannels, finalOffset += this.targetWidthMultipliedByChannels) {
+			outputBuffer[finalOffset] = buffer[pixelOffset];
+			outputBuffer[finalOffset + 1] = buffer[pixelOffset + 1];
+			outputBuffer[finalOffset + 2] = buffer[pixelOffset + 2];
 		}
 	}
 	return outputBuffer;
@@ -179,14 +196,24 @@ Resize.prototype.resizeWidthRGBA = function (buffer) {
 	return outputBuffer;
 }
 Resize.prototype.resizeWidthInterpolatedRGBA = function (buffer) {
-	var ratioWeight = (this.widthOriginal - 1) / this.targetWidth;
+	var ratioWeight = this.ratioWeightWidthPass;
 	var weight = 0;
 	var finalOffset = 0;
 	var pixelOffset = 0;
 	var firstWeight = 0;
 	var secondWeight = 0;
 	var outputBuffer = this.widthBuffer;
-	for (var targetPosition = 0; targetPosition < this.targetWidthMultipliedByChannels; targetPosition += 4, weight += ratioWeight) {
+	//Handle for only one interpolation input being valid for start calculation:
+	for (var targetPosition = 0; weight < 0.25; targetPosition += 4, weight += ratioWeight) {
+		for (finalOffset = targetPosition, pixelOffset = 0; finalOffset < this.widthPassResultSize; pixelOffset += this.originalWidthMultipliedByChannels, finalOffset += this.targetWidthMultipliedByChannels) {
+			outputBuffer[finalOffset] = buffer[pixelOffset];
+			outputBuffer[finalOffset + 1] = buffer[pixelOffset + 1];
+			outputBuffer[finalOffset + 2] = buffer[pixelOffset + 2];
+			outputBuffer[finalOffset + 3] = buffer[pixelOffset + 3];
+		}
+	}
+	weight -= 0.25;
+	for (var interpolationWidthSourceReadStop = this.widthOriginal - 1; weight < interpolationWidthSourceReadStop; targetPosition += 4, weight += ratioWeight) {
 		//Calculate weightings:
 		secondWeight = weight % 1;
 		firstWeight = 1 - secondWeight;
@@ -196,6 +223,15 @@ Resize.prototype.resizeWidthInterpolatedRGBA = function (buffer) {
 			outputBuffer[finalOffset + 1] = (buffer[pixelOffset + 1] * firstWeight) + (buffer[pixelOffset + 5] * secondWeight);
 			outputBuffer[finalOffset + 2] = (buffer[pixelOffset + 2] * firstWeight) + (buffer[pixelOffset + 6] * secondWeight);
 			outputBuffer[finalOffset + 3] = (buffer[pixelOffset + 3] * firstWeight) + (buffer[pixelOffset + 7] * secondWeight);
+		}
+	}
+	//Handle for only one interpolation input being valid for end calculation:
+	for (interpolationWidthSourceReadStop = this.originalWidthMultipliedByChannels - 4; targetPosition < this.targetWidthMultipliedByChannels; targetPosition += 4) {
+		for (finalOffset = targetPosition, pixelOffset = interpolationWidthSourceReadStop; finalOffset < this.widthPassResultSize; pixelOffset += this.originalWidthMultipliedByChannels, finalOffset += this.targetWidthMultipliedByChannels) {
+			outputBuffer[finalOffset] = buffer[pixelOffset];
+			outputBuffer[finalOffset + 1] = buffer[pixelOffset + 1];
+			outputBuffer[finalOffset + 2] = buffer[pixelOffset + 2];
+			outputBuffer[finalOffset + 3] = buffer[pixelOffset + 3];
 		}
 	}
 	return outputBuffer;
@@ -247,7 +283,7 @@ Resize.prototype.resizeHeightRGB = function (buffer) {
 	return outputBuffer;
 }
 Resize.prototype.resizeHeightInterpolated = function (buffer) {
-	var ratioWeight = (this.heightOriginal - 1) / this.targetHeight;
+	var ratioWeight = this.ratioWeightHeightPass;
 	var weight = 0;
 	var finalOffset = 0;
 	var pixelOffset = 0;
@@ -256,7 +292,14 @@ Resize.prototype.resizeHeightInterpolated = function (buffer) {
 	var firstWeight = 0;
 	var secondWeight = 0;
 	var outputBuffer = this.heightBuffer;
-	do {
+	//Handle for only one interpolation input being valid for start calculation:
+	for (; weight < 0.25; weight += ratioWeight) {
+		for (pixelOffset = 0; pixelOffset < this.targetWidthMultipliedByChannels;) {
+			outputBuffer[finalOffset++] = buffer[pixelOffset++];
+		}
+	}
+	weight -= 0.25;
+	for (var interpolationHeightSourceReadStop = this.heightOriginal - 1; weight < interpolationHeightSourceReadStop; weight += ratioWeight) {
 		//Calculate weightings:
 		secondWeight = weight % 1;
 		firstWeight = 1 - secondWeight;
@@ -266,8 +309,13 @@ Resize.prototype.resizeHeightInterpolated = function (buffer) {
 		for (pixelOffset = 0; pixelOffset < this.targetWidthMultipliedByChannels; ++pixelOffset) {
 			outputBuffer[finalOffset++] = (buffer[pixelOffsetAccumulated + pixelOffset] * firstWeight) + (buffer[pixelOffsetAccumulated2 + pixelOffset] * secondWeight);
 		}
-		weight += ratioWeight;
-	} while (finalOffset < this.finalResultSize);
+	}
+	//Handle for only one interpolation input being valid for end calculation:
+	while (finalOffset < this.finalResultSize) {
+		for (pixelOffset = 0, pixelOffsetAccumulated = interpolationHeightSourceReadStop * this.targetWidthMultipliedByChannels; pixelOffset < this.targetWidthMultipliedByChannels; ++pixelOffset) {
+			outputBuffer[finalOffset++] = buffer[pixelOffsetAccumulated++];
+		}
+	}
 	return outputBuffer;
 }
 Resize.prototype.resizeHeightRGBA = function (buffer) {
