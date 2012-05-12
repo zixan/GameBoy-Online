@@ -368,29 +368,6 @@ Resize.prototype.resizeHeightRGBA = function (buffer) {
 	} while (outputOffset < this.finalResultSize);
 	return outputBuffer;
 }
-Resize.prototype.resizeHeightInterpolatedRGBA = function (buffer) {
-	var ratioWeight = (this.heightOriginal - 1) / this.targetHeight;
-	var weight = 0;
-	var finalOffset = 0;
-	var pixelOffset = 0;
-	var firstWeight = 0;
-	var secondWeight = 0;
-	var outputBuffer = this.heightBuffer;
-	while (pixelOffset < this.finalResultSize) {
-		//Calculate weightings:
-		secondWeight = weight % 1;
-		firstWeight = 1 - secondWeight;
-		//Interpolate:
-		for (pixelOffset = Math.floor(weight) * 4; pixelOffset < this.targetWidthMultipliedByChannels; pixelOffset += 4) {
-			outputBuffer[finalOffset++] = (buffer[pixelOffset] * firstWeight) + (buffer[pixelOffset + 4] * secondWeight);
-			outputBuffer[finalOffset++] = (buffer[pixelOffset + 1] * firstWeight) + (buffer[pixelOffset + 5] * secondWeight);
-			outputBuffer[finalOffset++] = (buffer[pixelOffset + 2] * firstWeight) + (buffer[pixelOffset + 6] * secondWeight);
-			outputBuffer[finalOffset++] = (buffer[pixelOffset + 3] * firstWeight) + (buffer[pixelOffset + 7] * secondWeight);
-		}
-		weight += ratioWeight;
-	}
-	return outputBuffer;
-}
 Resize.prototype.resize = function (buffer) {
 	return this.resizeHeight(this.resizeWidth(buffer));
 }
