@@ -131,7 +131,7 @@ catch (error) {
 		$this->text('This is a GameBoy Color emulator written purely in JavaScript by Grant Galitz.');
 		$this->endElement();
 		$this->startElement('p');
-		$this->text('The graphics out is done through HTML5 canvas, with the putImageData function.');
+		$this->text('The graphics blitting is done through HTML5 canvas, with the putImageData and drawImage functions.');
 		$this->endElement();
 		$this->startElement('p');
 		$this->text('Save states are implemented through the window.localStorage object, and are serialized/deserialized through JSON.');
@@ -489,10 +489,10 @@ catch (error) {
 		$this->endElement();
 		$this->startElement('ul');
 		$this->startElement('li');
-		$this->text('X is A.');
+		$this->text('X/J are A.');
 		$this->endElement();
 		$this->startElement('li');
-		$this->text('Z is B.');
+		$this->text('Z/Y/Q are B.');
 		$this->endElement();
 		$this->startElement('li');
 		$this->text('Shift is Select.');
