@@ -54,6 +54,19 @@ function windowingInitialize() {
 	document.getElementById("typed_arrays_disallow").checked = settings[5];
 	document.getElementById("gb_boot_rom_utilized").checked = settings[11];
 }
+function keyCodeOverride(event) {
+	switch (event.keyCode) {
+		case 74:
+		case 88:
+			settings[3][4] = event.keyCode;
+			break;
+		case 81:
+		case 89:
+		case 90:
+			settings[3][5] = event.keyCode;
+	}
+	return event;
+}
 function registerGUIEvents() {
 	cout("In registerGUIEvents() : Registering GUI Events.", -1);
 	addEvent("click", document.getElementById("terminal_clear_button"), clear_terminal);
@@ -79,10 +92,10 @@ function registerGUIEvents() {
 		}
 		else {
 			//Control keys / other
-			GameBoyKeyDown(event);
+			GameBoyKeyDown(keyCodeOverride(event));
 		}
 	});
-	addEvent("keyup", document, GameBoyKeyUp);
+	addEvent("keyup", document, function (event) { GameBoyKeyUp(keyCodeOverride(event)) });
 	addEvent("MozOrientation", window, GameBoyGyroSignalHandler);
 	addEvent("deviceorientation", window, GameBoyGyroSignalHandler);
 	new popupMenu(document.getElementById("GameBoy_file_menu"), document.getElementById("GameBoy_file_popup"));
