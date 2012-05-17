@@ -12,6 +12,7 @@ js/other/transportHandler.js
 js/other/swfobject.js
 js/other/json2.js
 js/other/resize.js
+js/other/resizeWorker.js
 js/GameBoyCore.js
 js/GameBoyIO.js
 images/gradient_01.svg.php

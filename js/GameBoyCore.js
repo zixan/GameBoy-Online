@@ -266,6 +266,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.onscreenWidth = this.offscreenWidth = 160;
 	this.onscreenHeight = this.offScreenheight = 144;
 	this.offscreenRGBCount = this.onscreenWidth * this.onscreenHeight * 4;
+	this.resizePathClear = true;
 	//Initialize the white noise cache tables ahead of time:
 	this.intializeWhiteNoise();
 }
@@ -6351,19 +6352,26 @@ GameBoyCore.prototype.requestDraw = function () {
 	}
 }
 GameBoyCore.prototype.dispatchDraw = function () {
-	var canvasRGBALength = this.offscreenRGBCount;
-	if (canvasRGBALength > 0) {
+	if (this.offscreenRGBCount > 0) {
 		//We actually updated the graphics internally, so copy out:
-		var frameBuffer = (canvasRGBALength == 92160) ? this.swizzledFrame : this.resizeFrameBuffer();
-		var canvasData = this.canvasBuffer.data;
-		var bufferIndex = 0;
-		for (var canvasIndex = 0; canvasIndex < canvasRGBALength; ++canvasIndex) {
-			canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
-			canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
-			canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
+		if (this.offscreenRGBCount == 92160) {
+			this.processDraw(this.swizzledFrame);
 		}
-		this.graphicsBlit();
+		else {
+			this.resizeFrameBuffer();
+		}
 	}
+}
+GameBoyCore.prototype.processDraw = function (frameBuffer) {
+	var canvasRGBALength = this.offscreenRGBCount;
+	var canvasData = this.canvasBuffer.data;
+	var bufferIndex = 0;
+	for (var canvasIndex = 0; canvasIndex < canvasRGBALength; ++canvasIndex) {
+		canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
+		canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
+		canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
+	}
+	this.graphicsBlit();
 }
 GameBoyCore.prototype.swizzleFrameBuffer = function () {
 	//Convert our dirty 24-bit (24-bit, with internal render flags above it) framebuffer to an 8-bit buffer with separate indices for the RGB channels:
@@ -6393,12 +6401,21 @@ GameBoyCore.prototype.clearFrameBuffer = function () {
 	}
 }
 GameBoyCore.prototype.resizeFrameBuffer = function () {
-	//Return a reference to the generated resized framebuffer:
-	return this.resizer.resize(this.swizzledFrame);
+	//Resize in javascript with resize.js:
+	if (this.resizePathClear) {
+		this.resizePathClear = false;
+		this.resizer.resize(this.swizzledFrame);
+	}
 }
 GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 	if (this.offscreenRGBCount > 0) {
-		this.resizer = new Resize(160, 144, this.offscreenWidth, this.offscreenHeight, false, true);
+		var parentObj = this;
+		this.resizer = new Resize(160, 144, this.offscreenWidth, this.offscreenHeight, false, true, true, function (buffer) {
+			if ((buffer.length / 3 * 4) == parentObj.offscreenRGBCount) {
+				parentObj.processDraw(buffer);
+			}
+			parentObj.resizePathClear = true;
+		});
 	}
 }
 GameBoyCore.prototype.renderScanLine = function (scanlineToRender) {
