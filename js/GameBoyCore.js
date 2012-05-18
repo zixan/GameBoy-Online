@@ -267,7 +267,6 @@ function GameBoyCore(canvas, ROMImage) {
 	this.onscreenHeight = this.offScreenheight = 144;
 	this.offscreenRGBCount = this.onscreenWidth * this.onscreenHeight * 4;
 	this.resizePathClear = true;
-	this.retryDraw = false;
 	//Initialize the white noise cache tables ahead of time:
 	this.intializeWhiteNoise();
 }
@@ -5838,7 +5837,6 @@ GameBoyCore.prototype.run = function () {
 		if ((this.stopEmulator & 1) == 1) {
 			if (!this.CPUStopped) {
 				this.stopEmulator = 0;
-				this.drewFrame = this.retryDraw;
 				this.audioUnderrunAdjustment();
 				this.clockUpdate();			//RTC clocking.
 				if (!this.halt) {
@@ -6373,6 +6371,7 @@ GameBoyCore.prototype.processDraw = function (frameBuffer) {
 		canvasData[canvasIndex++] = frameBuffer[bufferIndex++];
 	}
 	this.graphicsBlit();
+	this.drewFrame = false;
 }
 GameBoyCore.prototype.swizzleFrameBuffer = function () {
 	//Convert our dirty 24-bit (24-bit, with internal render flags above it) framebuffer to an 8-bit buffer with separate indices for the RGB channels:
@@ -6411,13 +6410,9 @@ GameBoyCore.prototype.resizeFrameBuffer = function () {
 GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 	if (this.offscreenRGBCount > 0) {
 		var parentObj = this;
-		this.resizer = new Resize(160, 144, this.offscreenWidth, this.offscreenHeight, false, true, true, function (buffer) {
+		this.resizer = new Resize(160, 144, this.offscreenWidth, this.offscreenHeight, false, true, false, function (buffer) {
 			if ((buffer.length / 3 * 4) == parentObj.offscreenRGBCount) {
 				parentObj.processDraw(buffer);
-				parentObj.retryDraw = false;
-			}
-			else {
-				parentObj.retryDraw = true;
 			}
 			parentObj.resizePathClear = true;
 		});
