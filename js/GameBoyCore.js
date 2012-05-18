@@ -267,6 +267,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.onscreenHeight = this.offScreenheight = 144;
 	this.offscreenRGBCount = this.onscreenWidth * this.onscreenHeight * 4;
 	this.resizePathClear = true;
+	this.retryDraw = false;
 	//Initialize the white noise cache tables ahead of time:
 	this.intializeWhiteNoise();
 }
@@ -5837,7 +5838,7 @@ GameBoyCore.prototype.run = function () {
 		if ((this.stopEmulator & 1) == 1) {
 			if (!this.CPUStopped) {
 				this.stopEmulator = 0;
-				this.drewFrame = false;
+				this.drewFrame = this.retryDraw;
 				this.audioUnderrunAdjustment();
 				this.clockUpdate();			//RTC clocking.
 				if (!this.halt) {
@@ -6413,6 +6414,10 @@ GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 		this.resizer = new Resize(160, 144, this.offscreenWidth, this.offscreenHeight, false, true, true, function (buffer) {
 			if ((buffer.length / 3 * 4) == parentObj.offscreenRGBCount) {
 				parentObj.processDraw(buffer);
+				parentObj.retryDraw = false;
+			}
+			else {
+				parentObj.retryDraw = true;
 			}
 			parentObj.resizePathClear = true;
 		});

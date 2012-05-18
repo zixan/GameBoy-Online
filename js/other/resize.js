@@ -21,7 +21,10 @@ Resize.prototype.initialize = function () {
 	//Perform some checks:
 	if (this.widthOriginal > 0 && this.heightOriginal > 0 && this.targetWidth > 0 && this.targetHeight > 0) {
 		if (this.useWebWorker) {
-			this.configureWorker();
+			this.useWebWorker = (this.widthOriginal != this.targetWidth || this.heightOriginal != this.targetHeight);
+			if (this.useWebWorker) {
+				this.configureWorker();
+			}
 		}
 		if (!this.useWebWorker) {
 			this.configurePasses();
