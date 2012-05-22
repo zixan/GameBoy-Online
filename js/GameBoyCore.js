@@ -142,6 +142,8 @@ function GameBoyCore(canvas, ROMImage) {
 	this.rightChannel2 = false;
 	this.rightChannel3 = false;
 	this.rightChannel4 = false;
+	this.audioClocksUntilNextEvent = 1;
+	this.audioClocksUntilNextEventCounter = 1;
 	//Channel output level caches:
 	this.channel1currentSampleLeft = 0;
 	this.channel1currentSampleRight = 0;
@@ -4303,7 +4305,9 @@ GameBoyCore.prototype.saveState = function () {
 		this.colorizedGBPalettes,
 		this.backgroundY,
 		this.backgroundX,
-		this.CPUStopped
+		this.CPUStopped,
+		this.audioClocksUntilNextEvent,
+		this.audioClocksUntilNextEventCounter
 	];
 }
 GameBoyCore.prototype.returnFromState = function (returnedFrom) {
@@ -4515,7 +4519,9 @@ GameBoyCore.prototype.returnFromState = function (returnedFrom) {
 	this.colorizedGBPalettes = state[index++];
 	this.backgroundY = state[index++];
 	this.backgroundX = state[index++];
-	this.CPUStopped = state[index];
+	this.CPUStopped = state[index++];
+	this.audioClocksUntilNextEvent = state[index++];
+	this.audioClocksUntilNextEventCounter = state[index];
 	this.fromSaveState = true;
 	this.TICKTable = this.toTypedArray(this.TICKTable, "uint8");
 	this.SecondaryTICKTable = this.toTypedArray(this.SecondaryTICKTable, "uint8");
@@ -5381,6 +5387,8 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel1canPlay = false;
 	this.channel2canPlay = false;
 	this.channel4canPlay = false;
+	this.audioClocksUntilNextEvent = 1;
+	this.audioClocksUntilNextEventCounter = 1;
 	this.channel1OutputLevelCache();
 	this.channel2OutputLevelCache();
 	this.channel3OutputLevelCache();
@@ -5412,7 +5420,9 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			this.sequencerClocks -= samplesToGenerate;
 			numSamples -= samplesToGenerate;
 			while (--samplesToGenerate > -1) {
-				this.computeAudioChannels();
+				if (--this.audioClocksUntilNextEventCounter == 0) {
+					this.computeAudioChannels();
+				}
 				this.currentBuffer[this.audioIndex++] = this.mixerOutputCache;
 				if (this.audioIndex == this.numSamplesTotal) {
 					this.audioIndex = 0;
@@ -5440,7 +5450,9 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 GameBoyCore.prototype.generateAudioFake = function (numSamples) {
 	if (this.soundMasterEnabled && !this.CPUStopped) {
 		while (--numSamples > -1) {
-			this.computeAudioChannels();
+			if (--this.audioClocksUntilNextEventCounter == 0) {
+				this.computeAudioChannels();
+			}
 			if (--this.sequencerClocks == 0) {
 				this.audioComputeSequencer();
 				this.sequencerClocks = 0x2000;
@@ -5665,20 +5677,25 @@ GameBoyCore.prototype.clockAudioEnvelope = function () {
 	}
 }
 GameBoyCore.prototype.computeAudioChannels = function () {
+	//Clock down the four audio channels to the next closest audio event:
+	this.channel1FrequencyCounter -= this.audioClocksUntilNextEvent;
+	this.channel2FrequencyCounter -= this.audioClocksUntilNextEvent;
+	this.channel3Counter -= this.audioClocksUntilNextEvent;
+	this.channel4Counter -= this.audioClocksUntilNextEvent;
 	//Channel 1 counter:
-	if (--this.channel1FrequencyCounter == 0) {
+	if (this.channel1FrequencyCounter == 0) {
 		this.channel1FrequencyCounter = this.channel1FrequencyTracker;
 		this.channel1DutyTracker = (this.channel1DutyTracker + 1) & 0x7;
 		this.channel1OutputLevelTrimaryCache();
 	}
 	//Channel 2 counter:
-	if (--this.channel2FrequencyCounter == 0) {
+	if (this.channel2FrequencyCounter == 0) {
 		this.channel2FrequencyCounter = this.channel2FrequencyTracker;
 		this.channel2DutyTracker = (this.channel2DutyTracker + 1) & 0x7;
 		this.channel2OutputLevelTrimaryCache();
 	}
 	//Channel 3 counter:
-	if (--this.channel3Counter == 0) {
+	if (this.channel3Counter == 0) {
 		if (this.channel3canPlay) {
 			this.channel3lastSampleLookup = (this.channel3lastSampleLookup + 1) & 0x1F;
 		}
@@ -5686,11 +5703,13 @@ GameBoyCore.prototype.computeAudioChannels = function () {
 		this.channel3UpdateCache();
 	}
 	//Channel 4 counter:
-	if (--this.channel4Counter == 0) {
+	if (this.channel4Counter == 0) {
 		this.channel4lastSampleLookup = (this.channel4lastSampleLookup + 1) & this.channel4BitRange;
 		this.channel4Counter = this.channel4FrequencyPeriod;
 		this.channel4UpdateCache();
 	}
+	//Find the number of clocks to next closest counter event:
+	this.audioClocksUntilNextEventCounter = this.audioClocksUntilNextEvent = Math.min(this.channel1FrequencyCounter, this.channel2FrequencyCounter, this.channel3Counter, this.channel4Counter);
 }
 GameBoyCore.prototype.channel1EnableCheck = function () {
 	this.channel1Enabled = ((this.channel1consecutive || this.channel1totalLength > 0) && !this.channel1SweepFault && this.channel1canPlay);
