@@ -5219,7 +5219,7 @@ GameBoyCore.prototype.initSound = function () {
 	this.machineOut = this.audioResamplerFirstPassFactor = Math.floor(0x400000 / 44100);
 	if (settings[0]) {
 		try {
-			this.audioHandle = new XAudioServer(2, 0x400000 / this.audioResamplerFirstPassFactor, 0, Math.max(this.sampleSize * settings[8] / this.audioResamplerFirstPassFactor, 8192) << 1, null, settings[13]);
+			this.audioHandle = new XAudioServer(2, 0x400000 / this.audioResamplerFirstPassFactor, 0, Math.max(this.sampleSize * settings[8] / this.audioResamplerFirstPassFactor, 8192) << 1, null, settings[3]);
 			this.initAudioBuffer();
 		}
 		catch (error) {
@@ -5238,7 +5238,7 @@ GameBoyCore.prototype.initSound = function () {
 GameBoyCore.prototype.changeVolume = function () {
 	if (settings[0] && this.audioHandle) {
 		try {
-			this.audioHandle.changeVolume(settings[13]);
+			this.audioHandle.changeVolume(settings[3]);
 		}
 		catch (error) { }
 	}

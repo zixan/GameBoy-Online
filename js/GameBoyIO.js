@@ -5,7 +5,7 @@ var settings = [						//Some settings.
 	true, 								//Turn on sound.
 	true,								//Boot with boot ROM first?
 	false,								//Give priority to GameBoy mode
-	[39, 37, 38, 40, 88, 90, 16, 13],	//Keyboard button map.
+	1,									//Volume level set.
 	true,								//Colorize GB mode?
 	false,								//Disallow typed arrays?
 	4,									//Interval for the emulator loop.
@@ -14,8 +14,7 @@ var settings = [						//Some settings.
 	false,								//Override to allow for MBC1 instead of ROM only (compatibility for broken 3rd-party cartridges).
 	false,								//Override MBC RAM disabling and always allow reading and writing to the banks.
 	false,								//Use the GameBoy boot ROM instead of the GameBoy Color boot ROM.
-	false,								//Scale the canvas in JS, or let the browser scale the canvas?
-	1									//Volume level set.
+	false								//Scale the canvas in JS, or let the browser scale the canvas?
 ];
 function start(canvas, ROM) {
 	clearLastEmulation();
@@ -338,8 +337,9 @@ function decodeBlob(blobData) {
 }
 function matchKey(key) {	//Maps a keyboard key to a gameboy key.
 	//Order: Right, Left, Up, Down, A, B, Select, Start
-	for (var index = 0; index < settings[3].length; index++) {
-		if (settings[3][index] == key) {
+	var keymap = ["right", "left", "up", "down", "a", "b", "select", "start"];	//Keyboard button map.
+	for (var index = 0; index < keymap.length; index++) {
+		if (keymap[index] == key) {
 			return index;
 		}
 	}
@@ -351,27 +351,19 @@ function GameBoyEmulatorInitialized() {
 function GameBoyEmulatorPlaying() {
 	return ((gameboy.stopEmulator & 2) == 0);
 }
-function GameBoyKeyDown(e) {
+function GameBoyKeyDown(key) {
 	if (GameBoyEmulatorInitialized() && GameBoyEmulatorPlaying()) {
-		var keycode = matchKey(e.keyCode);
+		var keycode = matchKey(key);
 		if (keycode >= 0 && keycode < 8) {
 			gameboy.JoyPadEvent(keycode, true);
-			try {
-				e.preventDefault();
-			}
-			catch (error) { }
 		}
 	}
 }
-function GameBoyKeyUp(e) {
+function GameBoyKeyUp(key) {
 	if (GameBoyEmulatorInitialized() && GameBoyEmulatorPlaying()) {
-		var keycode = matchKey(e.keyCode);
+		var keycode = matchKey(key);
 		if (keycode >= 0 && keycode < 8) {
 			gameboy.JoyPadEvent(keycode, false);
-			try {
-				e.preventDefault();
-			}
-			catch (error) { }
 		}
 	}
 }

@@ -3,6 +3,16 @@ var inFullscreen = false;
 var mainCanvas = null;
 var fullscreenCanvas = null;
 var showAsMinimal = false;
+var keyZones = [
+	["right", [39]],
+	["left", [37]],
+	["up", [38]],
+	["down", [40]],
+	["a", [88, 74]],
+	["b", [90, 81, 89]],
+	["select", [16]],
+	["start", [13]]
+];
 function windowingPreInitUnsafe() {
 	if (!windowingInitialized) {
 		windowingInitialized = true;
@@ -92,10 +102,10 @@ function registerGUIEvents() {
 		}
 		else {
 			//Control keys / other
-			GameBoyKeyDown(keyCodeOverride(event));
+			keyDown(event);
 		}
 	});
-	addEvent("keyup", document, function (event) { GameBoyKeyUp(keyCodeOverride(event)) });
+	addEvent("keyup", document, function (event) { keyUp(event) });
 	addEvent("MozOrientation", window, GameBoyGyroSignalHandler);
 	addEvent("deviceorientation", window, GameBoyGyroSignalHandler);
 	new popupMenu(document.getElementById("GameBoy_file_menu"), document.getElementById("GameBoy_file_popup"));
@@ -146,7 +156,7 @@ function registerGUIEvents() {
 		if (GameBoyEmulatorInitialized()) {
 			var volume = prompt("Set the volume here:", "1.0");
 			if (volume != null && volume.length > 0) {
-				settings[14] = Math.min(Math.max(parseFloat(volume), 0), 1);
+				settings[3] = Math.min(Math.max(parseFloat(volume), 0), 1);
 				gameboy.changeVolume();
 			}
 		}
@@ -341,6 +351,42 @@ function registerGUIEvents() {
 	addEvent("unload", window, function () {
 		autoSave();
 	});
+}
+function keyDown(event) {
+	var keyCode = event.keyCode;
+	var keyMapLength = keyZones.length;
+	for (var keyMapIndex = 0; keyMapIndex < keyMapLength; ++keyMapIndex) {
+		var keyCheck = keyZones[keyMapIndex];
+		var keysMapped = keyCheck[1];
+		var keysTotal = keysMapped.length;
+		for (var index = 0; index < keysTotal; ++index) {
+			if (keysMapped[index] == keyCode) {
+				GameBoyKeyDown(keyCheck[0]);
+				try {
+					event.preventDefault();
+				}
+				catch (error) { }
+			}
+		}
+	}
+}
+function keyUp(event) {
+	var keyCode = event.keyCode;
+	var keyMapLength = keyZones.length;
+	for (var keyMapIndex = 0; keyMapIndex < keyMapLength; ++keyMapIndex) {
+		var keyCheck = keyZones[keyMapIndex];
+		var keysMapped = keyCheck[1];
+		var keysTotal = keysMapped.length;
+		for (var index = 0; index < keysTotal; ++index) {
+			if (keysMapped[index] == keyCode) {
+				GameBoyKeyUp(keyCheck[0]);
+				try {
+					event.preventDefault();
+				}
+				catch (error) { }
+			}
+		}
+	}
 }
 function initPlayer() {
 	document.getElementById("title").style.display = "none";
