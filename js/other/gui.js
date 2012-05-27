@@ -1,4 +1,3 @@
-var windowingInitialized = false;
 var inFullscreen = false;
 var mainCanvas = null;
 var fullscreenCanvas = null;
@@ -13,26 +12,8 @@ var keyZones = [
 	["select", [16]],
 	["start", [13]]
 ];
-function windowingPreInitUnsafe() {
-	if (!windowingInitialized) {
-		windowingInitialized = true;
-		windowingInitialize();
-	}
-}
-function windowingPreInitSafe() {
-	if (typeof document.readyState == "undefined" || document.readyState == "complete") {
-		windowingPreInitUnsafe();
-	}
-}
-function windowingInitUnload() {
-	cout("In windowingInitUnload() : Unregistering window loading events.", 0);
-	removeEvent("DOMContentLoaded", document, windowingPreInitUnsafe);
-	removeEvent("readystatechange", document, windowingPreInitSafe);
-	removeEvent("load", document, windowingPreInitUnsafe);
-}
 function windowingInitialize() {
 	cout("windowingInitialize() called.", 0);
-	windowingInitUnload();
 	windowStacks[0] = windowCreate("GameBoy", true);
 	windowStacks[1] = windowCreate("terminal", false);
 	windowStacks[2] = windowCreate("about", false);
@@ -64,19 +45,6 @@ function windowingInitialize() {
 	document.getElementById("typed_arrays_disallow").checked = settings[5];
 	document.getElementById("gb_boot_rom_utilized").checked = settings[11];
 }
-function keyCodeOverride(event) {
-	switch (event.keyCode) {
-		case 74:
-		case 88:
-			settings[3][4] = event.keyCode;
-			break;
-		case 81:
-		case 89:
-		case 90:
-			settings[3][5] = event.keyCode;
-	}
-	return event;
-}
 function registerGUIEvents() {
 	cout("In registerGUIEvents() : Registering GUI Events.", -1);
 	addEvent("click", document.getElementById("terminal_clear_button"), clear_terminal);
@@ -105,7 +73,7 @@ function registerGUIEvents() {
 			keyDown(event);
 		}
 	});
-	addEvent("keyup", document, function (event) { keyUp(event) });
+	addEvent("keyup", document, keyUp);
 	addEvent("MozOrientation", window, GameBoyGyroSignalHandler);
 	addEvent("deviceorientation", window, GameBoyGyroSignalHandler);
 	new popupMenu(document.getElementById("GameBoy_file_menu"), document.getElementById("GameBoy_file_popup"));

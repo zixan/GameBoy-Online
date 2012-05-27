@@ -6,8 +6,11 @@ class GameBoy extends site {
 	function start_processing() {
 		$this->title = 'GameBoy Online';
 		$this->script = '
-DEBUG_MESSAGES = true;
+DEBUG_MESSAGES = false;
 DEBUG_WINDOWING = false;
+window.onload = function () {
+	windowingInitialize();
+}
 ';
 		$this->script_alt = array(
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/windowStack.js'),
@@ -23,7 +26,6 @@ DEBUG_WINDOWING = false;
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyCore.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyIO.js')
 		);
-		//$this->meta = array('viewport'=>'width=device-width, height=device-height');
 		$this->style = '@import url("'.$this->server->convert_out_of_set_chars($this->server->url['folder'].CSSDIR.'/GameBoy.css').(($this->server->get('border-radius') == 'true') ? '?rounded=true' : '').'");';
 		$this->manifest = $this->server->convert_out_of_set_chars($this->server->url['folder'].'gameboy.manifest.php');
 	}
@@ -43,19 +45,6 @@ DEBUG_WINDOWING = false;
 		$this->generatePopUps();
 		//Fullscreen canvas:
 		$this->fullscreenGenerate();
-		//DOM ready state queue:
-		$this->startElement('script');
-		$this->writeAttribute('type', 'text/javascript');
-		$this->text('
-try {
-	addEvent("DOMContentLoaded", document, windowingPreInitUnsafe);
-	addEvent("readystatechange", document, windowingPreInitSafe);
-}
-catch (error) {
-	alert("Could not initialize the emulator properly. Please try using a standards compliant browser.");
-}
-');
-		$this->endElement();
 	}
 	protected function emulatorMain() {
 		$this->startElement('div');
