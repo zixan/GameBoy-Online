@@ -11,20 +11,7 @@ function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underR
 	this.initializeAudio();
 }
 XAudioServer.prototype.MOZWriteAudioNoCallback = function (buffer) {
-	//Mozilla Audio Data API:
-	var length = this.mozAudioTail.length;
-	if (length > 0) {
-		var samplesAccepted = this.audioHandleMoz.mozWriteAudio(this.mozAudioTail);
-		this.samplesAlreadyWritten += samplesAccepted;
-		this.mozAudioTail.splice(0, samplesAccepted);
-	}
-	length = Math.min(buffer.length, XAudioJSMaxBufferSize - this.samplesAlreadyWritten + this.audioHandleMoz.mozCurrentSampleOffset());
-	var samplesAccepted = this.audioHandleMoz.mozWriteAudio(buffer);
-	this.samplesAlreadyWritten += samplesAccepted;
-	for (var index = 0; length > samplesAccepted; --length) {
-		//Moz Audio wants us saving the tail:
-		this.mozAudioTail.push(buffer[index++]);
-	}
+	this.samplesAlreadyWritten += this.audioHandleMoz.mozWriteAudio(buffer);
 }
 XAudioServer.prototype.callbackBasedWriteAudioNoCallback = function (buffer) {
 	//Callback-centered audio APIs:
@@ -144,36 +131,13 @@ XAudioServer.prototype.initializeAudio = function () {
 XAudioServer.prototype.initializeMozAudio = function () {
 	this.audioHandleMoz = new Audio();
 	this.audioHandleMoz.mozSetup(this.audioChannels, XAudioJSSampleRate);
-	this.samplesAlreadyWritten = 0;
-	this.mozAudioTail = [];
-	/*
-		Workaround a severe firefox bug that trashes
-		audio completely. The bug is that firefox requires
-		a super-large and platform-specific buffering amount
-		to avoid audio drop outs. Firefox for windows requires a half
-		a second of retardedly large latency to avoid audio glitching.
-		Firefox for linux is fucked though, as there's some other bug
-		in firefox there.
-	*/
-	if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {  //Mac OS X doesn't experience this moz-bug!
-		var emptySampleFrame = [];
-		var prebufferAmount = 0;
-		for (var channelNumb = 0; channelNumb < this.audioChannels; ++channelNumb) {
-			emptySampleFrame[channelNumb] = 0;
-		}
-		while (this.audioHandleMoz.mozCurrentSampleOffset() == 0) {
-			//Mozilla Audio Bugginess Workaround (Firefox freaks out if we don't give it a prebuffer under certain OSes):
-			prebufferAmount += this.audioHandleMoz.mozWriteAudio(emptySampleFrame);
-		}
-		var samplesToDoubleBuffer = prebufferAmount / this.audioChannels;
-		//Double the prebuffering for windows:
-		for (var index = 0; index < samplesToDoubleBuffer; index++) {
-			this.samplesAlreadyWritten += this.audioHandleMoz.mozWriteAudio(emptySampleFrame);
-		}
-		this.samplesAlreadyWritten += prebufferAmount;	  	
-		XAudioJSMinBufferSize += this.samplesAlreadyWritten;
+	if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {
+		//Firefox has critical os-specific bugs for mozaudio:
+		this.audioHandleMoz = null;
+		throw(new Error("Mozilla Audio Data API for Windows and Linux has been blacklisted due to firefox bugs."));
 	}
 	//We successfully initialized the Mozilla Audio Data API:
+	this.samplesAlreadyWritten = 0;
 	this.audioType = 0;
 }
 XAudioServer.prototype.initializeWebAudio = function () {
