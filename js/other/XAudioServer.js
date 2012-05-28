@@ -12,7 +12,19 @@ function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underR
 }
 XAudioServer.prototype.MOZWriteAudioNoCallback = function (buffer) {
 	//Mozilla Audio Data API:
-	this.samplesAlreadyWritten += this.audioHandleMoz.mozWriteAudio(buffer);
+	var length = this.mozAudioTail.length;
+	if (length > 0) {
+		var samplesAccepted = this.audioHandleMoz.mozWriteAudio(this.mozAudioTail);
+		this.samplesAlreadyWritten += samplesAccepted;
+		this.mozAudioTail.splice(0, samplesAccepted);
+	}
+	length = Math.min(buffer.length, XAudioJSMaxBufferSize - this.samplesAlreadyWritten + this.audioHandleMoz.mozCurrentSampleOffset());
+	var samplesAccepted = this.audioHandleMoz.mozWriteAudio(buffer);
+	this.samplesAlreadyWritten += samplesAccepted;
+	for (var index = 0; length > samplesAccepted; --length) {
+		//Moz Audio wants us saving the tail:
+		this.mozAudioTail.push(buffer[index++]);
+	}
 }
 XAudioServer.prototype.callbackBasedWriteAudioNoCallback = function (buffer) {
 	//Callback-centered audio APIs:
@@ -133,6 +145,7 @@ XAudioServer.prototype.initializeMozAudio = function () {
 	this.audioHandleMoz = new Audio();
 	this.audioHandleMoz.mozSetup(this.audioChannels, XAudioJSSampleRate);
 	this.samplesAlreadyWritten = 0;
+	this.mozAudioTail = [];
 	/*
 		Workaround a severe firefox bug that trashes
 		audio completely. The bug is that firefox requires
@@ -143,8 +156,11 @@ XAudioServer.prototype.initializeMozAudio = function () {
 		in firefox there.
 	*/
 	if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {  //Mac OS X doesn't experience this moz-bug!
-		var emptySampleFrame = (this.audioChannels == 2) ? [0, 0] : [0];
+		var emptySampleFrame = [];
 		var prebufferAmount = 0;
+		for (var channelNumb = 0; channelNumb < this.audioChannels; ++channelNumb) {
+			emptySampleFrame[channelNumb] = 0;
+		}
 		while (this.audioHandleMoz.mozCurrentSampleOffset() == 0) {
 			//Mozilla Audio Bugginess Workaround (Firefox freaks out if we don't give it a prebuffer under certain OSes):
 			prebufferAmount += this.audioHandleMoz.mozWriteAudio(emptySampleFrame);
