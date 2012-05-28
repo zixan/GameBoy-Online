@@ -133,6 +133,31 @@ XAudioServer.prototype.initializeMozAudio = function () {
 	this.audioHandleMoz = new Audio();
 	this.audioHandleMoz.mozSetup(this.audioChannels, XAudioJSSampleRate);
 	this.samplesAlreadyWritten = 0;
+	/*
+		Workaround a severe firefox bug that trashes
+		audio completely. The bug is that firefox requires
+		a super-large and platform-specific buffering amount
+		to avoid audio drop outs. Firefox for windows requires a half
+		a second of retardedly large latency to avoid audio glitching.
+		Firefox for linux is fucked though, as there's some other bug
+		in firefox there.
+	*/
+	if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {  //Mac OS X doesn't experience this moz-bug!
+		var emptySampleFrame = (this.audioChannels == 2) ? [0, 0] : [0];
+		var prebufferAmount = 0;
+		while (this.audioHandleMoz.mozCurrentSampleOffset() == 0) {
+			//Mozilla Audio Bugginess Workaround (Firefox freaks out if we don't give it a prebuffer under certain OSes):
+			prebufferAmount += this.audioHandleMoz.mozWriteAudio(emptySampleFrame);
+		}
+		var samplesToDoubleBuffer = prebufferAmount / this.audioChannels;
+		//Double the prebuffering for windows:
+		for (var index = 0; index < samplesToDoubleBuffer; index++) {
+			this.samplesAlreadyWritten += this.audioHandleMoz.mozWriteAudio(emptySampleFrame);
+		}
+		this.samplesAlreadyWritten += prebufferAmount;	  	
+		XAudioJSMinBufferSize += this.samplesAlreadyWritten;
+	}
+	//We successfully initialized the Mozilla Audio Data API:
 	this.audioType = 0;
 }
 XAudioServer.prototype.initializeWebAudio = function () {
