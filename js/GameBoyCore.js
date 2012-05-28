@@ -5218,14 +5218,10 @@ GameBoyCore.prototype.initSound = function () {
 	this.sampleSize = 0x400000 / 1000 * settings[6];
 	this.machineOut = this.audioResamplerFirstPassFactor = Math.floor(0x400000 / 44100);
 	if (settings[0]) {
-		try {
-			this.audioHandle = new XAudioServer(2, 0x400000 / this.audioResamplerFirstPassFactor, 0, Math.max(this.sampleSize * settings[8] / this.audioResamplerFirstPassFactor, 8192) << 1, null, settings[3]);
-			this.initAudioBuffer();
-		}
-		catch (error) {
-			cout("Audio system cannot run: " + error.message, 2);
+		this.audioHandle = new XAudioServer(2, 0x400000 / this.audioResamplerFirstPassFactor, 0, Math.max(this.sampleSize * settings[8] / this.audioResamplerFirstPassFactor, 8192) << 1, null, settings[3], function () {
 			settings[0] = false;
-		}
+		});
+		this.initAudioBuffer();
 	}
 	else if (this.audioHandle) {
 		//Mute the audio output, as it has an immediate silencing effect:
