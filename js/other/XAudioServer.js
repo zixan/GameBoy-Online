@@ -131,18 +131,12 @@ XAudioServer.prototype.initializeAudio = function () {
 XAudioServer.prototype.initializeMozAudio = function () {
 	this.audioHandleMoz = new Audio();
 	this.audioHandleMoz.mozSetup(this.audioChannels, XAudioJSSampleRate);
-	if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {
-		//Firefox has critical os-specific bugs for mozaudio:
-		this.audioHandleMoz = null;
-		throw(new Error("Mozilla Audio Data API for Windows and Linux has been blacklisted due to firefox bugs."));
-	}
-	//We successfully initialized the Mozilla Audio Data API:
 	this.samplesAlreadyWritten = 0;
 	this.audioType = 0;
 }
 XAudioServer.prototype.initializeWebAudio = function () {
 	if (XAudioJSWebAudioLaunchedContext) {
-		resetCallbackAPIAudioBuffer(XAudioJSWebAudioActualSampleRate);
+		this.resetCallbackAPIAudioBuffer(XAudioJSWebAudioActualSampleRate);
 		this.audioType = 1;
 	}
 	else {
@@ -152,8 +146,8 @@ XAudioServer.prototype.initializeWebAudio = function () {
 XAudioServer.prototype.initializeFlashAudio = function () {
 	var existingFlashload = document.getElementById("XAudioJS");
 	this.flashInitialized = false;
-	resetCallbackAPIAudioBuffer(44100);
-	switch (XAudioJSChannelsAllocated) {
+	this.resetCallbackAPIAudioBuffer(44100);
+	switch (this.audioChannels) {
 		case 1:
 			XAudioJSFlashTransportEncoder = generateFlashMonoString;
 			break;
@@ -186,6 +180,7 @@ XAudioServer.prototype.initializeFlashAudio = function () {
 			function (event) {
 				if (event.success) {
 					thisObj.audioHandleFlash = event.ref;
+					thisObj.checkFlashInit();
 				}
 				else {
 					thisObj.failureCallback();
@@ -195,6 +190,7 @@ XAudioServer.prototype.initializeFlashAudio = function () {
 	}
 	else {
 		this.audioHandleFlash = existingFlashload;
+		this.checkFlashInit();
 	}
 	this.audioType = 2;
 }
@@ -221,10 +217,25 @@ XAudioServer.prototype.changeVolume = function (newVolume) {
 }
 //Checks to see if the NPAPI Adobe Flash bridge is ready yet:
 XAudioServer.prototype.checkFlashInit = function () {
-	if (!this.flashInitialized && this.audioHandleFlash && this.audioHandleFlash.initialize) {
-		this.audioHandleFlash.initialize(this.audioChannels, XAudioJSVolume);
-		this.flashInitialized = true;
+	if (!this.flashInitialized) {
+		try {
+			if (this.audioHandleFlash && this.audioHandleFlash.initialize) {
+				this.flashInitialized = true;
+				this.audioHandleFlash.initialize(this.audioChannels, XAudioJSVolume);
+			}
+		}
+		catch (error) {
+			this.flashInitialized = false;
+		}
 	}
+}
+//Set up the resampling:
+XAudioServer.prototype.resetCallbackAPIAudioBuffer = function (APISampleRate) {
+	XAudioJSAudioContextSampleBuffer = getFloat32(XAudioJSMaxBufferSize);
+	XAudioJSAudioBufferSize = XAudioJSResampleBufferEnd = XAudioJSResampleBufferStart = 0;
+	XAudioJSResampleBufferSize = Math.max(XAudioJSMaxBufferSize * Math.ceil(APISampleRate / XAudioJSSampleRate) + XAudioJSChannelsAllocated, XAudioJSSamplesPerCallback * XAudioJSChannelsAllocated);
+	XAudioJSResampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, XAudioJSChannelsAllocated, XAudioJSResampleBufferSize, true);
+	XAudioJSResampledBuffer = getFloat32(XAudioJSResampleBufferSize);
 }
 /////////END LIB
 function getFloat32(size) {
@@ -380,14 +391,6 @@ function getBufferSamples() {
 			return XAudioJSAudioContextSampleBuffer.slice(0, XAudioJSAudioBufferSize);
 		}
 	}
-}
-//Initialize WebKit Audio /Flash Audio Buffer:
-function resetCallbackAPIAudioBuffer(APISampleRate) {
-	XAudioJSAudioContextSampleBuffer = getFloat32(XAudioJSMaxBufferSize);
-	XAudioJSAudioBufferSize = XAudioJSResampleBufferEnd = XAudioJSResampleBufferStart = 0;
-	XAudioJSResampleBufferSize = Math.max(XAudioJSMaxBufferSize * Math.ceil(APISampleRate / XAudioJSSampleRate) + XAudioJSChannelsAllocated, XAudioJSSamplesPerCallback * XAudioJSChannelsAllocated);
-	XAudioJSResampleControl = new Resampler(XAudioJSSampleRate, APISampleRate, XAudioJSChannelsAllocated, XAudioJSResampleBufferSize, true);
-	XAudioJSResampledBuffer = getFloat32(XAudioJSResampleBufferSize);
 }
 //Initialize WebKit Audio:
 (function () {

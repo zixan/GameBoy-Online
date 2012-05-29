@@ -5302,17 +5302,18 @@ GameBoyCore.prototype.intializeWhiteNoise = function () {
 		LSFRShifted = LSFR >> 1;
 		LSFR = LSFRShifted | (((LSFRShifted ^ LSFR) & 0x1) << 6);
 	}
-	if (!this.noiseSampleTable && this.memory.length == 0x10000) {
-		//If enabling audio for the first time after a game is already running, set up the internal table reference:
-		this.noiseSampleTable = ((this.memory[0xFF22] & 0x8) == 0x8) ? this.LSFR7Table : this.LSFR15Table;
-	}
+	//Set the default noise table:
+	this.noiseSampleTable = this.LSFR15Table;
 }
 GameBoyCore.prototype.audioUnderrunAdjustment = function () {
 	if (settings[0]) {
-		var underrunAmount = this.bufferContainAmount - this.audioHandle.remainingBuffer();
-		if (underrunAmount > 0) {
-			this.CPUCyclesTotalCurrent += (underrunAmount >> 1) * this.machineOut;
-			this.recalculateIterationClockLimit();
+		var underrunAmount = this.audioHandle.remainingBuffer();
+		if (underrunAmount > -1) {
+			underrunAmount = this.bufferContainAmount - underrunAmount;
+			if (underrunAmount > 0) {
+				this.CPUCyclesTotalCurrent += (underrunAmount >> 1) * this.machineOut;
+				this.recalculateIterationClockLimit();
+			}
 		}
 	}
 }
@@ -5389,6 +5390,7 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.channel2OutputLevelCache();
 	this.channel3OutputLevelCache();
 	this.channel4OutputLevelCache();
+	this.noiseSampleTable = this.LSFR15Table;
 }
 GameBoyCore.prototype.outputAudio = function () {
 	var sampleFactor = 0;
