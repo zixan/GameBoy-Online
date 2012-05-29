@@ -122,7 +122,6 @@ function GameBoyCore(canvas, ROMImage) {
 		[true, false, false, false, false, true, true, true],
 		[false, true, true, true, true, true, true, false]
 	];
-	this.currentBuffer = [];						//The audio buffer we're working on.
 	this.bufferContainAmount = 0;					//Buffer maintenance metric.
 	this.LSFR15Table = null;
 	this.LSFR7Table = null;
@@ -168,10 +167,11 @@ function GameBoyCore(canvas, ROMImage) {
 	this.mixerOutputCache = 0;
 	//Pre-multipliers to cache some calculations:
 	this.initializeTiming();
-	this.machineOut = 0;				//Premultiplier for audio samples per instruction.
 	//Audio generation counters:
 	this.audioTicks = 0;				//Used to sample the audio system every x CPU instructions.
 	this.audioIndex = 0;				//Used to keep alignment on audio generation.
+	this.downsampleInput = 0;
+	this.audioDestinationPosition = 0;	//Used to keep alignment on audio generation.
 	this.rollover = 0;					//Used to keep alignment on the number of samples to output (Realign from counter alias).
 	//Timing Variables
 	this.emulatorTicks = 0;				//Times for how many instructions to execute before ending the loop.
@@ -5216,7 +5216,8 @@ GameBoyCore.prototype.GyroEvent = function (x, y) {
 }
 GameBoyCore.prototype.initSound = function () {
 	this.sampleSize = 0x400000 / 1000 * settings[6];
-	this.machineOut = this.audioResamplerFirstPassFactor = Math.floor(0x400000 / 44100);
+	this.audioResamplerFirstPassFactor = Math.floor(0x400000 / 44100);
+	this.downSampleInputDivider = this.audioResamplerFirstPassFactor * 0xF0;
 	if (settings[0]) {
 		this.audioHandle = new XAudioServer(2, 0x400000 / this.audioResamplerFirstPassFactor, 0, Math.max(this.sampleSize * settings[8] / this.audioResamplerFirstPassFactor, 8192) << 1, null, settings[3], function () {
 			settings[0] = false;
@@ -5241,10 +5242,11 @@ GameBoyCore.prototype.changeVolume = function () {
 }
 GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioIndex = 0;
+	this.audioDestinationPosition = 0;
+	this.downsampleInput = 0;
 	this.bufferContainAmount = Math.max(this.sampleSize * settings[7] / this.audioResamplerFirstPassFactor, 4096) << 1;
-	this.numSamplesTotal = (this.sampleSize - (this.sampleSize % this.audioResamplerFirstPassFactor)) | 0;
-	this.currentBuffer = this.getTypedArray(this.numSamplesTotal, 0, "int32");
-	this.secondaryBuffer = this.getTypedArray((this.numSamplesTotal << 1) / this.audioResamplerFirstPassFactor, 0, "float32");
+	this.numSamplesTotal = (this.sampleSize / this.audioResamplerFirstPassFactor) << 1;
+	this.audioBuffer = this.getTypedArray(this.numSamplesTotal, 0, "float32");
 }
 GameBoyCore.prototype.intializeWhiteNoise = function () {
 	//Noise Sample Tables:
@@ -5311,7 +5313,7 @@ GameBoyCore.prototype.audioUnderrunAdjustment = function () {
 		if (underrunAmount > -1) {
 			underrunAmount = this.bufferContainAmount - underrunAmount;
 			if (underrunAmount > 0) {
-				this.CPUCyclesTotalCurrent += (underrunAmount >> 1) * this.machineOut;
+				this.CPUCyclesTotalCurrent += (underrunAmount >> 1) * this.audioResamplerFirstPassFactor;
 				this.recalculateIterationClockLimit();
 			}
 		}
@@ -5393,22 +5395,13 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.noiseSampleTable = this.LSFR15Table;
 }
 GameBoyCore.prototype.outputAudio = function () {
-	var sampleFactor = 0;
-	var dirtySample = 0;
-	var averageL = 0;
-	var averageR = 0;
-	var destinationPosition = 0;
-	var divisor = this.audioResamplerFirstPassFactor * 0xF0;
-	for (var sourcePosition = 0; sourcePosition < this.numSamplesTotal;) {
-		for (sampleFactor = averageL = averageR = 0; sampleFactor < this.audioResamplerFirstPassFactor; ++sampleFactor) {
-			dirtySample = this.currentBuffer[sourcePosition++];
-			averageL += dirtySample >> 9;
-			averageR += dirtySample & 0x1FF;
-		}
-		this.secondaryBuffer[destinationPosition++] = averageL / divisor - 1;
-		this.secondaryBuffer[destinationPosition++] = averageR / divisor - 1;
+	this.audioBuffer[this.audioDestinationPosition++] = (this.downsampleInput >>> 16) / this.downSampleInputDivider - 1;
+	this.audioBuffer[this.audioDestinationPosition++] = (this.downsampleInput & 0xFFFF) / this.downSampleInputDivider - 1;
+	if (this.audioDestinationPosition == this.numSamplesTotal) {
+		this.audioHandle.writeAudioNoCallback(this.audioBuffer);
+		this.audioDestinationPosition = 0;
 	}
-	this.audioHandle.writeAudioNoCallback(this.secondaryBuffer);
+	this.downsampleInput = 0;
 }
 //Below are the audio generation functions timed against the CPU:
 GameBoyCore.prototype.generateAudio = function (numSamples) {
@@ -5419,8 +5412,8 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 			this.sequencerClocks -= clockUpTo;
 			numSamples -= clockUpTo;
 			while (--clockUpTo > -1) {
-				this.currentBuffer[this.audioIndex++] = this.mixerOutputCache;
-				if (this.audioIndex == this.numSamplesTotal) {
+				this.downsampleInput += this.mixerOutputCache;
+				if (++this.audioIndex == this.audioResamplerFirstPassFactor) {
 					this.audioIndex = 0;
 					this.outputAudio();
 				}
@@ -5437,8 +5430,7 @@ GameBoyCore.prototype.generateAudio = function (numSamples) {
 	else {
 		//SILENT OUTPUT:
 		while (--numSamples > -1) {
-			this.currentBuffer[this.audioIndex++] = 0;
-			if (this.audioIndex == this.numSamplesTotal) {
+			if (++this.audioIndex == this.audioResamplerFirstPassFactor) {
 				this.audioIndex = 0;
 				this.outputAudio();
 			}
@@ -5832,7 +5824,7 @@ GameBoyCore.prototype.channel4OutputLevelSecondaryCache = function () {
 	this.mixerOutputLevelCache();
 }
 GameBoyCore.prototype.mixerOutputLevelCache = function () {
-	this.mixerOutputCache = ((((this.channel1currentSampleLeftTrimary + this.channel2currentSampleLeftTrimary + this.channel3currentSampleLeftSecondary + this.channel4currentSampleLeftSecondary) * this.VinLeftChannelMasterVolume) << 9) +
+	this.mixerOutputCache = ((((this.channel1currentSampleLeftTrimary + this.channel2currentSampleLeftTrimary + this.channel3currentSampleLeftSecondary + this.channel4currentSampleLeftSecondary) * this.VinLeftChannelMasterVolume) << 16) |
 	((this.channel1currentSampleRightTrimary + this.channel2currentSampleRightTrimary + this.channel3currentSampleRightSecondary + this.channel4currentSampleRightSecondary) * this.VinRightChannelMasterVolume));
 }
 GameBoyCore.prototype.channel3UpdateCache = function () {
