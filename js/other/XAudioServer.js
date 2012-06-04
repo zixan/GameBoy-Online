@@ -308,7 +308,7 @@ var XAudioJSResampleControl = null;
 var XAudioJSAudioBufferSize = 0;
 var XAudioJSResampleBufferStart = 0;
 var XAudioJSResampleBufferEnd = 0;
-var XAudioJSResampleBufferSize = 2;
+var XAudioJSResampleBufferSize = 0;
 function audioOutputEvent(event) {		//Web Audio API callback...
 	var index = 0;
 	var buffer1 = event.outputBuffer.getChannelData(0);
@@ -357,13 +357,13 @@ function resampleRefill() {
 		//Resample a chunk of audio:
 		var resampleLength = XAudioJSResampleControl.resampler(getBufferSamples());
 		var resampledResult = XAudioJSResampleControl.outputBuffer;
-		for (var index2 = 0; index2 < resampleLength; ++index2) {
-			XAudioJSResampledBuffer[XAudioJSResampleBufferEnd++] = resampledResult[index2];
+		for (var index2 = 0; index2 < resampleLength;) {
+			XAudioJSResampledBuffer[XAudioJSResampleBufferEnd++] = resampledResult[index2++];
 			if (XAudioJSResampleBufferEnd == XAudioJSResampleBufferSize) {
 				XAudioJSResampleBufferEnd = 0;
 			}
 			if (XAudioJSResampleBufferStart == XAudioJSResampleBufferEnd) {
-				++XAudioJSResampleBufferStart;
+				XAudioJSResampleBufferStart += XAudioJSChannelsAllocated;
 				if (XAudioJSResampleBufferStart == XAudioJSResampleBufferSize) {
 					XAudioJSResampleBufferStart = 0;
 				}
