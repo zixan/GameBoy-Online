@@ -131,6 +131,9 @@ XAudioServer.prototype.initializeAudio = function () {
 XAudioServer.prototype.initializeMozAudio = function () {
 	this.audioHandleMoz = new Audio();
 	this.audioHandleMoz.mozSetup(this.audioChannels, XAudioJSSampleRate);
+	if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {
+		throw(new Error(""));
+	}
 	this.samplesAlreadyWritten = 0;
 	this.audioType = 0;
 }
