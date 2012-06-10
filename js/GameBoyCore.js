@@ -9407,7 +9407,7 @@ GameBoyCore.prototype.recompileBootIOWriteHandling = function () {
 //Helper Functions
 GameBoyCore.prototype.toTypedArray = function (baseArray, memtype) {
 	try {
-		if (settings[5] || (memtype != "float32" && window.opera && this.checkForOperaMathBug())) {
+		if (settings[5]) {
 			return baseArray;
 		}
 		if (!baseArray || !baseArray.length) {
@@ -9456,11 +9456,7 @@ GameBoyCore.prototype.fromTypedArray = function (baseArray) {
 GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType) {
 	try {
 		if (settings[5]) {
-			throw(new Error(""));
-		}
-		if (numberType != "float32" && window.opera && this.checkForOperaMathBug()) {
-			//Caught Opera breaking typed array math:
-			throw(new Error(""));
+			throw(new Error("Settings forced typed arrays to be disabled."));
 		}
 		switch (numberType) {
 			case "int8":
@@ -9491,16 +9487,4 @@ GameBoyCore.prototype.getTypedArray = function (length, defaultValue, numberType
 		}
 	}
 	return arrayHandle;
-}
-GameBoyCore.prototype.checkForOperaMathBug = function () {
-	var testTypedArray = new Uint8Array(1);
-	testTypedArray[0] = -1;
-	testTypedArray[0] >>= 0;
-	if (testTypedArray[0] != 0xFF) {
-		cout("Detected faulty math by your browser.", 2);
-		return true;
-	}
-	else {
-		return false;
-	}
 }

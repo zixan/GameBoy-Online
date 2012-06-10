@@ -414,19 +414,9 @@ Resize.prototype.generateFloatBuffer = function (bufferLength) {
 Resize.prototype.generateUint8Buffer = function (bufferLength) {
 	//Generate a uint8 typed array buffer:
 	try {
-		return this.checkForOperaMathBug(new Uint8Array(bufferLength));
+		return new Uint8Array(bufferLength);
 	}
 	catch (error) {
 		return [];
-	}
-}
-Resize.prototype.checkForOperaMathBug = function (typedArray) {
-	typedArray[0] = -1;
-	typedArray[0] >>= 0;
-	if (typedArray[0] != 0xFF) {
-		return [];
-	}
-	else {
-		return typedArray;
 	}
 }
