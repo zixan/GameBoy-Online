@@ -252,7 +252,7 @@ function getFloat32(size) {
 //Flash NPAPI Event Handler:
 var XAudioJSSamplesPerCallback = 2048;			//Has to be between 2048 and 4096 (If over, then samples are ignored, if under then silence is added).
 var XAudioJSFlashTransportEncoder = null;
-function audioOutputFlashEvent() {		//The callback that flash calls...
+function XAudioJSFlashAudioEvent() {		//The callback that flash calls...
 	resampleRefill();
 	return XAudioJSFlashTransportEncoder();
 }
