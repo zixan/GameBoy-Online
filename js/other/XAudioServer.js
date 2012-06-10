@@ -257,42 +257,40 @@ function audioOutputFlashEvent() {		//The callback that flash calls...
 	return XAudioJSFlashTransportEncoder();
 }
 function generateFlashSurroundString() {	//Convert the arrays to one long string for speed.
-	var copyBinaryStringLeft = "";
-	var copyBinaryStringRight = "";
+	var XAudioJSBinaryString = "";
 	for (var index = 0; index < XAudioJSSamplesPerCallback && XAudioJSResampleBufferStart != XAudioJSResampleBufferEnd; ++index) {
 		//Sanitize the buffer:
-		copyBinaryStringLeft += String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
-		copyBinaryStringRight += String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		XAudioJSBinaryString += String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		XAudioJSBinaryString += String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 		XAudioJSResampleBufferStart += XAudioJSChannelsAllocated - 2;
 		if (XAudioJSResampleBufferStart == XAudioJSResampleBufferSize) {
 			XAudioJSResampleBufferStart = 0;
 		}
 	}
-	return copyBinaryStringLeft + copyBinaryStringRight;
+	return XAudioJSBinaryString;
 }
 function generateFlashStereoString() {	//Convert the arrays to one long string for speed.
-	var copyBinaryStringLeft = "";
-	var copyBinaryStringRight = "";
+	var XAudioJSBinaryString = "";
 	for (var index = 0; index < XAudioJSSamplesPerCallback && XAudioJSResampleBufferStart != XAudioJSResampleBufferEnd; ++index) {
 		//Sanitize the buffer:
-		copyBinaryStringLeft += String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
-		copyBinaryStringRight += String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		XAudioJSBinaryString += String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		XAudioJSBinaryString += String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 		if (XAudioJSResampleBufferStart == XAudioJSResampleBufferSize) {
 			XAudioJSResampleBufferStart = 0;
 		}
 	}
-	return copyBinaryStringLeft + copyBinaryStringRight;
+	return XAudioJSBinaryString;
 }
 function generateFlashMonoString() {	//Convert the array to one long string for speed.
-	var copyBinaryString = "";
+	var XAudioJSBinaryString = "";
 	for (var index = 0; index < XAudioJSSamplesPerCallback && XAudioJSResampleBufferStart != XAudioJSResampleBufferEnd; ++index) {
 		//Sanitize the buffer:
-		copyBinaryString += String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		XAudioJSBinaryString += String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 		if (XAudioJSResampleBufferStart == XAudioJSResampleBufferSize) {
 			XAudioJSResampleBufferStart = 0;
 		}
 	}
-	return copyBinaryString;
+	return XAudioJSBinaryString;
 }
 //Audio API Event Handler:
 var XAudioJSWebAudioContextHandle = null;
