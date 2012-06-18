@@ -5217,7 +5217,7 @@ GameBoyCore.prototype.GyroEvent = function (x, y) {
 GameBoyCore.prototype.initSound = function () {
 	this.sampleSize = 0x400000 / 1000 * settings[6];
 	this.audioResamplerFirstPassFactor = Math.floor(0x400000 / 44100);
-	this.downSampleInputDivider = this.audioResamplerFirstPassFactor * 0xF0;
+	this.downSampleInputDivider = 1 / (this.audioResamplerFirstPassFactor * 0xF0);
 	if (settings[0]) {
 		this.audioHandle = new XAudioServer(2, 0x400000 / this.audioResamplerFirstPassFactor, 0, Math.max(this.sampleSize * settings[8] / this.audioResamplerFirstPassFactor, 8192) << 1, null, settings[3], function () {
 			settings[0] = false;
@@ -5395,8 +5395,8 @@ GameBoyCore.prototype.initializeAudioStartState = function () {
 	this.noiseSampleTable = this.LSFR15Table;
 }
 GameBoyCore.prototype.outputAudio = function () {
-	this.audioBuffer[this.audioDestinationPosition++] = (this.downsampleInput >>> 16) / this.downSampleInputDivider - 1;
-	this.audioBuffer[this.audioDestinationPosition++] = (this.downsampleInput & 0xFFFF) / this.downSampleInputDivider - 1;
+	this.audioBuffer[this.audioDestinationPosition++] = (this.downsampleInput >>> 16) * this.downSampleInputDivider - 1;
+	this.audioBuffer[this.audioDestinationPosition++] = (this.downsampleInput & 0xFFFF) * this.downSampleInputDivider - 1;
 	if (this.audioDestinationPosition == this.numSamplesTotal) {
 		this.audioHandle.writeAudioNoCallback(this.audioBuffer);
 		this.audioDestinationPosition = 0;
