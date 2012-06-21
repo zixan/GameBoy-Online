@@ -1,4 +1,6 @@
 //2010-2012 Grant Galitz - XAudioJS realtime audio output compatibility library:
+var XAudioJSscriptsHandle = document.getElementsByTagName("script");
+var XAudioJSsourceOfWorker = XAudioJSscriptsHandle[XAudioJSscriptsHandle.length-1].src;
 function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underRunCallback, volume, failureCallback) {
 	XAudioJSChannelsAllocated = this.audioChannels = Math.max(channels, 1);
 	XAudioJSSampleRate = Math.abs(sampleRate);
@@ -9,6 +11,9 @@ function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underR
 	this.failureCallback = (typeof failureCallback == "function") ? failureCallback : function () { throw(new Error("XAudioJS has encountered a fatal error.")); };
 	this.audioType = -1;
 	this.initializeAudio();
+}
+XAudioServer.prototype.MediaStreamWriteAudioNoCallback = function (buffer) {
+	this.audioHandleMediaStreamWorker.postMessage(buffer);
 }
 XAudioServer.prototype.MOZWriteAudioNoCallback = function (buffer) {
 	this.samplesAlreadyWritten += this.audioHandleMoz.mozWriteAudio(buffer);
@@ -39,6 +44,10 @@ XAudioServer.prototype.writeAudio = function (buffer) {
 			this.callbackBasedWriteAudioNoCallback(buffer);
 			this.callbackBasedExecuteCallback();
 			break;
+		case 3:
+			this.MediaStreamWriteAudioNoCallback(buffer);
+			this.MediaStreamExecuteCallback();
+			break;
 		default:
 			this.failureCallback();
 	}
@@ -61,6 +70,9 @@ XAudioServer.prototype.writeAudioNoCallback = function (buffer) {
 		case 1:
 			this.callbackBasedWriteAudioNoCallback(buffer);
 			break;
+		case 3:
+			this.MediaStreamWriteAudioNoCallback(buffer);
+			break;
 		default:
 			this.failureCallback();
 	}
@@ -75,6 +87,8 @@ XAudioServer.prototype.remainingBuffer = function () {
 			this.checkFlashInit();
 		case 1:
 			return (Math.floor((resampledSamplesLeft() * XAudioJSResampleControl.ratioWeight) / this.audioChannels) * this.audioChannels) + XAudioJSAudioBufferSize;
+		case 3:
+			return this.audioHandleMediaStreamRemainingSamples;
 		default:
 			this.failureCallback();
 			return -1;
@@ -94,6 +108,13 @@ XAudioServer.prototype.callbackBasedExecuteCallback = function () {
 		this.callbackBasedWriteAudioNoCallback(this.underRunCallback(samplesRequested));
 	}
 }
+XAudioServer.prototype.MediaStreamExecuteCallback = function () {
+	//MediaStream API:
+	var samplesRequested = XAudioJSMinBufferSize - this.remainingBuffer();
+	if (samplesRequested > 0) {
+		this.MediaStreamWriteAudioNoCallback(this.underRunCallback(samplesRequested));
+	}
+}
 //If you just want your callback called for any possible refill (Execution of callback is still conditional):
 XAudioServer.prototype.executeCallback = function () {
 	switch (this.audioType) {
@@ -105,6 +126,9 @@ XAudioServer.prototype.executeCallback = function () {
 		case 1:
 			this.callbackBasedExecuteCallback();
 			break;
+		case 3:
+			this.MediaStreamExecuteCallback();
+			break;
 		default:
 			this.failureCallback();
 	}
@@ -112,7 +136,7 @@ XAudioServer.prototype.executeCallback = function () {
 //DO NOT CALL THIS, the lib calls this internally!
 XAudioServer.prototype.initializeAudio = function () {
 	try {
-		this.initializeMozAudio();
+		this.initializeMediaStream();
 	}
 	catch (error) {
 		try {
@@ -120,13 +144,32 @@ XAudioServer.prototype.initializeAudio = function () {
 		}
 		catch (error) {
 			try {
-				this.initializeFlashAudio();
+				this.initializeMozAudio();
 			}
 			catch (error) {
-				this.failureCallback();
+				try {
+					this.initializeFlashAudio();
+				}
+				catch (error) {
+					this.failureCallback();
+				}
 			}
 		}
 	}
+}
+XAudioServer.prototype.initializeMediaStream = function () {
+	this.audioHandleMediaStream = new Audio();
+	this.audioHandleMediaStreamWorker = new Worker(XAudioJSsourceOfWorker.substring(0, XAudioJSsourceOfWorker.length - 3) + "Worker.js");
+	this.audioHandleMediaStreamProcessing = new ProcessedMediaStream(this.audioHandleMediaStreamWorker, Math.round(XAudioJSSampleRate), this.audioChannels);
+	this.audioHandleMediaStream.src = this.audioHandleMediaStreamProcessing;
+	this.audioHandleMediaStream.volume = XAudioJSVolume;
+	this.audioHandleMediaStreamRemainingSamples = 0;
+	var parentObj = this;
+	this.audioHandleMediaStreamWorker.onmessage = function (event) {
+		parentObj.audioHandleMediaStreamRemainingSamples = event.data;
+	}
+	this.audioType = 3;
+	this.audioHandleMediaStream.play();
 }
 XAudioServer.prototype.initializeMozAudio = function () {
 	this.audioHandleMoz = new Audio();
@@ -134,6 +177,7 @@ XAudioServer.prototype.initializeMozAudio = function () {
 	if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {
 		throw(new Error(""));
 	}
+	this.audioHandleMoz.volume = XAudioJSVolume;
 	this.samplesAlreadyWritten = 0;
 	this.audioType = 0;
 }
@@ -212,6 +256,9 @@ XAudioServer.prototype.changeVolume = function (newVolume) {
 				else {
 					this.checkFlashInit();
 				}
+				break;
+			case 3:
+				this.audioHandleMediaStream.volume = XAudioJSVolume;
 				break;
 			default:
 				this.failureCallback();
