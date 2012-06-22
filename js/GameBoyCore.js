@@ -5152,10 +5152,10 @@ GameBoyCore.prototype.initLCD = function () {
 		this.canvasOffscreen.height = this.offscreenHeight;
 		this.drawContextOffscreen = this.canvasOffscreen.getContext("2d");
 		this.drawContextOnscreen = this.canvas.getContext("2d");
-		this.canvas.style = "image-rendering: " + ((settings[13]) ? "auto" : "-webkit-optimize-contrast") + ";";
-		this.canvas.style += "image-rendering: " + ((settings[13]) ? "optimizeQuality" : "-o-crisp-edges") + ";";
-		this.canvas.style += "image-rendering: " + ((settings[13]) ? "optimizeQuality" : "-moz-crisp-edges") + ";";
-		this.canvas.style += "-ms-interpolation-mode: " + ((settings[13]) ? "bicubic" : "nearest-neighbor") + ";";
+		this.canvas.setAttribute("style", "image-rendering: " + ((settings[13]) ? "auto" : "-webkit-optimize-contrast") + ";" + 
+		"image-rendering: " + ((settings[13]) ? "optimizeQuality" : "-o-crisp-edges") + ";" +
+		"image-rendering: " + ((settings[13]) ? "optimizeQuality" : "-moz-crisp-edges") + ";" +
+		"-ms-interpolation-mode: " + ((settings[13]) ? "bicubic" : "nearest-neighbor") + ";");
 		this.drawContextOffscreen.webkitImageSmoothingEnabled  = settings[13];
 		this.drawContextOffscreen.mozImageSmoothingEnabled = settings[13];
 		this.drawContextOnscreen.webkitImageSmoothingEnabled  = settings[13];
