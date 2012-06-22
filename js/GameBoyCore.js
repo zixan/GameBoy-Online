@@ -5156,6 +5156,8 @@ GameBoyCore.prototype.initLCD = function () {
 		this.canvas.style += "image-rendering: " + ((settings[13]) ? "optimizeQuality" : "-o-crisp-edges") + ";";
 		this.canvas.style += "image-rendering: " + ((settings[13]) ? "optimizeQuality" : "-moz-crisp-edges") + ";";
 		this.canvas.style += "-ms-interpolation-mode: " + ((settings[13]) ? "bicubic" : "nearest-neighbor") + ";";
+		this.canvasOffscreen.webkitImageSmoothingEnabled  = settings[13];
+		this.canvasOffscreen.mozImageSmoothingEnabled = settings[13];
 		this.drawContextOnscreen.webkitImageSmoothingEnabled  = settings[13];
 		this.drawContextOnscreen.mozImageSmoothingEnabled = settings[13];
 		//Get a CanvasPixelArray buffer:
