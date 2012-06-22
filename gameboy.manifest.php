@@ -8,6 +8,7 @@ js/other/gui.js
 js/other/base64.js
 js/other/resampler.js
 js/other/XAudioServer.js
+js/other/XAudioServerMediaStreamWorker.js
 js/other/transportHandler.js
 js/other/swfobject.js
 js/other/json2.js

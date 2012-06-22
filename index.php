@@ -259,6 +259,17 @@ window.onload = function () {
 		$this->writeAttribute('id', 'gb_boot_rom_utilized');
 		$this->endElement();
 		$this->endElement();
+		$this->startElement('div');
+		$this->writeAttribute('class', 'setting');
+		$this->startElement('span');
+		$this->text('Smooth upon resizing canvas:');
+		$this->endElement();
+		$this->startElement('input');
+		$this->writeAttribute('type', 'checkbox');
+		$this->writeAttribute('checked', 'checked');
+		$this->writeAttribute('id', 'resize_smoothing');
+		$this->endElement();
+		$this->endElement();
 		$this->endElement();
 		$this->startElement('div');
 		$this->writeAttribute('class', 'button_rack');

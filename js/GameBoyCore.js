@@ -5152,6 +5152,12 @@ GameBoyCore.prototype.initLCD = function () {
 		this.canvasOffscreen.height = this.offscreenHeight;
 		this.drawContextOffscreen = this.canvasOffscreen.getContext("2d");
 		this.drawContextOnscreen = this.canvas.getContext("2d");
+		this.canvas.style = "image-rendering: " + ((settings[13]) ? "auto" : "-webkit-optimize-contrast") + ";";
+		this.canvas.style += "image-rendering: " + ((settings[13]) ? "optimizeQuality" : "-o-crisp-edges") + ";";
+		this.canvas.style += "image-rendering: " + ((settings[13]) ? "optimizeQuality" : "-moz-crisp-edges") + ";";
+		this.canvas.style += "-ms-interpolation-mode: " + ((settings[13]) ? "bicubic" : "nearest-neighbor") + ";";
+		this.drawContextOnscreen.webkitImageSmoothingEnabled  = settings[13];
+		this.drawContextOnscreen.mozImageSmoothingEnabled = settings[13];
 		//Get a CanvasPixelArray buffer:
 		try {
 			this.canvasBuffer = this.drawContextOffscreen.createImageData(this.offscreenWidth, this.offscreenHeight);
@@ -6424,7 +6430,7 @@ GameBoyCore.prototype.resizeFrameBuffer = function () {
 GameBoyCore.prototype.compileResizeFrameBufferFunction = function () {
 	if (this.offscreenRGBCount > 0) {
 		var parentObj = this;
-		this.resizer = new Resize(160, 144, this.offscreenWidth, this.offscreenHeight, false, true, false, function (buffer) {
+		this.resizer = new Resize(160, 144, this.offscreenWidth, this.offscreenHeight, false, settings[13], false, function (buffer) {
 			if ((buffer.length / 3 * 4) == parentObj.offscreenRGBCount) {
 				parentObj.processDraw(buffer);
 			}
