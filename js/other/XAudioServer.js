@@ -159,7 +159,7 @@ XAudioServer.prototype.initializeAudio = function () {
 }
 XAudioServer.prototype.initializeMediaStream = function () {
 	this.audioHandleMediaStream = new Audio();
-	this.audioHandleMediaStreamWorker = new Worker(XAudioJSsourceOfWorker.substring(0, XAudioJSsourceOfWorker.length - 3) + "Worker.js");
+	this.audioHandleMediaStreamWorker = new Worker(XAudioJSsourceOfWorker.substring(0, XAudioJSsourceOfWorker.length - 3) + "MediaStreamWorker.js");
 	this.audioHandleMediaStreamProcessing = new ProcessedMediaStream(this.audioHandleMediaStreamWorker, Math.round(XAudioJSSampleRate), this.audioChannels);
 	this.audioHandleMediaStream.src = this.audioHandleMediaStreamProcessing;
 	this.audioHandleMediaStream.volume = XAudioJSVolume;
