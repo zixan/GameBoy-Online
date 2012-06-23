@@ -4,6 +4,7 @@ var XAudioJSResampleBufferStart = 0;
 var XAudioJSResampleBufferEnd = 0;
 var XAudioJSResampleBufferSize = 0;
 var XAudioJSChannelsAllocated = 1;
+var XAudioJSCallbackBufferSize = 0;
 self.onmessage = function (event) {
 	var data = event.data;
 	switch (data[0]) {
@@ -27,11 +28,14 @@ self.onmessage = function (event) {
 		case 1:
 			//Initialize:
 			XAudioJSResampleBufferSize = data[1];
+			XAudioJSChannelsAllocated = data[2];
+			XAudioJSCallbackBufferSize = XAudioJSChannelsAllocated * data[3];
+			XAudioJSResampleBufferSize += XAudioJSCallbackBufferSize;
 			XAudioJSResampledBuffer = new Float32Array(XAudioJSResampleBufferSize);
 	}
+	XAudioJSMaintainBufferMinimum();
 }
 self.onprocessmedia = function (event) {
-	XAudioJSChannelsAllocated = event.audioChannels;
 	var apiBufferLength = event.audioLength;
 	var apiBufferLengthAll = apiBufferLength * XAudioJSChannelsAllocated;
 	if (apiBufferLengthAll > output.length) {
@@ -45,6 +49,7 @@ self.onprocessmedia = function (event) {
 	}
 	event.writeAudio(output.subarray(0, apiBufferLengthAll));
 	self.postMessage(event.audioLength);
+	XAudioJSMaintainBufferMinimum();
 }
 function XAudioJSGetSample() {
 	var sample = 0;
@@ -58,4 +63,9 @@ function XAudioJSGetSample() {
 }
 function XAudioJSResampledSamplesLeft() {
 	return ((XAudioJSResampleBufferStart <= XAudioJSResampleBufferEnd) ? 0 : XAudioJSResampleBufferSize) + XAudioJSResampleBufferEnd - XAudioJSResampleBufferStart;
+}
+function XAudioJSMaintainBufferMinimum() {
+	if (XAudioJSResampledSamplesLeft() < XAudioJSCallbackBufferSize) {
+		self.postMessage(XAudioJSCallbackBufferSize - XAudioJSResampledSamplesLeft());
+	}
 }
