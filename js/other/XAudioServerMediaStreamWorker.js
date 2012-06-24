@@ -51,6 +51,12 @@ self.onprocessmedia = function (event) {
 			}
 		}
 	}
+	//Add some zero fill if we underran the required buffer fill amount:
+	while (sampleFramePosition < apiBufferLength) {
+		for (channelOffset = sampleFramePosition++; channelOffset < apiBufferLengthAll; channelOffset += apiBufferLength) {
+			XAudioJSOutputBuffer[channelOffset] = 0;
+		}
+	}
 	//Write some buffered audio:
 	event.writeAudio(XAudioJSOutputBuffer.subarray(0, apiBufferLengthAll));
 	//Request a buffer from the main thread:
