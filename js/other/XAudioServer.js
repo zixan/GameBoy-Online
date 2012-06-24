@@ -151,7 +151,7 @@ XAudioServer.prototype.initializeMediaStream = function () {
 	this.audioHandleMediaStream.src = this.audioHandleMediaStreamProcessing;
 	this.audioHandleMediaStream.volume = XAudioJSVolume;
 	XAudioJSMediaStreamWorker.onmessage = XAudioJSMediaStreamPushAudio;
-	XAudioJSMediaStreamWorker.postMessage([1, XAudioJSResampleBufferSize, this.audioChannels, XAudioJSSamplesPerCallback]);
+	XAudioJSMediaStreamWorker.postMessage([1, XAudioJSResampleBufferSize, this.audioChannels]);
 	this.audioHandleMediaStream.play();
 	this.audioType = 3;
 }
