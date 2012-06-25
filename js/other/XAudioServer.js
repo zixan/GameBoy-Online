@@ -9,7 +9,6 @@ function XAudioServer(channels, sampleRate, minBufferSize, maxBufferSize, underR
 	this.underRunCallback = (typeof underRunCallback == "function") ? underRunCallback : function () {};
 	XAudioJSVolume = (volume >= 0 && volume <= 1) ? volume : 1;
 	this.failureCallback = (typeof failureCallback == "function") ? failureCallback : function () { throw(new Error("XAudioJS has encountered a fatal error.")); };
-	this.audioType = -1;
 	this.initializeAudio();
 }
 XAudioServer.prototype.MOZWriteAudioNoCallback = function (buffer) {
@@ -24,7 +23,7 @@ XAudioServer.prototype.callbackBasedWriteAudioNoCallback = function (buffer) {
 }
 /*Pass your samples into here!
 Pack your samples as a one-dimenional array
-With the channel samplea packed uniformly.
+With the channel samples packed uniformly.
 examples:
     mono - [left, left, left, left]
     stereo - [left, right, left, right, left, right, left, right]
@@ -48,7 +47,7 @@ XAudioServer.prototype.writeAudio = function (buffer) {
 }
 /*Pass your samples into here if you don't want automatic callback calling:
 Pack your samples as a one-dimenional array
-With the channel samplea packed uniformly.
+With the channel samples packed uniformly.
 examples:
     mono - [left, left, left, left]
     stereo - [left, right, left, right, left, right, left, right]
@@ -118,21 +117,22 @@ XAudioServer.prototype.executeCallback = function () {
 //DO NOT CALL THIS, the lib calls this internally!
 XAudioServer.prototype.initializeAudio = function () {
 	try {
-		this.initializeMediaStream();
+		this.initializeWebAudio();
 	}
 	catch (error) {
 		try {
-			this.initializeWebAudio();
+			this.initializeMozAudio();
 		}
 		catch (error) {
 			try {
-				this.initializeMozAudio();
+				this.initializeMediaStream();
 			}
 			catch (error) {
 				try {
 					this.initializeFlashAudio();
 				}
 				catch (error) {
+					this.audioType = -1;
 					this.failureCallback();
 				}
 			}
@@ -143,7 +143,7 @@ XAudioServer.prototype.initializeMediaStream = function () {
 	this.audioHandleMediaStream = new Audio();
 	this.resetCallbackAPIAudioBuffer(XAudioJSMediaStreamSampleRate);
 	if (XAudioJSMediaStreamWorker) {
-		//WebWorker is not GC'd, so manually collect it:0
+		//WebWorker is not GC'd, so manually collect it:
 		XAudioJSMediaStreamWorker.terminate();
 	}
 	XAudioJSMediaStreamWorker = new Worker(XAudioJSsourceOfWorker.substring(0, XAudioJSsourceOfWorker.length - 3) + "MediaStreamWorker.js");
@@ -158,12 +158,12 @@ XAudioServer.prototype.initializeMediaStream = function () {
 XAudioServer.prototype.initializeMozAudio = function () {
 	this.audioHandleMoz = new Audio();
 	this.audioHandleMoz.mozSetup(this.audioChannels, XAudioJSSampleRate);
-	if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {
-		throw(new Error(""));
-	}
 	this.audioHandleMoz.volume = XAudioJSVolume;
 	this.samplesAlreadyWritten = 0;
 	this.audioType = 0;
+	if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {
+		throw(new Error(""));
+	}
 }
 XAudioServer.prototype.initializeWebAudio = function () {
 	if (XAudioJSWebAudioLaunchedContext) {
@@ -188,6 +188,7 @@ XAudioServer.prototype.initializeFlashAudio = function () {
 		default:
 			XAudioJSFlashTransportEncoder = generateFlashSurroundString;
 	}
+	this.audioType = 2;
 	if (existingFlashload == null) {
 		this.audioHandleFlash = null;
 		var thisObj = this;
@@ -213,8 +214,13 @@ XAudioServer.prototype.initializeFlashAudio = function () {
 					thisObj.audioHandleFlash = event.ref;
 					thisObj.checkFlashInit();
 				}
+				else if (thisObj.audioHandleMoz && thisObj.audioHandleMoz.mozSetup) {
+					//Fallback to moz audio if flash didn't work.
+					thisObj.audioType = 0;
+				}
 				else {
 					thisObj.failureCallback();
+					thisObj.audioType = -1;
 				}
 			}
 		);
@@ -223,7 +229,6 @@ XAudioServer.prototype.initializeFlashAudio = function () {
 		this.audioHandleFlash = existingFlashload;
 		this.checkFlashInit();
 	}
-	this.audioType = 2;
 }
 XAudioServer.prototype.changeVolume = function (newVolume) {
 	if (newVolume >= 0 && newVolume <= 1) {
