@@ -115,7 +115,6 @@ function GameBoyCore(canvas, ROMImage) {
 	//Sound variables:
 	this.audioHandle = null;						//XAudioJS handle
 	this.numSamplesTotal = 0;						//Length of the sound buffers.
-	this.sampleSize = 0;							//Length of the sound buffer for one channel.
 	this.dutyLookup = [								//Map the duty values given to ones we can work with.
 		[false, false, false, false, false, false, false, true],
 		[true, false, false, false, false, false, false, true],
@@ -5072,7 +5071,8 @@ GameBoyCore.prototype.disableBootROM = function () {
 }
 GameBoyCore.prototype.initializeTiming = function () {
 	//Emulator Timing:
-	this.baseCPUCyclesPerIteration = this.emulatorSpeed * 0x80000 / 0x7D * settings[6];
+	this.clocksPerSecond = this.emulatorSpeed * 0x400000;
+	this.baseCPUCyclesPerIteration = this.clocksPerSecond / 1000 * settings[6];
 	this.CPUCyclesTotalRoundoff = this.baseCPUCyclesPerIteration % 4;
 	this.CPUCyclesTotalBase = this.CPUCyclesTotal = (this.baseCPUCyclesPerIteration - this.CPUCyclesTotalRoundoff) | 0;
 	this.CPUCyclesTotalCurrent = 0;
@@ -5231,11 +5231,10 @@ GameBoyCore.prototype.GyroEvent = function (x, y) {
 	this.lowY = y & 0xFF;
 }
 GameBoyCore.prototype.initSound = function () {
-	this.sampleSize = 0x400000 / 1000 * settings[6] * this.emulatorSpeed;
-	this.audioResamplerFirstPassFactor = Math.floor(0x400000 / 44100);
+	this.audioResamplerFirstPassFactor = Math.max(Math.min(Math.floor(this.clocksPerSecond / 44100), Math.floor(0xFFFF / 0x1E0)), 1);
 	this.downSampleInputDivider = 1 / (this.audioResamplerFirstPassFactor * 0xF0);
 	if (settings[0]) {
-		this.audioHandle = new XAudioServer(2, this.emulatorSpeed * 0x400000 / this.audioResamplerFirstPassFactor, 0, Math.max(this.sampleSize * settings[8] / this.audioResamplerFirstPassFactor, 8192) << 1, null, settings[3], function () {
+		this.audioHandle = new XAudioServer(2, this.clocksPerSecond / this.audioResamplerFirstPassFactor, 0, Math.max(this.baseCPUCyclesPerIteration * settings[8] / this.audioResamplerFirstPassFactor, 8192) << 1, null, settings[3], function () {
 			settings[0] = false;
 		});
 		this.initAudioBuffer();
@@ -5260,8 +5259,8 @@ GameBoyCore.prototype.initAudioBuffer = function () {
 	this.audioIndex = 0;
 	this.audioDestinationPosition = 0;
 	this.downsampleInput = 0;
-	this.bufferContainAmount = Math.max(this.sampleSize * settings[7] / this.audioResamplerFirstPassFactor, 4096) << 1;
-	this.numSamplesTotal = (this.sampleSize / this.audioResamplerFirstPassFactor) << 1;
+	this.bufferContainAmount = Math.max(this.baseCPUCyclesPerIteration * settings[7] / this.audioResamplerFirstPassFactor, 4096) << 1;
+	this.numSamplesTotal = (this.baseCPUCyclesPerIteration / this.audioResamplerFirstPassFactor) << 1;
 	this.audioBuffer = this.getTypedArray(this.numSamplesTotal, 0, "float32");
 }
 GameBoyCore.prototype.intializeWhiteNoise = function () {
