@@ -5875,7 +5875,8 @@ GameBoyCore.prototype.run = function () {
 					this.CPUTicks = 0;
 					this.calculateHALTPeriod();
 					if (this.halt) {
-						this.updateCoreFull();
+						this.updateCore();
+						this.iterationEndRoutine();
 					}
 					else {
 						this.executeIteration();
