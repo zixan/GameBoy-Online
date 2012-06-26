@@ -130,6 +130,14 @@ function registerGUIEvents() {
 			}
 		}
 	});
+	addEvent("click", document.getElementById("set_speed"), function () {
+		if (GameBoyEmulatorInitialized()) {
+			var speed = prompt("Set the emulator speed here:", "1.0");
+			if (speed != null && speed.length > 0) {
+				gameboy.setSpeed(Math.max(parseFloat(speed), 0.001));
+			}
+		}
+	});
 	addEvent("click", document.getElementById("internal_file_clicker"), function () {
 		var file_opener = document.getElementById("local_file_open");
 		windowStacks[4].show();

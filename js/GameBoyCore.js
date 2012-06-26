@@ -166,6 +166,7 @@ function GameBoyCore(canvas, ROMImage) {
 	this.channel2currentSampleRightTrimary = 0;
 	this.mixerOutputCache = 0;
 	//Pre-multipliers to cache some calculations:
+	this.emulatorSpeed = 1;
 	this.initializeTiming();
 	//Audio generation counters:
 	this.audioTicks = 0;				//Used to sample the audio system every x CPU instructions.
@@ -5071,10 +5072,17 @@ GameBoyCore.prototype.disableBootROM = function () {
 }
 GameBoyCore.prototype.initializeTiming = function () {
 	//Emulator Timing:
-	this.baseCPUCyclesPerIteration = 0x80000 / 0x7D * settings[6];
+	this.baseCPUCyclesPerIteration = this.emulatorSpeed * 0x80000 / 0x7D * settings[6];
 	this.CPUCyclesTotalRoundoff = this.baseCPUCyclesPerIteration % 4;
 	this.CPUCyclesTotalBase = this.CPUCyclesTotal = (this.baseCPUCyclesPerIteration - this.CPUCyclesTotalRoundoff) | 0;
 	this.CPUCyclesTotalCurrent = 0;
+}
+GameBoyCore.prototype.setSpeed = function (speed) {
+	this.emulatorSpeed = speed;
+	this.initializeTiming();
+	if (this.audioHandle) {
+		this.initSound();
+	}
 }
 GameBoyCore.prototype.setupRAM = function () {
 	//Setup the auxilliary/switchable RAM:
@@ -5223,11 +5231,11 @@ GameBoyCore.prototype.GyroEvent = function (x, y) {
 	this.lowY = y & 0xFF;
 }
 GameBoyCore.prototype.initSound = function () {
-	this.sampleSize = 0x400000 / 1000 * settings[6];
+	this.sampleSize = 0x400000 / 1000 * settings[6] * this.emulatorSpeed;
 	this.audioResamplerFirstPassFactor = Math.floor(0x400000 / 44100);
 	this.downSampleInputDivider = 1 / (this.audioResamplerFirstPassFactor * 0xF0);
 	if (settings[0]) {
-		this.audioHandle = new XAudioServer(2, 0x400000 / this.audioResamplerFirstPassFactor, 0, Math.max(this.sampleSize * settings[8] / this.audioResamplerFirstPassFactor, 8192) << 1, null, settings[3], function () {
+		this.audioHandle = new XAudioServer(2, this.emulatorSpeed * 0x400000 / this.audioResamplerFirstPassFactor, 0, Math.max(this.sampleSize * settings[8] / this.audioResamplerFirstPassFactor, 8192) << 1, null, settings[3], function () {
 			settings[0] = false;
 		});
 		this.initAudioBuffer();

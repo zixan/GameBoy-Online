@@ -397,6 +397,10 @@ window.onload = function () {
 		$this->text('Set Volume');
 		$this->endElement();
 		$this->startElement('li');
+		$this->writeAttribute('id', 'set_speed');
+		$this->text('Set Speed');
+		$this->endElement();
+		$this->startElement('li');
 		$this->writeAttribute('id', 'restart_cpu_clicker');
 		$this->text('Restart');
 		$this->endElement();
