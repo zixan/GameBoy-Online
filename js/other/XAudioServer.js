@@ -81,7 +81,7 @@ XAudioServer.prototype.remainingBuffer = function () {
 			return (Math.floor((resampledSamplesLeft() * XAudioJSResampleControl.ratioWeight) / this.audioChannels) * this.audioChannels) + XAudioJSAudioBufferSize;
 		default:
 			this.failureCallback();
-			return -1;
+			return null;
 	}
 }
 XAudioServer.prototype.MOZExecuteCallback = function () {
@@ -162,7 +162,11 @@ XAudioServer.prototype.initializeMozAudio = function () {
 	this.samplesAlreadyWritten = 0;
 	this.audioType = 0;
 	if (navigator.platform != "MacIntel" && navigator.platform != "MacPPC") {
-		throw(new Error(""));
+		//Add some additional buffering space to workaround a moz audio api issue:
+		var bufferAmount = (XAudioJSSampleRate * this.audioChannels / 10) | 0;
+		bufferAmount -= bufferAmount % this.audioChannels;
+		this.samplesAlreadyWritten -= bufferAmount;
+		
 	}
 }
 XAudioServer.prototype.initializeWebAudio = function () {
@@ -188,7 +192,6 @@ XAudioServer.prototype.initializeFlashAudio = function () {
 		default:
 			XAudioJSFlashTransportEncoder = generateFlashSurroundString;
 	}
-	this.audioType = 2;
 	if (existingFlashload == null) {
 		this.audioHandleFlash = null;
 		var thisObj = this;
@@ -214,10 +217,6 @@ XAudioServer.prototype.initializeFlashAudio = function () {
 					thisObj.audioHandleFlash = event.ref;
 					thisObj.checkFlashInit();
 				}
-				else if (thisObj.audioHandleMoz && thisObj.audioHandleMoz.mozSetup) {
-					//Fallback to moz audio if flash didn't work.
-					thisObj.audioType = 0;
-				}
 				else {
 					thisObj.failureCallback();
 					thisObj.audioType = -1;
@@ -229,6 +228,7 @@ XAudioServer.prototype.initializeFlashAudio = function () {
 		this.audioHandleFlash = existingFlashload;
 		this.checkFlashInit();
 	}
+	this.audioType = 2;
 }
 XAudioServer.prototype.changeVolume = function (newVolume) {
 	if (newVolume >= 0 && newVolume <= 1) {

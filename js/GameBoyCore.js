@@ -5325,8 +5325,8 @@ GameBoyCore.prototype.intializeWhiteNoise = function () {
 GameBoyCore.prototype.audioUnderrunAdjustment = function () {
 	if (settings[0]) {
 		var underrunAmount = this.audioHandle.remainingBuffer();
-		if (underrunAmount > -1) {
-			underrunAmount = this.bufferContainAmount - underrunAmount;
+		if (typeof underrunAmount == "number") {
+			underrunAmount = this.bufferContainAmount - Math.max(underrunAmount, 0);
 			if (underrunAmount > 0) {
 				this.CPUCyclesTotalCurrent += (underrunAmount >> 1) * this.audioResamplerFirstPassFactor;
 				this.recalculateIterationClockLimit();
