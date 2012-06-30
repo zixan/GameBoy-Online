@@ -69,7 +69,7 @@ XAudioServer.prototype.writeAudioNoCallback = function (buffer) {
 	}
 }
 //Developer can use this to see how many samples to write (example: minimum buffer allotment minus remaining samples left returned from this function to make sure maximum buffering is done...)
-//If -1 is returned, then that means metric could not be done.
+//If null is returned, then that means metric could not be done.
 XAudioServer.prototype.remainingBuffer = function () {
 	switch (this.audioType) {
 		case 0:
@@ -290,40 +290,49 @@ function XAudioJSFlashAudioEvent() {		//The callback that flash calls...
 	return XAudioJSFlashTransportEncoder();
 }
 function generateFlashSurroundString() {	//Convert the arrays to one long string for speed.
-	var XAudioJSBinaryString = "";
+	var XAudioJSTotalSamples = XAudioJSSamplesPerCallback << 1;
+	if (XAudioJSBinaryString.length > XAudioJSTotalSamples) {
+		XAudioJSBinaryString = [];
+	}
+	XAudioJSTotalSamples = 0;
 	for (var index = 0; index < XAudioJSSamplesPerCallback && XAudioJSResampleBufferStart != XAudioJSResampleBufferEnd; ++index) {
 		//Sanitize the buffer:
-		XAudioJSBinaryString += String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
-		XAudioJSBinaryString += String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		XAudioJSBinaryString[XAudioJSTotalSamples++] = String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		XAudioJSBinaryString[XAudioJSTotalSamples++] = String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 		XAudioJSResampleBufferStart += XAudioJSChannelsAllocated - 2;
 		if (XAudioJSResampleBufferStart == XAudioJSResampleBufferSize) {
 			XAudioJSResampleBufferStart = 0;
 		}
 	}
-	return XAudioJSBinaryString;
+	return XAudioJSBinaryString.join("");
 }
 function generateFlashStereoString() {	//Convert the arrays to one long string for speed.
-	var XAudioJSBinaryString = "";
-	for (var index = 0; index < XAudioJSSamplesPerCallback && XAudioJSResampleBufferStart != XAudioJSResampleBufferEnd; ++index) {
+	var XAudioJSTotalSamples = XAudioJSSamplesPerCallback << 1;
+	if (XAudioJSBinaryString.length > XAudioJSTotalSamples) {
+		XAudioJSBinaryString = [];
+	}
+	for (var index = 0; index < XAudioJSTotalSamples && XAudioJSResampleBufferStart != XAudioJSResampleBufferEnd;) {
 		//Sanitize the buffer:
-		XAudioJSBinaryString += String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
-		XAudioJSBinaryString += String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		XAudioJSBinaryString[index++] = String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		XAudioJSBinaryString[index++] = String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 		if (XAudioJSResampleBufferStart == XAudioJSResampleBufferSize) {
 			XAudioJSResampleBufferStart = 0;
 		}
 	}
-	return XAudioJSBinaryString;
+	return XAudioJSBinaryString.join("");
 }
 function generateFlashMonoString() {	//Convert the array to one long string for speed.
-	var XAudioJSBinaryString = "";
-	for (var index = 0; index < XAudioJSSamplesPerCallback && XAudioJSResampleBufferStart != XAudioJSResampleBufferEnd; ++index) {
+	if (XAudioJSBinaryString.length > XAudioJSSamplesPerCallback) {
+		XAudioJSBinaryString = [];
+	}
+	for (var index = 0; index < XAudioJSSamplesPerCallback && XAudioJSResampleBufferStart != XAudioJSResampleBufferEnd;) {
 		//Sanitize the buffer:
-		XAudioJSBinaryString += String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
+		XAudioJSBinaryString[index++] = String.fromCharCode(((Math.min(Math.max(XAudioJSResampledBuffer[XAudioJSResampleBufferStart++] + 1, 0), 2) * 0x3FFF) | 0) + 0x3000);
 		if (XAudioJSResampleBufferStart == XAudioJSResampleBufferSize) {
 			XAudioJSResampleBufferStart = 0;
 		}
 	}
-	return XAudioJSBinaryString;
+	return XAudioJSBinaryString.join("");
 }
 //Some Required Globals:
 var XAudioJSWebAudioContextHandle = null;
@@ -349,6 +358,7 @@ var XAudioJSMediaStreamSampleRate = 44100;
 var XAudioJSSamplesPerCallback = 2048;			//Has to be between 2048 and 4096 (If over, then samples are ignored, if under then silence is added).
 var XAudioJSFlashTransportEncoder = null;
 var XAudioJSMediaStreamLengthAliasCounter = 0;
+var XAudioJSBinaryString = [];
 function audioOutputEvent(event) {		//Web Audio API callback...
 	var index = 0;
 	var buffer1 = event.outputBuffer.getChannelData(0);
