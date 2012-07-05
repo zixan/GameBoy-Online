@@ -23,9 +23,6 @@ window.onload = function () {
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/resampler.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/XAudioServer.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/resize.js'),
-			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/sylvester.js'),
-			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/glUtils.js'),
-			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/BlitAssistant.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyCore.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyIO.js')
 		);

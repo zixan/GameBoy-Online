@@ -14,8 +14,6 @@ js/other/swfobject.js
 js/other/json2.js
 js/other/resize.js
 js/other/resizeWorker.js
-js/other/glUtils.js
-js/other/BlitAssistant.js
 js/GameBoyCore.js
 js/GameBoyIO.js
 images/gradient_01.svg.php
