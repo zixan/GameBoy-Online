@@ -20,7 +20,7 @@ function base64(data) {
 			}
 			while (index < dataLength) {
 				//Keep this loop small for speed.
-				bytes = [data.charCodeAt(index++), data.charCodeAt(index++), data.charCodeAt(index++)];
+				bytes = [data.charCodeAt(index++) & 0xFF, data.charCodeAt(index++) & 0xFF, data.charCodeAt(index++) & 0xFF];
 				base64 += toBase64[bytes[0] >> 2] + toBase64[((bytes[0] & 0x3) << 4) | (bytes[1] >> 4)] + toBase64[((bytes[1] & 0xF) << 2) | (bytes[2] >> 6)] + toBase64[bytes[2] & 0x3F];
 			}
 			if (remainder > 0) {
@@ -73,4 +73,23 @@ function to_little_endian_word(str) {
 }
 function to_byte(str) {
 	return String.fromCharCode(str & 0xFF);
+}
+function arrayToBase64(arrayIn) {
+	var binString = "";
+	var length = arrayIn.length;
+	for (var index = 0; index < length; ++index) {
+		if (typeof arrayIn[index] == "number") {
+			binString += String.fromCharCode(arrayIn[index]);
+		}
+	}
+	return base64(binString);
+}
+function base64ToArray(b64String) {
+	var binString = base64_decode(b64String);
+	var outArray = [];
+	var length = binString.length;
+	for (var index = 0; index < length;) {
+		outArray.push(binString.charCodeAt(index++) & 0xFF);
+	}
+	return outArray;
 }

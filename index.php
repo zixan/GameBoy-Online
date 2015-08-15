@@ -1,33 +1,52 @@
 <?php
-define(CSSDIR, 'css');
-define(JSDIR, 'js');
+define('CSSDIR', 'css');
+define('JSDIR', 'js');
 require_once('./res/framework.php');
 class GameBoy extends site {
 	function start_processing() {
 		$this->title = 'GameBoy Online';
 		$this->script = '
-DEBUG_MESSAGES = true;
+DEBUG_MESSAGES = false;
 DEBUG_WINDOWING = false;
+window.onload = function () {
+	windowingInitialize();
+}
 ';
 		$this->script_alt = array(
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/windowStack.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/terminal.js'),
-			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/opacity.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/gui.js'),
-			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/BMPCanvas.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/base64.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/transportHandler.js'),
-			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/waveAudio.js'),
-			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/audioRunner.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/json2.js'),
+			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/swfobject.js'),
+			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/resampler.js'),
+			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/XAudioServer.js'),
+			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/other/resize.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyCore.js'),
 			$this->server->convert_out_of_set_chars($this->server->url['folder'].JSDIR.'/GameBoyIO.js')
 		);
-		$this->meta = array('viewport'=>'initial-scale=1.0;width=640;user-scalable=no;');
-		$this->style = '@import url("'.$this->server->convert_out_of_set_chars($this->server->url['folder'].CSSDIR.'/GameBoy.css.php').(($this->server->get('border-radius') == 'true') ? '?rounded=true' : '').'");';
-		$this->manifest = $this->server->convert_out_of_set_chars($this->server->url['folder'].'gameboy.manifest');
+		$this->style = '@import url("'.$this->server->convert_out_of_set_chars($this->server->url['folder'].CSSDIR.'/GameBoy.css').(($this->server->get('border-radius') == 'true') ? '?rounded=true' : '').'");';
+		$this->manifest = $this->server->convert_out_of_set_chars($this->server->url['folder'].'gameboy.manifest.php');
 	}
 	function body_render() {
+		//Generate the "windowing":
+		$this->emulatorMain();
+		$this->displayTerminal();
+		$this->displayAbout();
+		$this->displaySettings();
+		$this->displayInstructions();
+		$this->fileInput();
+		$this->saveInput();
+		$this->displayStorageListing();
+		$this->displayStoragePopup();
+		$this->displayFreezeListing();
+		//Generate the Pop-Ups:
+		$this->generatePopUps();
+		//Fullscreen canvas:
+		$this->fullscreenGenerate();
+	}
+	protected function emulatorMain() {
 		$this->startElement('div');
 		$this->writeAttribute('id', 'GameBoy');
 		$this->writeAttribute('class', 'window');
@@ -53,9 +72,7 @@ DEBUG_WINDOWING = false;
 		$this->startElement('div');
 		$this->writeAttribute('id', 'gfx');
 		$this->startElement('canvas');
-		$this->endElement();
-		$this->startElement('div');
-		$this->writeAttribute('id', 'canvasAltContainer');
+		$this->writeAttribute('id', 'mainCanvas');
 		$this->endElement();
 		$this->startElement('span');
 		$this->writeAttribute('id', 'title');
@@ -67,6 +84,8 @@ DEBUG_WINDOWING = false;
 		$this->endElement();
 		$this->endElement();
 		$this->endElement();
+	}
+	protected function displayTerminal() {
 		$this->startElement('div');
 		$this->writeAttribute('id', 'terminal');
 		$this->writeAttribute('class', 'window');
@@ -87,6 +106,8 @@ DEBUG_WINDOWING = false;
 		$this->endElement();
 		$this->endElement();
 		$this->endElement();
+	}
+	protected function displayAbout() {
 		$this->startElement('div');
 		$this->writeAttribute('id', 'about');
 		$this->writeAttribute('class', 'window');
@@ -96,28 +117,22 @@ DEBUG_WINDOWING = false;
 		$this->text('GameBoy Online');
 		$this->endElement();
 		$this->startElement('p');
-		$this->text('This is a GameBoy Color emulator written in JavaScript, with small portions of code ported from MeBoy.');
+		$this->text('This is a GameBoy Color emulator written purely in JavaScript by Grant Galitz.');
 		$this->endElement();
 		$this->startElement('p');
-		$this->text('The audio backend attempts to use the Mozilla proprietary mozWriteAudio first, then if necessary falls back to WAV PCM formatted audio in browsers that implement it through data URIs.');
-		$this->endElement();
-		$this->startElement('p');
-		$this->text('A browser that can use the CanvasPixelArray implementation of the canvas element or can display BMP formatted images through data URIs is required to run the graphics display.');
+		$this->text('The graphics blitting is done through HTML5 canvas, with the putImageData and drawImage functions.');
 		$this->endElement();
 		$this->startElement('p');
 		$this->text('Save states are implemented through the window.localStorage object, and are serialized/deserialized through JSON.');
+		$this->text(' SRAM saving is also implemented through the window.localStorage object, and are serialized/deserialized through JSON.');
 		$this->text(' In order for save states to work properly on most browsers, you need set the maximum size limit for DOM storage higher, to meet the needs of the emulator\'s save data size.');
 		$this->endElement();
 		$this->startElement('p');
-		$this->text('For the reference below, this site is not affiliated with it , nor endorses any actions by it.
-Please note that downloading and obtaining GameBoy and GameBoy Color rom files may entail illegal activities, and as such are not endorsed and are done at your own risk.');
-		$this->endElement();
-		$this->startElement('p');
-		$this->text('For more information about MeBoy and its source code, visit ');
+		$this->text('For more information about this emulator and its source code, visit the GIT repository at: ');
 		$this->startElement('a');
-		$this->writeAttribute('href', 'http://arktos.se/meboy/');
+		$this->writeAttribute('href', 'https://github.com/grantgalitz/GameBoy-Online');
 		$this->writeAttribute('target', '_blank');
-		$this->text('http://arktos.se/meboy/');
+		$this->text('https://github.com/grantgalitz/GameBoy-Online');
 		$this->endElement();
 		$this->text('.');
 		$this->endElement();
@@ -131,6 +146,8 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->endElement();
 		$this->endElement();
 		$this->endElement();
+	}
+	protected function displaySettings() {
 		$this->startElement('div');
 		$this->writeAttribute('class', 'window');
 		$this->writeAttribute('id', 'settings');
@@ -139,22 +156,12 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->startElement('div');
 		$this->writeAttribute('class', 'setting');
 		$this->startElement('span');
-		$this->text('Enable Sound  (Experimental):');
+		$this->text('Enable Sound:');
 		$this->endElement();
 		$this->startElement('input');
 		$this->writeAttribute('type', 'checkbox');
 		$this->writeAttribute('checked', 'checked');
 		$this->writeAttribute('id', 'enable_sound');
-		$this->endElement();
-		$this->endElement();
-		$this->startElement('div');
-		$this->writeAttribute('class', 'setting');
-		$this->startElement('span');
-		$this->text('Force Mono Sound:');
-		$this->endElement();
-		$this->startElement('input');
-		$this->writeAttribute('type', 'checkbox');
-		$this->writeAttribute('id', 'enable_mono_sound');
 		$this->endElement();
 		$this->endElement();
 		$this->startElement('div');
@@ -170,33 +177,12 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->startElement('div');
 		$this->writeAttribute('class', 'setting');
 		$this->startElement('span');
-		$this->text('Use GBC BIOS (Note: Overrides GB priority):');
+		$this->text('Use the BIOS ROM:');
 		$this->endElement();
 		$this->startElement('input');
 		$this->writeAttribute('type', 'checkbox');
 		$this->writeAttribute('checked', 'checked');
 		$this->writeAttribute('id', 'enable_gbc_bios');
-		$this->endElement();
-		$this->endElement();
-		$this->startElement('div');
-		$this->writeAttribute('class', 'setting');
-		$this->startElement('span');
-		$this->text('The data URI BMP method has priority over the canvas tag method:');
-		$this->endElement();
-		$this->startElement('input');
-		$this->writeAttribute('type', 'checkbox');
-		$this->writeAttribute('id', 'bmp_method');
-		$this->endElement();
-		$this->endElement();
-		$this->startElement('div');
-		$this->writeAttribute('class', 'setting');
-		$this->startElement('span');
-		$this->text('Auto frame skip:');
-		$this->endElement();
-		$this->startElement('input');
-		$this->writeAttribute('type', 'checkbox');
-		$this->writeAttribute('id', 'auto_frameskip');
-		$this->writeAttribute('checked', 'checked');
 		$this->endElement();
 		$this->endElement();
 		$this->startElement('div');
@@ -263,6 +249,27 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->writeAttribute('id', 'typed_arrays_disallow');
 		$this->endElement();
 		$this->endElement();
+		$this->startElement('div');
+		$this->writeAttribute('class', 'setting');
+		$this->startElement('span');
+		$this->text('Use the DMG boot ROM instead of CGB:');
+		$this->endElement();
+		$this->startElement('input');
+		$this->writeAttribute('type', 'checkbox');
+		$this->writeAttribute('id', 'gb_boot_rom_utilized');
+		$this->endElement();
+		$this->endElement();
+		$this->startElement('div');
+		$this->writeAttribute('class', 'setting');
+		$this->startElement('span');
+		$this->text('Smooth upon resizing canvas:');
+		$this->endElement();
+		$this->startElement('input');
+		$this->writeAttribute('type', 'checkbox');
+		$this->writeAttribute('checked', 'checked');
+		$this->writeAttribute('id', 'resize_smoothing');
+		$this->endElement();
+		$this->endElement();
 		$this->endElement();
 		$this->startElement('div');
 		$this->writeAttribute('class', 'button_rack');
@@ -273,6 +280,89 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->endElement();
 		$this->endElement();
 		$this->endElement();
+	}
+	protected function displayStorageListing() {
+		$this->startElement('div');
+		$this->writeAttribute('class', 'window');
+		$this->writeAttribute('id', 'local_storage_listing');
+		$this->startElement('div');
+		$this->writeAttribute('id', 'storageListingMasterContainer');
+		$this->writeAttribute('class', 'storageList');
+		$this->startElement('div');
+		$this->writeAttribute('id', 'storageListingMasterContainerSub');
+		$this->endElement();
+		$this->endElement();
+		$this->startElement('div');
+		$this->writeAttribute('id', 'download_all_storage');
+		$this->startElement('a');
+		$this->writeAttribute('href', 'about:blank');
+		$this->writeAttribute('id', 'download_local_storage_dba');
+		$this->text('Export all saved data.');
+		$this->endElement();
+		$this->endElement();
+		$this->startElement('div');
+		$this->writeAttribute('class', 'button_rack');
+		$this->startElement('button');
+		$this->writeAttribute('id', 'local_storage_list_refresh_button');
+		$this->writeAttribute('class', 'left');
+		$this->text('Refresh List');
+		$this->endElement();
+		$this->startElement('button');
+		$this->writeAttribute('id', 'local_storage_list_close_button');
+		$this->writeAttribute('class', 'right');
+		$this->text('Close Storage List');
+		$this->endElement();
+		$this->endElement();
+		$this->endElement();
+	}
+	protected function displayFreezeListing() {
+		$this->startElement('div');
+		$this->writeAttribute('class', 'window');
+		$this->writeAttribute('id', 'freeze_listing');
+		$this->startElement('div');
+		$this->writeAttribute('id', 'freezeListingMasterContainer');
+		$this->writeAttribute('class', 'storageList');
+		$this->startElement('div');
+		$this->writeAttribute('id', 'freezeListingMasterContainerSub');
+		$this->endElement();
+		$this->endElement();
+		$this->startElement('div');
+		$this->writeAttribute('class', 'button_rack');
+		$this->startElement('button');
+		$this->writeAttribute('id', 'freeze_list_refresh_button');
+		$this->writeAttribute('class', 'left');
+		$this->text('Refresh List');
+		$this->endElement();
+		$this->startElement('button');
+		$this->writeAttribute('id', 'freeze_list_close_button');
+		$this->writeAttribute('class', 'right');
+		$this->text('Close Freeze State List');
+		$this->endElement();
+		$this->endElement();
+		$this->endElement();
+	}
+	protected function displayStoragePopup() {
+		$this->startElement('div');
+		$this->writeAttribute('class', 'window');
+		$this->writeAttribute('id', 'local_storage_popup');
+		$this->startElement('div');
+		$this->writeAttribute('id', 'storagePopupMasterParent');
+		$this->writeAttribute('class', 'storageList');
+		$this->startElement('div');
+		$this->writeAttribute('id', 'storagePopupMasterContainer');
+		$this->endElement();
+		$this->endElement();
+		$this->startElement('div');
+		$this->writeAttribute('class', 'button_rack');
+		$this->startElement('button');
+		$this->writeAttribute('id', 'local_storage_popup_close_button');
+		$this->writeAttribute('class', 'center');
+		$this->text('Close Storage Popup');
+		$this->endElement();
+		$this->endElement();
+		$this->endElement();
+	}
+	protected function generatePopUps() {
 		$this->startElement('ul');
 		$this->writeAttribute('class', 'menu');
 		$this->writeAttribute('id', 'GameBoy_file_popup');
@@ -292,19 +382,23 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->writeAttribute('id', 'internal_file_clicker');
 		$this->text('Local File');
 		$this->endElement();
+		$this->endElement();
+		$this->endElement();
 		$this->startElement('li');
-		$this->writeAttribute('id', 'open_saved_clicker');
-		$this->text('Saved State');
-		$this->startElement('ul');
-		$this->writeAttribute('id', 'save_states');
-		$this->writeAttribute('class', 'menu');
-		$this->endElement();
-		$this->endElement();
-		$this->endElement();
+		$this->writeAttribute('id', 'save_SRAM_state_clicker');
+		$this->text('Save Game Memory');
 		$this->endElement();
 		$this->startElement('li');
 		$this->writeAttribute('id', 'save_state_clicker');
-		$this->text('Save State');
+		$this->text('Save Freeze State');
+		$this->endElement();
+		$this->startElement('li');
+		$this->writeAttribute('id', 'set_volume');
+		$this->text('Set Volume');
+		$this->endElement();
+		$this->startElement('li');
+		$this->writeAttribute('id', 'set_speed');
+		$this->text('Set Speed');
 		$this->endElement();
 		$this->startElement('li');
 		$this->writeAttribute('id', 'restart_cpu_clicker');
@@ -331,10 +425,24 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->text('Instructions');
 		$this->endElement();
 		$this->startElement('li');
+		$this->writeAttribute('id', 'view_importer');
+		$this->text('Save Importer');
+		$this->endElement();
+		$this->startElement('li');
+		$this->writeAttribute('id', 'local_storage_list_menu');
+		$this->text('Save Manager');
+		$this->endElement();
+		$this->startElement('li');
+		$this->writeAttribute('id', 'freeze_list_menu');
+		$this->text('Freeze State Manager');
+		$this->endElement();
+		$this->startElement('li');
 		$this->writeAttribute('id', 'view_fullscreen');
 		$this->text('Fullscreen Mode');
 		$this->endElement();
 		$this->endElement();
+	}
+	protected function fileInput() {
 		$this->startElement('div');
 		$this->writeAttribute('id', 'input_select');
 		$this->writeAttribute('class', 'window');
@@ -353,6 +461,28 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->endElement();
 		$this->endElement();
 		$this->endElement();
+	}
+	protected function saveInput() {
+		$this->startElement('div');
+		$this->writeAttribute('id', 'save_importer');
+		$this->writeAttribute('class', 'window');
+		$this->startElement('form');
+		$this->startElement('input');
+		$this->writeAttribute('type', 'file');
+		$this->writeAttribute('id', 'save_open');
+		$this->endElement();
+		$this->endElement();
+		$this->startElement('div');
+		$this->writeAttribute('class', 'button_rack');
+		$this->startElement('button');
+		$this->writeAttribute('id', 'save_importer_close_button');
+		$this->writeAttribute('class', 'center');
+		$this->text('Close Save Importer');
+		$this->endElement();
+		$this->endElement();
+		$this->endElement();
+	}
+	protected function displayInstructions() {
 		$this->startElement('div');
 		$this->writeAttribute('id', 'instructions');
 		$this->writeAttribute('class', 'window');
@@ -363,10 +493,10 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->endElement();
 		$this->startElement('ul');
 		$this->startElement('li');
-		$this->text('X is A.');
+		$this->text('X/J are A.');
 		$this->endElement();
 		$this->startElement('li');
-		$this->text('Z is B.');
+		$this->text('Z/Y/Q are B.');
 		$this->endElement();
 		$this->startElement('li');
 		$this->text('Shift is Select.');
@@ -391,25 +521,14 @@ Please note that downloading and obtaining GameBoy and GameBoy Color rom files m
 		$this->endElement();
 		$this->endElement();
 		$this->endElement();
+	}
+	protected function fullscreenGenerate() {
 		$this->startElement('div');
 		$this->writeAttribute('id', 'fullscreenContainer');
 		$this->startElement('canvas');
 		$this->writeAttribute('id', 'fullscreen');
 		$this->writeAttribute('class', 'maximum');
 		$this->endElement();
-		$this->endElement();
-		$this->startElement('script');
-		$this->writeAttribute('type', 'text/javascript');
-		$this->text('
-try {
-	addEvent("DOMContentLoaded", document, windowingPreInitUnsafe);
-	addEvent("readystatechange", document, windowingPreInitSafe);
-	addEvent("load", document, windowingPreInitUnsafe);
-}
-catch (error) {
-	alert("Could not initialize the emulator properly. Please try using a standards compliant browser.");
-}
-');
 		$this->endElement();
 	}
 }
